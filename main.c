@@ -608,21 +608,35 @@ void printPakInfo(struct pak_t* pak) {
 		decryptImage(pak_chunk->header->_01_type_code, AES_BLOCK_SIZE,
 				decrypted);
 
+		pak_type_t pak_type = convertToPakType(decrypted);
+
 		printf("  chunk #%u ('%.*s') contains %u bytes\n", pak_chunk_index + 1,
-				4, decrypted, pak_chunk->content_len);
+				4, getPakName(pak_type), pak_chunk->content_len);
 
 		free(decrypted);
 	}
 }
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
-	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 1;
+	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
 	char *result = malloc(len);
 	memset(result, 0, len);
+	strcat(result, "./");
 	strcat(result, directory);
 	strcat(result, "/");
 	strcat(result, filename);
+
 	return result;
+}
+
+char* getFwVersionString(struct epak_header_t *epak_header) {
+	char *fw_version = malloc(0x10);
+
+	sprintf(fw_version, "%02x.%02x.%02x.%02x", epak_header->_05_fw_version[3],
+			epak_header->_05_fw_version[2], epak_header->_05_fw_version[1],
+			epak_header->_05_fw_version[0]);
+
+	return fw_version;
 }
 
 int main(int argc, char *argv[]) {
@@ -695,17 +709,17 @@ int main(int argc, char *argv[]) {
 
 	scanPAKs(epak_header, pak_array);
 
-	char *fw_version[0x10];
+	char *fw_version = getFwVersionString(epak_header);
 
-	sprintf(fw_version, "%02x.%02x.%02x.%02x", epak_header->_05_fw_version[3],
-			epak_header->_05_fw_version[2], epak_header->_05_fw_version[1],
-			epak_header->_05_fw_version[0]);
+	//	sprintf(fw_version, "%02x.%02x.%02x.%02x", epak_header->_05_fw_version[3],
+	//			epak_header->_05_fw_version[2], epak_header->_05_fw_version[1],
+	//			epak_header->_05_fw_version[0]);
 
 	struct stat st;
 	if (stat((const char*) fw_version, &st) != 0) {
 		if (mkdir((const char*) fw_version, 0744) != 0) {
 			printf("Can't create directory %s within current directory",
-					*fw_version);
+					fw_version);
 			exit(1);
 		}
 	}
@@ -723,16 +737,16 @@ int main(int argc, char *argv[]) {
 
 		printPakInfo(pak);
 
-		char filename[100] = "./";
-		strcat(filename, (const char*) fw_version);
-		strcat(filename, "/");
-		strcat(filename, getPakName(pak->type));
-		strcat(filename, ".image");
+		const char *pak_type_name = getPakName(pak->type);
+
+		char filename[100] = "";
+
+		sprintf(filename, "./%s/%s.image", fw_version, pak_type_name);
 
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
-				epak_header->_03_pak_count, getPakName(pak->type), filename);
+				epak_header->_03_pak_count, pak_type_name, filename);
 
-		FILE *outfile = fopen(((const char*) &filename), "w");
+		FILE *outfile = fopen(((const char*) filename), "w");
 
 		int pak_chunk_index;
 		for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
@@ -752,11 +766,9 @@ int main(int argc, char *argv[]) {
 		fclose(outfile);
 
 		if (pak->type == LGAP || pak->type == KERN) {
-			char unpacked[100] = "./";
-			strcat(unpacked, (const char*) fw_version);
-			strcat(unpacked, "/");
-			strcat(unpacked, getPakName(pak->type));
-			strcat(unpacked, ".cramfs");
+			char unpacked[100] = "";
+
+			sprintf(unpacked, "./%s/%s.cramfs", fw_version, pak_type_name);
 
 			int lzo_ret_code;
 			if ((lzo_ret_code = lzo_unpack((const char*) filename,
@@ -768,7 +780,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			printf("decompressed %s with modified LZO algorithm to %s\n",
-									filename, unpacked);
+					filename, unpacked);
 
 			if ((lzo_ret_code == 0) && (pak->type == LGAP)) {
 
@@ -779,10 +791,8 @@ int main(int argc, char *argv[]) {
 					exit(1);
 				}
 
-				char _release[100] = "./";
-				strcat(_release, (const char*) fw_version);
-				strcat(_release, "/");
-				strcat(_release, "RELEASE");
+				char _release[100] = "";
+				sprintf(_release, "./%s/RELEASE", fw_version);
 
 				FILE *release = fopen(_release, "wb");
 
