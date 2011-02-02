@@ -766,24 +766,22 @@ int main(int argc, char *argv[]) {
 
 		writePakChunks(pak, filename);
 
-		if (pak->type == LGAP || pak->type == KERN) {
+		printf("check lzo header %u\n", check_lzo_header(filename));
+
+		if(check_lzo_header(filename) == 0) {
 			char unpacked[100] = "";
 
 			sprintf(unpacked, "./%s/%s.cramfs", fw_version, pak_type_name);
 
-			int lzo_ret_code;
-			if ((lzo_ret_code = lzo_unpack((const char*) filename,
-					(const char*) unpacked)) != 0) {
-				if (lzo_ret_code != 1) {
-					printf("sorry. decompression failed. aborting now.\n");
-					exit(1);
-				}
+			printf("decompressing %s with modified LZO algorithm to %s\n",
+								filename, unpacked);
+
+			if (lzo_unpack((const char*) filename,	(const char*) unpacked) != 0) {
+				printf("sorry. decompression failed. aborting now.\n");
+				exit(1);
 			}
 
-			printf("decompressed %s with modified LZO algorithm to %s\n",
-					filename, unpacked);
-
-			if ((lzo_ret_code == 0) && (pak->type == LGAP)) {
+			if ((pak->type == LGAP)) {
 
 				FILE *cramfs = fopen(unpacked, "rb");
 
