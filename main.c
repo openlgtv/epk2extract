@@ -649,7 +649,9 @@ void createDirIfNotExist(const char *directory) {
 	}
 }
 
-void writePakChunks(struct pak_t *pak, FILE *outfile) {
+void writePakChunks(struct pak_t *pak, const char *filename) {
+	FILE *outfile = fopen(((const char*) filename), "w");
+
 	int pak_chunk_index;
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
 		struct pak_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
@@ -662,6 +664,8 @@ void writePakChunks(struct pak_t *pak, FILE *outfile) {
 
 		free(decrypted);
 	}
+
+	fclose(outfile);
 }
 
 int main(int argc, char *argv[]) {
@@ -760,11 +764,7 @@ int main(int argc, char *argv[]) {
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);
 
-		FILE *outfile = fopen(((const char*) filename), "w");
-
-		writePakChunks(pak, outfile);
-
-		fclose(outfile);
+		writePakChunks(pak, filename);
 
 		if (pak->type == LGAP || pak->type == KERN) {
 			char unpacked[100] = "";
