@@ -562,8 +562,7 @@ void scanPAKs(struct epak_header_t *epak_header, struct pak_t **pak_array) {
 			pak_chunk->header = pak_chunk_header;
 			pak_chunk->content = pak_chunk_header->_04_unknown3
 					+ sizeof(pak_chunk_header->_04_unknown3);
-			//			pak_chunk->content_len = pak_chunk_content_length
-			//					- sizeof(pak_chunk_header->_00_signature);
+
 			pak_chunk->content_len = signed_length
 					- sizeof(struct pak_chunk_header_t);
 
@@ -639,6 +638,32 @@ char* getFwVersionString(struct epak_header_t *epak_header) {
 	return fw_version;
 }
 
+void createDirIfNotExist(const char *directory) {
+	struct stat st;
+	if (stat(directory, &st) != 0) {
+		if (mkdir((const char*) directory, 0744) != 0) {
+			printf("Can't create directory %s within current directory",
+					directory);
+			exit(1);
+		}
+	}
+}
+
+void writePakChunks(struct pak_t *pak, FILE *outfile) {
+	int pak_chunk_index;
+	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
+		struct pak_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
+
+		int content_len = pak_chunk->content_len;
+		unsigned char* decrypted = malloc(content_len);
+		memset(decrypted, 0xFF, content_len);
+		decryptImage(pak_chunk->content, content_len, decrypted);
+		fwrite(decrypted, 1, content_len, outfile);
+
+		free(decrypted);
+	}
+}
+
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware EPK2 extractor\n");
@@ -711,18 +736,7 @@ int main(int argc, char *argv[]) {
 
 	char *fw_version = getFwVersionString(epak_header);
 
-	//	sprintf(fw_version, "%02x.%02x.%02x.%02x", epak_header->_05_fw_version[3],
-	//			epak_header->_05_fw_version[2], epak_header->_05_fw_version[1],
-	//			epak_header->_05_fw_version[0]);
-
-	struct stat st;
-	if (stat((const char*) fw_version, &st) != 0) {
-		if (mkdir((const char*) fw_version, 0744) != 0) {
-			printf("Can't create directory %s within current directory",
-					fw_version);
-			exit(1);
-		}
-	}
+	createDirIfNotExist(fw_version);
 
 	int pak_index;
 	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
@@ -748,20 +762,7 @@ int main(int argc, char *argv[]) {
 
 		FILE *outfile = fopen(((const char*) filename), "w");
 
-		int pak_chunk_index;
-		for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
-			struct pak_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
-
-			int content_len = pak_chunk->content_len;
-
-			unsigned char* decrypted = malloc(content_len);
-			memset(decrypted, 0xFF, content_len);
-
-			decryptImage(pak_chunk->content, content_len, decrypted);
-			fwrite(decrypted, 1, content_len, outfile);
-
-			free(decrypted);
-		}
+		writePakChunks(pak, outfile);
 
 		fclose(outfile);
 
