@@ -668,6 +668,55 @@ void writePakChunks(struct pak_t *pak, const char *filename) {
 	fclose(outfile);
 }
 
+void extractRELEASE(const char *cramfs_image, const char *destination) {
+	FILE *cramfs = fopen(cramfs_image, "rb");
+
+	if (cramfs == NULL) {
+		printf("Can't open file %s\n", cramfs_image);
+		exit(1);
+	}
+
+	FILE *release = fopen(destination, "wb");
+
+	if (release == NULL) {
+		printf("Can't open file RELEASE\n");
+		exit(1);
+	}
+
+	chmod(destination, 00744);
+
+	int buf_len = 0x1000;
+	char buffer[buf_len];
+
+	fread(buffer, 1, buf_len, cramfs);
+
+	struct cramfs_header_t *cramfs_header =
+			(struct cramfs_header_t *) buffer;
+
+	uint32_t release_size = cramfs_header->_01_file_size;
+
+	// correct the size by changing most significant byte from 0xc9 to 0x1
+	release_size -= 0xc8000000;
+
+	printf(
+			"extracting XIPed RELEASE executable from cramfs image to %s\n",
+			destination);
+
+	int end_pos = release_size;
+	int count = 0;
+	while (count < end_pos) {
+		int diff = end_pos - count;
+		if (diff < buf_len)
+			buf_len = diff;
+		size_t read = fread(buffer, 1, buf_len, cramfs);
+		size_t written = fwrite(buffer, 1, read, release);
+		count += written;
+	}
+
+	fclose(cramfs);
+	fclose(release);
+}
+
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware EPK2 extractor\n");
@@ -766,8 +815,6 @@ int main(int argc, char *argv[]) {
 
 		writePakChunks(pak, filename);
 
-		printf("check lzo header %u\n", check_lzo_header(filename));
-
 		if(check_lzo_header(filename) == 0) {
 			char unpacked[100] = "";
 
@@ -783,53 +830,10 @@ int main(int argc, char *argv[]) {
 
 			if ((pak->type == LGAP)) {
 
-				FILE *cramfs = fopen(unpacked, "rb");
+				char release[100] = "";
+				sprintf(release, "./%s/RELEASE", fw_version);
 
-				if (cramfs == NULL) {
-					printf("Can't open file %s\n", unpacked);
-					exit(1);
-				}
-
-				char _release[100] = "";
-				sprintf(_release, "./%s/RELEASE", fw_version);
-
-				FILE *release = fopen(_release, "wb");
-
-				if (release == NULL) {
-					printf("Can't open file RELEASE\n");
-					exit(1);
-				}
-
-				int buf_len = 0x1000;
-				char buffer[buf_len];
-
-				fread(buffer, 1, buf_len, cramfs);
-
-				struct cramfs_header_t *cramfs_header =
-						(struct cramfs_header_t *) buffer;
-
-				uint32_t release_size = cramfs_header->_01_file_size;
-
-				// correct the size by changing most significant byte from 0xc9 to 0x1
-				release_size -= 0xc8000000;
-
-				printf(
-						"extracting XIPed RELEASE executable from cramfs image to %s\n",
-						_release);
-
-				int end_pos = release_size;
-				int count = 0;
-				while (count < end_pos) {
-					int diff = end_pos - count;
-					if (diff < buf_len)
-						buf_len = diff;
-					size_t read = fread(buffer, 1, buf_len, cramfs);
-					size_t written = fwrite(buffer, 1, read, release);
-					count += written;
-				}
-
-				fclose(cramfs);
-				fclose(release);
+				extractRELEASE(unpacked, release);
 			}
 		}
 	}

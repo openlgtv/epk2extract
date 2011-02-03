@@ -17,6 +17,8 @@
  Copyright (C) 1996 Markus Franz Xaver Johannes Oberhumer
  All Rights Reserved.
 
+ Patched by Arno1 (http://lg-hack.info) for LG digital tv firmware
+
  The LZO library is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License as
  published by the Free Software Foundation; either version 2 of
