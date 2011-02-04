@@ -807,13 +807,19 @@ int main(int argc, char *argv[]) {
 		const char *pak_type_name = getPakName(pak->type);
 
 		char filename[100] = "";
-
 		sprintf(filename, "./%s/%s.image", fw_version, pak_type_name);
 
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);
 
 		writePakChunks(pak, filename);
+
+		if(is_squashfs(filename)) {
+			char unsquashed[100] = "";
+					sprintf(unsquashed, "./%s/%s", fw_version, pak_type_name);
+			rmrf(unsquashed);
+			unsquashfs(filename, unsquashed);
+		}
 
 		if(check_lzo_header(filename) == 0) {
 			char unpacked[100] = "";

@@ -56,7 +56,7 @@
 #define WANT_LZO_MALLOC 1
 #define WANT_LZO_FREAD 1
 #define WANT_LZO_WILDARGV 1
-#include "include/lzo/portab.h"
+#include "lzo/portab.h"
 
 
 

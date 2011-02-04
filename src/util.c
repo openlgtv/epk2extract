@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <ftw.h>
+#include <unistd.h>
+
 
 void hexdump(void *pAddressIn, long lSize) {
 	char szBuf[100];
@@ -56,3 +59,20 @@ void hexdump(void *pAddressIn, long lSize) {
 		buf.lSize -= lOutLen;
 	}
 }
+
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+    int rv = remove(fpath);
+
+    if (rv)
+        perror(fpath);
+
+    return rv;
+}
+
+int rmrf(char *path)
+{
+    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+}
+
+
