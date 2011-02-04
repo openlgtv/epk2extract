@@ -591,7 +591,7 @@ void printEPakHeader(struct epak_header_t *epakHeader) {
 			epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2],
 			epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
 	printf("contained mtd images: %d\n", epakHeader->_03_pak_count);
-	printf("images size: %d\n", epakHeader->_02_file_size);
+	printf("images size: %d\n\n", epakHeader->_02_file_size);
 }
 
 void printPakInfo(struct pak_t* pak) {
@@ -765,8 +765,6 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	printf("read %d bytes from %d.\n", read, fileLength);
-
 	fclose(file);
 
 	struct epak_header_t *epak_header = getEPakHeader(buffer);
@@ -778,7 +776,7 @@ int main(int argc, char *argv[]) {
 
 	if (verify && verified != 1) {
 		printf(
-				"firmware package can't be verified by it's digital signature.\n");
+				"firmware package can't be verified by it's digital signature. aborting.\n");
 		exit(1);
 	}
 
@@ -817,6 +815,7 @@ int main(int argc, char *argv[]) {
 		if(is_squashfs(filename)) {
 			char unsquashed[100] = "";
 					sprintf(unsquashed, "./%s/%s", fw_version, pak_type_name);
+			printf("unsquashfs %s to directory %s\n", filename, unsquashed);
 			rmrf(unsquashed);
 			unsquashfs(filename, unsquashed);
 		}
