@@ -690,16 +690,14 @@ void extractRELEASE(const char *cramfs_image, const char *destination) {
 
 	fread(buffer, 1, buf_len, cramfs);
 
-	struct cramfs_header_t *cramfs_header =
-			(struct cramfs_header_t *) buffer;
+	struct cramfs_header_t *cramfs_header = (struct cramfs_header_t *) buffer;
 
 	uint32_t release_size = cramfs_header->_01_file_size;
 
 	// correct the size by changing most significant byte from 0xc9 to 0x1
 	release_size -= 0xc8000000;
 
-	printf(
-			"extracting XIPed RELEASE executable from cramfs image to %s\n",
+	printf("extracting XIPed RELEASE executable from cramfs image to %s\n",
 			destination);
 
 	int end_pos = release_size;
@@ -812,33 +810,42 @@ int main(int argc, char *argv[]) {
 
 		writePakChunks(pak, filename);
 
-		if(is_squashfs(filename)) {
+		if (is_squashfs(filename)) {
 			char unsquashed[100] = "";
-					sprintf(unsquashed, "./%s/%s", fw_version, pak_type_name);
+			sprintf(unsquashed, "./%s/%s", fw_version, pak_type_name);
 			printf("unsquashfs %s to directory %s\n", filename, unsquashed);
 			rmrf(unsquashed);
 			unsquashfs(filename, unsquashed);
 		}
 
-		if(check_lzo_header(filename) == 0) {
+		if (check_lzo_header(filename) == 0) {
 			char unpacked[100] = "";
 
-			sprintf(unpacked, "./%s/%s.cramfs", fw_version, pak_type_name);
+			sprintf(unpacked, "./%s/%s.unpacked", fw_version, pak_type_name);
 
 			printf("decompressing %s with modified LZO algorithm to %s\n",
-								filename, unpacked);
+					filename, unpacked);
 
-			if (lzo_unpack((const char*) filename,	(const char*) unpacked) != 0) {
+			if (lzo_unpack((const char*) filename, (const char*) unpacked) != 0) {
 				printf("sorry. decompression failed. aborting now.\n");
 				exit(1);
 			}
 
-			if ((pak->type == LGAP)) {
+			if (is_cramfs_image(unpacked)) {
+				char uncram[100] = "";
+				sprintf(uncram, "./%s/%s", fw_version, pak_type_name);
+				printf("uncramfs %s to directory %s\n", unpacked, uncram);
+				rmrf(uncram);
+				uncramfs(uncram, unpacked);
 
-				char release[100] = "";
-				sprintf(release, "./%s/RELEASE", fw_version);
+				if ((pak->type == LGAP)) {
 
-				extractRELEASE(unpacked, release);
+					char release[100] = "";
+					sprintf(release, "%s/RELEASE", uncram, uncram);
+
+					extractRELEASE(unpacked, release);
+				}
+
 			}
 		}
 	}

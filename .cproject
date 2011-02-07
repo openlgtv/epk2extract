@@ -31,6 +31,7 @@
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.1196160567" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.1096180220" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include/cramfs}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include/squashfs}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.files.2051120186" name="Include files (-include)" superClass="gnu.c.compiler.option.include.files"/>
