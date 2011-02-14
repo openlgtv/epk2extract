@@ -243,11 +243,11 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 				& ~(blksize - 1));
 
 
-		printsize(size, srcdata + size - (base + offset));
-		printf("%s", name);
+		//printsize(size, srcdata + size - (base + offset));
+		//printf("%s", name);
 	} else {
-		printsize(size, compressed_size(base, base + offset, size));
-		printf("%s", name);
+		//printsize(size, compressed_size(base, base + offset, size));
+		//printf("%s", name);
 	}
 
 	// Check if we are actually unpacking
@@ -289,8 +289,8 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 
 void do_directory(const u8* base, u32 offset, u32 size, const char* path,
 		const char* name, int mode) {
-	printsize(size, size);
-	printf("%s", name);
+	//printsize(size, size);
+	//printf("%s", name);
 
 	// Check if we are actually unpacking
 	if (path[0] == '-') {
@@ -372,7 +372,7 @@ void do_blkdev(const u8* base, u32 offset, u32 size, const char* path,
 	{
 		char s[17];
 		snprintf(s, 17, "%3d, %3d", major(size), minor(size));
-		printf("%-16s %s", s, name);
+		//printf("%-16s %s", s, name);
 	}
 
 	// Check if we are actually unpacking
@@ -546,8 +546,8 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 	basename = namelen ? pname + dirlen + pathlen : "/";
 
 	// Create things here
-	printmode(inode);
-	printuidgid(inode);
+	//printmode(inode);
+	//printuidgid(inode);
 
 	if (S_ISREG(inode->mode)) {
 
@@ -621,7 +621,7 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 		}
 	}
 
-	printf("\n");
+	//printf("\n");
 }
 
 void do_dir_entry(const u8* base, const char* dir, const char* path,
@@ -645,7 +645,7 @@ void do_dir_entry(const u8* base, const char* dir, const char* path,
 
 	// Only process directories here
 	if (S_ISDIR(inode->mode)) {
-		printf("\n/%s:\n", pname);
+		//printf("\n/%s:\n", pname);
 		process_directory(base, dir, inode->offset << 2, inode->size, pname);
 	}
 }

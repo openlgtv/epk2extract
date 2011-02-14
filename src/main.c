@@ -629,11 +629,11 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 }
 
 char* getFwVersionString(struct epk2_header_t *epak_header) {
-	char *fw_version = malloc(0x10);
+	char *fw_version = malloc(0x50);
 
-	sprintf(fw_version, "%02x.%02x.%02x.%02x", epak_header->_05_fw_version[3],
+	sprintf(fw_version, "%02x.%02x.%02x.%02x-%s", epak_header->_05_fw_version[3],
 			epak_header->_05_fw_version[2], epak_header->_05_fw_version[1],
-			epak_header->_05_fw_version[0]);
+			epak_header->_05_fw_version[0], epak_header->_06_fw_type);
 
 	return fw_version;
 }
