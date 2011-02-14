@@ -628,7 +628,7 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	return result;
 }
 
-char* getFwVersionString(struct epk2_header_t *epak_header) {
+char* getExtractionDir(struct epk2_header_t *epak_header) {
 	char *fw_version = malloc(0x50);
 
 	sprintf(fw_version, "%02x.%02x.%02x.%02x-%s", epak_header->_05_fw_version[3],
@@ -783,9 +783,9 @@ int main(int argc, char *argv[]) {
 
 	scanPAKs(epak_header, pak_array);
 
-	char *fw_version = getFwVersionString(epak_header);
+	char *target_dir = getExtractionDir(epak_header);
 
-	createDirIfNotExist(fw_version);
+	createDirIfNotExist(target_dir);
 
 	int pak_index;
 	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
@@ -803,7 +803,7 @@ int main(int argc, char *argv[]) {
 		const char *pak_type_name = getPakName(pak->type);
 
 		char filename[100] = "";
-		sprintf(filename, "./%s/%s.image", fw_version, pak_type_name);
+		sprintf(filename, "./%s/%s.image", target_dir, pak_type_name);
 
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);
@@ -812,7 +812,7 @@ int main(int argc, char *argv[]) {
 
 		if (is_squashfs(filename)) {
 			char unsquashed[100] = "";
-			sprintf(unsquashed, "./%s/%s", fw_version, pak_type_name);
+			sprintf(unsquashed, "./%s/%s", target_dir, pak_type_name);
 			printf("unsquashfs %s to directory %s\n", filename, unsquashed);
 			rmrf(unsquashed);
 			unsquashfs(filename, unsquashed);
@@ -821,7 +821,7 @@ int main(int argc, char *argv[]) {
 		if (check_lzo_header(filename) == 0) {
 			char unpacked[100] = "";
 
-			sprintf(unpacked, "./%s/%s.unpacked", fw_version, pak_type_name);
+			sprintf(unpacked, "./%s/%s.unpacked", target_dir, pak_type_name);
 
 			printf("decompressing %s with modified LZO algorithm to %s\n",
 					filename, unpacked);
@@ -833,7 +833,7 @@ int main(int argc, char *argv[]) {
 
 			if (is_cramfs_image(unpacked)) {
 				char uncram[100] = "";
-				sprintf(uncram, "./%s/%s", fw_version, pak_type_name);
+				sprintf(uncram, "./%s/%s", target_dir, pak_type_name);
 				printf("uncramfs %s to directory %s\n", unpacked, uncram);
 				rmrf(uncram);
 				uncramfs(uncram, unpacked);
