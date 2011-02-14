@@ -45,23 +45,16 @@ static char *opt_idsfile = NULL;
 
 static const char* VERSION = "0.7";
 
+static const int FAKE_GID = 200;
+
 void do_file_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen, const struct cramfs_inode* inode);
+		const char* name, int namelen, struct cramfs_inode* inode);
 
 void do_dir_entry(const u8* base, const char* dir, const char* path,
 		const char* name, int namelen, const struct cramfs_inode* inode);
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void usage(void) {
-	printf("%s v%s by Andrew Stitcher\n"
-		"Usage: '%s [-d devfilename] [-m modefilename] dirname infile'\n"
-		" where <dirname> is the root for the\n"
-		" uncompressed (output) filesystem.\n", progname, VERSION, progname);
-	exit(1);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 
 u32 compressed_size(const u8* base, const u8* data, u32 size) {
 	const u32* buffs = (const u32*) (data);
@@ -248,6 +241,8 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 
 		srcdata = (const u8*) (((u32) (base + offset) + blksize - 1)
 				& ~(blksize - 1));
+
+
 		printsize(size, srcdata + size - (base + offset));
 		printf("%s", name);
 	} else {
@@ -520,11 +515,12 @@ void process_directory(const u8* base, const char* dir, u32 offset, u32 size,
 ///////////////////////////////////////////////////////////////////////////////
 
 void do_file_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen, const struct cramfs_inode* inode) {
+		const char* name, int namelen,  struct cramfs_inode* inode) {
 	int dirlen = strlen(dir);
 	int pathlen = strlen(path);
 	char pname[dirlen + pathlen + namelen + 3];
 	const char* basename;
+	u32 gid = inode->gid;
 
 	if (dirlen) {
 		strncpy(pname, dir, dirlen);
@@ -554,7 +550,19 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 	printuidgid(inode);
 
 	if (S_ISREG(inode->mode)) {
-		do_file(base, inode->offset << 2, inode->size, pname, basename,
+
+		u32 size = inode->size;
+
+		if(gid > FAKE_GID) {
+			// sirius: this is a special LG encoding of the size.
+			// misusing gid field to encode the most significant byte of the size
+			int lg = gid - FAKE_GID;
+			gid -= lg;
+			lg = lg * 0x1000000;
+			size += (lg);
+		}
+
+		do_file(base, inode->offset << 2, size , pname, basename,
 				inode->mode);
 	} else if (S_ISDIR(inode->mode)) {
 		do_directory(base, inode->offset << 2, inode->size, pname, basename,
@@ -580,7 +588,7 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 	}
 
 	if (geteuid() == 0) {
-		if (lchown(pname, inode->uid, inode->gid) == -1)
+		if (lchown(pname, inode->uid, gid) == -1)
 			perror("cannot change owner or group");
 	} else if (opt_idsfile && path && path[0]) {
 		char dfp[1024];

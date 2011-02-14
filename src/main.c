@@ -97,7 +97,7 @@ const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
 		stringify( CE_F ), stringify( ASIG ), stringify( RESE ),
 		stringify( EPAK ), stringify( UNKNOWN ) };
 
-struct epak_header_t {
+struct epk2_header_t {
 	unsigned char _00_signature[SIGNATURE_SIZE];
 	unsigned char _01_type_code[4];
 	uint32_t _02_file_size;
@@ -432,12 +432,12 @@ int SWU_Util_GetFileType(unsigned char* buffer) {
 	return pakType;
 }
 
-void scanPAKs(struct epak_header_t *epak_header, struct pak_t **pak_array) {
+void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
 
 	unsigned char *epak_offset = epak_header->_00_signature;
 
 	unsigned char *pak_header_offset = epak_offset
-			+ sizeof(struct epak_header_t);
+			+ sizeof(struct epk2_header_t);
 
 	struct pak_chunk_header_t *pak_chunk_header =
 			(struct pak_chunk_header_t*) ((epak_header->_01_type_code)
@@ -580,11 +580,11 @@ void scanPAKs(struct epak_header_t *epak_header, struct pak_t **pak_array) {
 	}
 }
 
-struct epak_header_t *getEPakHeader(unsigned char *buffer) {
-	return (struct epak_header_t*) (buffer);
+struct epk2_header_t *getEPakHeader(unsigned char *buffer) {
+	return (struct epk2_header_t*) (buffer);
 }
 
-void printEPakHeader(struct epak_header_t *epakHeader) {
+void printEPakHeader(struct epk2_header_t *epakHeader) {
 	printf("firmware format: %.*s\n", 4, epakHeader->_04_fw_format);
 	printf("firmware type: %s\n", epakHeader->_06_fw_type);
 	printf("firmware version: %02x.%02x.%02x.%02x\n",
@@ -628,7 +628,7 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	return result;
 }
 
-char* getFwVersionString(struct epak_header_t *epak_header) {
+char* getFwVersionString(struct epk2_header_t *epak_header) {
 	char *fw_version = malloc(0x10);
 
 	sprintf(fw_version, "%02x.%02x.%02x.%02x", epak_header->_05_fw_version[3],
@@ -765,7 +765,7 @@ int main(int argc, char *argv[]) {
 
 	fclose(file);
 
-	struct epak_header_t *epak_header = getEPakHeader(buffer);
+	struct epk2_header_t *epak_header = getEPakHeader(buffer);
 
 	printEPakHeader(epak_header);
 
@@ -838,13 +838,13 @@ int main(int argc, char *argv[]) {
 				rmrf(uncram);
 				uncramfs(uncram, unpacked);
 
-				if ((pak->type == LGAP)) {
-
-					char release[100] = "";
-					sprintf(release, "%s/RELEASE", uncram, uncram);
-
-					extractRELEASE(unpacked, release);
-				}
+//				if ((pak->type == LGAP)) {
+//
+//					char release[100] = "";
+//					sprintf(release, "%s/RELEASE", uncram, uncram);
+//
+//					extractRELEASE(unpacked, release);
+//				}
 
 			}
 		}
