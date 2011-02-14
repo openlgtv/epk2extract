@@ -38,14 +38,10 @@ typedef unsigned int u32;
 /* The kernel assumes PAGE_CACHE_SIZE as block size. */
 static unsigned int blksize = PAGE_CACHE_SIZE;
 
-static const char* progname = "uncramfs";
-
 static char *opt_devfile = NULL;
 static char *opt_idsfile = NULL;
 
-static const char* VERSION = "0.7";
-
-static const int FAKE_GID = 200;
+static const int LG_FAKE_GID = 200;
 
 void do_file_entry(const u8* base, const char* dir, const char* path,
 		const char* name, int namelen, struct cramfs_inode* inode);
@@ -553,10 +549,10 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 
 		u32 size = inode->size;
 
-		if(gid > FAKE_GID) {
+		if(gid > LG_FAKE_GID) {
 			// sirius: this is a special LG encoding of the size.
 			// misusing gid field to encode the most significant byte of the size
-			int lg = gid - FAKE_GID;
+			int lg = gid - LG_FAKE_GID;
 			gid -= lg;
 			lg = lg * 0x1000000;
 			size += (lg);
