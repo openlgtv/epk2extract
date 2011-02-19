@@ -21,143 +21,6 @@
 
 #include <epk2.h>
 
-pak_type_t convertToPakType(unsigned char type[4]) {
-
-	uint32_t byte1 = type[0];
-	uint32_t byte2 = type[1];
-	uint32_t byte3 = type[2];
-	uint32_t byte4 = type[3];
-
-	byte1 = byte1 << 24;
-	byte4 = byte4 | byte1;
-	byte2 = byte2 << 16;
-	byte4 = byte4 | byte2;
-	byte3 = byte3 << 8;
-
-	uint32_t result = byte4 | byte3;
-
-	switch (result) {
-	case 0x6C67666F:
-		return LGFO;
-	case 0x63726333:
-		return CRC3;
-	case 0x626F6F74:
-		return BOOT;
-	case 0x61736967:
-		return ASIG;
-	case 0x61757468:
-		return AUTH;
-	case 0x6164646F:
-		return ADDO;
-	case 0x62726F77:
-		return BROW;
-	case 0x63655F66:
-		return CE_F;
-	case 0x67616D65:
-		return GAME;
-	case 0x6B65726E:
-		return KERN;
-	case 0x6B696473:
-		return KIDS;
-	case 0x6C676170:
-		return LGAP;
-	case 0x69646669:
-		return IDFI;
-	case 0x65737472:
-		return ESTR;
-	case 0x657A6361:
-		return ECZA;
-	case 0x6570616B:
-		return EPAK;
-	case 0x6F70656E:
-		return OPEN;
-		// for backward compatibility with older fw ('opsr' -> 'open')
-	case 0x6F707372:
-		return OPEN;
-	case 0x6D69636F:
-		return MICO;
-	case 0x6C677265:
-		return LGRE;
-	case 0x6C6F676F:
-		return LOGO;
-	case 0x6C67696E:
-		return LGIN;
-	case 0x6D746469:
-		return MTDI;
-	case 0x6E657466:
-		return NETF;
-	case 0x6E767261:
-		return NVRA;
-	case 0x6D6F6465:
-		return MODE;
-	case 0x73706962:
-		return SPIB;
-	case 0x72656364:
-		return RECD;
-	case 0x72657365:
-		return RESE;
-	case 0x726F6F74:
-		return ROOT;
-	case 0x7072656C:
-		return PREL;
-	case 0x73797374:
-		return SYST;
-	case 0x75736572:
-		return USER;
-	case 0x79776564:
-		return YWED;
-	case 0x73746F72:
-		return STOR;
-	case 0x63657274:
-		return CERT;
-	default:
-		return UNKNOWN;
-	}
-
-}
-
-
-
-
-
-int SSU_OadFileScan(const char* buffer) {
-
-	int32_t byte0 = buffer[0];
-	int32_t byte1 = buffer[1];
-	int32_t byte2 = buffer[2];
-	int32_t byte3 = buffer[3];
-
-	byte0 = byte0 << 24;
-	byte1 = byte1 << 16;
-	byte2 = byte2 << 8;
-
-	byte1 = byte1 | byte3;
-	byte1 = byte1 | byte0;
-	byte1 = byte1 | byte2;
-
-	if (byte1 == 0x42494F50) {
-		return 1;
-	} else {
-		return -1;
-	}
-}
-
-uint32_t get_big_endian(const unsigned char* buffer) {
-
-	uint32_t byte0 = buffer[0];
-	uint32_t byte1 = buffer[1];
-	uint32_t byte2 = buffer[2];
-	uint32_t byte3 = buffer[3];
-
-	byte3 = byte3 << 24;
-	byte0 = byte0 | byte3;
-	byte2 = byte2 << 16;
-	byte0 = byte0 | byte2;
-	byte1 = byte1 << 8;
-
-	return byte0 | byte1;
-}
-
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
 	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
@@ -192,30 +55,10 @@ void createDirIfNotExist(const char *directory) {
 	}
 }
 
-void writePakChunks(struct pak_t *pak, const char *filename) {
-	FILE *outfile = fopen(((const char*) filename), "w");
-
-	int pak_chunk_index;
-	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
-		struct pak_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
-
-		int content_len = pak_chunk->content_len;
-		unsigned char* decrypted = malloc(content_len);
-		memset(decrypted, 0xFF, content_len);
-		decryptImage(pak_chunk->content, content_len, decrypted);
-		fwrite(decrypted, 1, content_len, outfile);
-
-		free(decrypted);
-	}
-
-	fclose(outfile);
-}
-
-
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware EPK2 extractor\n");
-	printf("Version 0.6 by sirius (openlgtv.org.ru) 08.02.2011\n\n");
+	printf("Version 0.7dev by sirius (openlgtv.org.ru)\n\n");
 
 	SWU_CryptoInit();
 
@@ -334,15 +177,6 @@ int main(int argc, char *argv[]) {
 				printf("uncramfs %s to directory %s\n", unpacked, uncram);
 				rmrf(uncram);
 				uncramfs(uncram, unpacked);
-
-//				if ((pak->type == LGAP)) {
-//
-//					char release[100] = "";
-//					sprintf(release, "%s/RELEASE", uncram, uncram);
-//
-//					extractRELEASE(unpacked, release);
-//				}
-
 			}
 		}
 	}
