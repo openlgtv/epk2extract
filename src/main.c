@@ -57,7 +57,7 @@ int handle_file(const char *file, char *destination) {
 		uncramfs(destination, file);
 		return EXIT_SUCCESS;
 	} else if (is_epk2_file(file)) {
-		printf("extracting firmware file...\n");
+		printf("extracting firmware file...\n\n");
 		extract_epk2_file(file);
 		return EXIT_SUCCESS;
 	}
@@ -70,7 +70,7 @@ int handle_file(const char *file, char *destination) {
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware EPK2 extractor\n");
-	printf("Version 0.7dev by sirius (openlgtv.org.ru)\n\n");
+	printf("Version 0.7 by sirius (openlgtv.org.ru) 22.02.2011\n\n");
 
 	char *current_dir = getcwd(NULL, 0);
 
