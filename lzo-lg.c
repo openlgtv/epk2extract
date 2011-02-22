@@ -461,7 +461,7 @@ int check_lzo_header(const char *name) {
 
 	xclose(fi);
 
-	return result;
+	return !result;
 }
 
 /*************************************************************************

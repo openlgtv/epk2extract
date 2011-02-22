@@ -2,13 +2,15 @@
  * epk2.h
  *
  *  Created on: 16.02.2011
- *      Author: root
+ *      Author: sirius
  */
 
 #ifndef EPK2_H_
 #define EPK2_H_
 
 #include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>

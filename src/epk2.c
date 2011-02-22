@@ -4,6 +4,7 @@ EVP_PKEY *_gpPubKey;
 AES_KEY _gdKeyImage, _geKeyImage;
 const int MAX_PAK_CHUNK_SIZE = 0x400000;
 const char PEM_FILE[] = "general_pub.pem";
+const char EPK2_MAGIC[] = "EPK2";
 const int PAK_ID_LENGTH = 5;
 
 const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
@@ -119,11 +120,9 @@ pak_type_t convertToPakType(unsigned char type[4]) {
 	}
 }
 
-
 struct epk2_header_t *getEPakHeader(unsigned char *buffer) {
 	return (struct epk2_header_t*) (buffer);
 }
-
 
 void SWU_CryptoInit() {
 	OpenSSL_add_all_digests();
@@ -229,8 +228,6 @@ const char* getPakName(unsigned int pakType) {
 	return result;
 }
 
-
-
 int verifyImage(EVP_PKEY *key, unsigned char *signature, unsigned int sig_len,
 		unsigned char *image, unsigned int image_len) {
 
@@ -278,7 +275,6 @@ int SWU_Util_GetFileType(unsigned char* buffer) {
 	return pakType;
 }
 
-
 void printEPakHeader(struct epk2_header_t *epakHeader) {
 	printf("firmware format: %.*s\n", 4, epakHeader->_04_fw_format);
 	printf("firmware type: %s\n", epakHeader->_06_fw_type);
@@ -310,7 +306,6 @@ void printPakInfo(struct pak_t* pak) {
 		free(decrypted);
 	}
 }
-
 
 void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
 
@@ -475,4 +470,179 @@ void writePakChunks(struct pak_t *pak, const char *filename) {
 	fclose(outfile);
 }
 
+int is_epk2(char *buffer) {
+	struct epk2_header_t *epak_header = getEPakHeader(buffer);
+
+	return !memcmp(epak_header->_04_fw_format, EPK2_MAGIC, 4);
+}
+
+
+int is_epk2_file(const char *epk_file) {
+
+	FILE *file = fopen(epk_file, "r");
+
+	if (file == NULL) {
+		printf("Can't open file %s", epk_file);
+		exit(1);
+	}
+
+	size_t header_size = sizeof(struct epk2_header_t);
+
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header_size);
+
+	int read = fread(buffer, 1, header_size, file);
+
+	if (read != header_size) {
+		return 0;
+	}
+
+	fclose(file);
+
+	int result =  is_epk2(buffer);
+
+	free(buffer);
+
+	return result;
+}
+
+void createDirIfNotExist(const char *directory) {
+	struct stat st;
+	if (stat(directory, &st) != 0) {
+		if (mkdir((const char*) directory, 0744) != 0) {
+			printf("Can't create directory %s within current directory",
+					directory);
+			exit(1);
+		}
+	}
+}
+
+char* getExtractionDir(struct epk2_header_t *epak_header) {
+	char *fw_version = malloc(0x50);
+
+	sprintf(fw_version, "%02x.%02x.%02x.%02x-%s",
+			epak_header->_05_fw_version[3], epak_header->_05_fw_version[2],
+			epak_header->_05_fw_version[1], epak_header->_05_fw_version[0],
+			epak_header->_06_fw_type);
+
+	return fw_version;
+}
+
+
+void extract_epk2_file(const char *epk_file) {
+
+
+	FILE *file = fopen(epk_file, "r");
+
+	if (file == NULL) {
+		printf("Can't open file %s", epk_file);
+		exit(1);
+	}
+
+	fseek(file, 0, SEEK_END);
+
+	int fileLength;
+
+	fileLength = ftell(file);
+
+	rewind(file);
+
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
+
+	int read = fread(buffer, 1, fileLength, file);
+
+	if (read != fileLength) {
+		printf("error reading file. read %d bytes from %d.\n", read, fileLength);
+		exit(1);
+	}
+
+	fclose(file);
+
+	if (!is_epk2(buffer)) {
+		printf("unsupported file type. aborting.\n");
+		exit(1);
+	}
+
+	SWU_CryptoInit();
+
+	struct epk2_header_t *epak_header = getEPakHeader(buffer);
+
+	printf("firmware info\n");
+	printf("-------------\n");
+	printEPakHeader(epak_header);
+
+	int verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
+			+ SIGNATURE_SIZE);
+
+	if (verified != 1) {
+		printf(
+				"firmware package can't be verified by it's digital signature. aborting.\n");
+		exit(1);
+	}
+
+	struct pak_t **pak_array = malloc((epak_header->_03_pak_count)
+			* sizeof(struct pak_t*));
+
+	scanPAKs(epak_header, pak_array);
+
+	char *target_dir = getExtractionDir(epak_header);
+
+	createDirIfNotExist(target_dir);
+
+	int pak_index;
+	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
+		struct pak_t *pak = pak_array[pak_index];
+
+		if (pak->type == UNKNOWN) {
+			printf(
+					"WARNING!! firmware file contains unknown pak type '%.*s'. ignoring it!\n",
+					4, pak->header->_00_type_code);
+			continue;
+		}
+
+		printPakInfo(pak);
+
+		const char *pak_type_name = getPakName(pak->type);
+
+		char filename[100] = "";
+		sprintf(filename, "./%s/%s.image", target_dir, pak_type_name);
+
+		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
+				epak_header->_03_pak_count, pak_type_name, filename);
+
+		writePakChunks(pak, filename);
+
+		if (is_squashfs(filename)) {
+			char unsquashed[100] = "";
+			sprintf(unsquashed, "./%s/%s", target_dir, pak_type_name);
+			printf("unsquashfs %s to directory %s\n", filename, unsquashed);
+			rmrf(unsquashed);
+			unsquashfs(filename, unsquashed);
+		}
+
+		if (check_lzo_header(filename)) {
+			char unpacked[100] = "";
+
+			sprintf(unpacked, "./%s/%s.unpacked", target_dir, pak_type_name);
+
+			printf("decompressing %s with modified LZO algorithm to %s\n",
+					filename, unpacked);
+
+			if (lzo_unpack((const char*) filename, (const char*) unpacked) != 0) {
+				printf("sorry. decompression failed. aborting now.\n");
+				exit(1);
+			}
+
+			if (is_cramfs_image(unpacked)) {
+				char uncram[100] = "";
+				sprintf(uncram, "./%s/%s", target_dir, pak_type_name);
+				printf("uncramfs %s to directory %s\n", unpacked, uncram);
+				rmrf(uncram);
+				uncramfs(uncram, unpacked);
+			}
+		}
+	}
+
+	printf("extraction succeeded\n");
+
+}
 
