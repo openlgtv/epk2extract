@@ -21,8 +21,8 @@ const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
 		stringify( CE_F ), stringify( ASIG ), stringify( RESE ),
 		stringify( EPAK ), stringify( UNKNOWN ) };
 
-struct pak_header_t* getPakHeader(unsigned char *buff) {
-	return (struct pak_header_t *) buff;
+struct pak2_header_t* getPakHeader(unsigned char *buff) {
+	return (struct pak2_header_t *) buff;
 }
 ;
 
@@ -285,18 +285,22 @@ void printEPakHeader(struct epk2_header_t *epakHeader) {
 	printf("images size: %d\n\n", epakHeader->_02_file_size);
 }
 
-void printPakInfo(struct pak_t* pak) {
+void printPakInfo(struct pak2_t* pak) {
 	printf("pak '%s' contains %d chunk(s).\n", getPakName(pak->type),
 			pak->chunk_count);
 
 	int pak_chunk_index = 0;
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
-		struct pak_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
+		struct pak2_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
 
-		unsigned char *decrypted = malloc(AES_BLOCK_SIZE);
+		int header_size = sizeof(struct pak2_chunk_header_t) - sizeof(pak_chunk->header->_00_signature);
 
-		decryptImage(pak_chunk->header->_01_type_code, AES_BLOCK_SIZE,
+		unsigned char *decrypted = malloc(header_size);
+
+		decryptImage(pak_chunk->header->_01_type_code, header_size,
 				decrypted);
+
+		//hexdump(decrypted, header_size);
 
 		pak_type_t pak_type = convertToPakType(decrypted);
 
@@ -307,15 +311,15 @@ void printPakInfo(struct pak_t* pak) {
 	}
 }
 
-void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
+void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 
 	unsigned char *epak_offset = epak_header->_00_signature;
 
 	unsigned char *pak_header_offset = epak_offset
 			+ sizeof(struct epk2_header_t);
 
-	struct pak_chunk_header_t *pak_chunk_header =
-			(struct pak_chunk_header_t*) ((epak_header->_01_type_code)
+	struct pak2_chunk_header_t *pak_chunk_header =
+			(struct pak2_chunk_header_t*) ((epak_header->_01_type_code)
 					+ (epak_header->_07_header_length));
 
 	// it contains the added lengths of signature data
@@ -329,11 +333,11 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
 
 	int current_pak_length = -1;
 	while (count < epak_header->_03_pak_count) {
-		struct pak_header_t *pak_header = getPakHeader(pak_header_offset);
+		struct pak2_header_t *pak_header = getPakHeader(pak_header_offset);
 
 		pak_type_t pak_type = convertToPakType(pak_header->_00_type_code);
 
-		struct pak_t *pak = malloc(sizeof(struct pak_t));
+		struct pak2_t *pak = malloc(sizeof(struct pak2_t));
 
 		pak_array[count] = pak;
 
@@ -344,8 +348,8 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
 
 		int verified = 0;
 
-		struct pak_chunk_header_t *next_pak_offset =
-				(struct pak_chunk_header_t*) (epak_offset
+		struct pak2_chunk_header_t *next_pak_offset =
+				(struct pak2_chunk_header_t*) (epak_offset
 						+ pak_header->_03_next_pak_file_offset + signature_sum);
 
 		unsigned int distance_between_paks =
@@ -359,7 +363,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
 		}
 
 		unsigned int max_distance = MAX_PAK_CHUNK_SIZE
-				+ sizeof(struct pak_chunk_header_t);
+				+ sizeof(struct pak2_chunk_header_t);
 
 		while (verified != 1) {
 
@@ -426,37 +430,37 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak_t **pak_array) {
 			pak->chunk_count++;
 
 			pak->chunks = realloc(pak->chunks, pak->chunk_count
-					* sizeof(struct pak_chunk_t*));
+					* sizeof(struct pak2_chunk_t*));
 
-			struct pak_chunk_t *pak_chunk = malloc(sizeof(struct pak_chunk_t));
+			struct pak2_chunk_t *pak_chunk = malloc(sizeof(struct pak2_chunk_t));
 
 			pak_chunk->header = pak_chunk_header;
 			pak_chunk->content = pak_chunk_header->_04_unknown3
 					+ sizeof(pak_chunk_header->_04_unknown3);
 
 			pak_chunk->content_len = signed_length
-					- sizeof(struct pak_chunk_header_t);
+					- sizeof(struct pak2_chunk_header_t);
 
 			pak->chunks[pak->chunk_count - 1] = pak_chunk;
 
 			// move pointer to the next pak chunk offset
 			pak_chunk_header
-					= (struct pak_chunk_header_t *) (pak_chunk_header->_00_signature
+					= (struct pak2_chunk_header_t *) (pak_chunk_header->_00_signature
 							+ pak_chunk_length);
 		}
 
-		pak_header_offset += sizeof(struct pak_header_t);
+		pak_header_offset += sizeof(struct pak2_header_t);
 
 		count++;
 	}
 }
 
-void writePakChunks(struct pak_t *pak, const char *filename) {
+void writePakChunks(struct pak2_t *pak, const char *filename) {
 	FILE *outfile = fopen(((const char*) filename), "w");
 
 	int pak_chunk_index;
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
-		struct pak_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
+		struct pak2_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
 
 		int content_len = pak_chunk->content_len;
 		unsigned char* decrypted = malloc(content_len);
@@ -579,8 +583,8 @@ void extract_epk2_file(const char *epk_file) {
 		exit(1);
 	}
 
-	struct pak_t **pak_array = malloc((epak_header->_03_pak_count)
-			* sizeof(struct pak_t*));
+	struct pak2_t **pak_array = malloc((epak_header->_03_pak_count)
+			* sizeof(struct pak2_t*));
 
 	scanPAKs(epak_header, pak_array);
 
@@ -590,7 +594,7 @@ void extract_epk2_file(const char *epk_file) {
 
 	int pak_index;
 	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
-		struct pak_t *pak = pak_array[pak_index];
+		struct pak2_t *pak = pak_array[pak_index];
 
 		if (pak->type == UNKNOWN) {
 			printf(

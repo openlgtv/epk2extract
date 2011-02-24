@@ -70,7 +70,7 @@ int handle_file(const char *file, char *destination) {
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware EPK2 extractor\n");
-	printf("Version 0.7 by sirius (openlgtv.org.ru) 22.02.2011\n\n");
+	printf("Version 0.8dev by sirius (openlgtv.org.ru)\n\n");
 
 	char *current_dir = getcwd(NULL, 0);
 

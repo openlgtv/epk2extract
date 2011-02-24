@@ -82,7 +82,7 @@ struct epk2_header_t {
 	uint32_t _08_unknown;
 };
 
-struct pak_header_t {
+struct pak2_header_t {
 	unsigned char _00_type_code[4];
 	uint32_t _01_unknown1;
 	uint32_t _02_unknown2;
@@ -90,7 +90,7 @@ struct pak_header_t {
 	uint32_t _04_next_pak_length;
 };
 
-struct pak_chunk_header_t {
+struct pak2_chunk_header_t {
 	unsigned char _00_signature[SIGNATURE_SIZE];
 	unsigned char _01_type_code[4];
 	unsigned char _02_unknown1[4];
@@ -98,17 +98,17 @@ struct pak_chunk_header_t {
 	unsigned char _04_unknown3[105];
 };
 
-struct pak_chunk_t {
-	struct pak_chunk_header_t *header;
+struct pak2_chunk_t {
+	struct pak2_chunk_header_t *header;
 	unsigned char *content;
 	int content_len;
 };
 
-struct pak_t {
+struct pak2_t {
 	pak_type_t type;
-	struct pak_header_t *header;
+	struct pak2_header_t *header;
 	unsigned int chunk_count;
-	struct pak_chunk_t **chunks;
+	struct pak2_chunk_t **chunks;
 };
 
 
