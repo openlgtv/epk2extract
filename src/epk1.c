@@ -111,8 +111,10 @@ void extract_epk1_file(const char *epk_file) {
 		pak_type_t pak_type = get_pak_type(pak_header->_01_type_code);
 
 		if (pak_type == UNKNOWN) {
-			printf("unknown pak type: 0x%x\n", pak_type);
-			exit(EXIT_FAILURE);
+			printf(
+					"WARNING!! firmware file contains unknown pak type '%.*s'. ignoring it!\n",
+					4, pak_header->_01_type_code);
+			continue;
 		}
 
 		char pak_type_name[5] = "";
