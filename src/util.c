@@ -75,4 +75,14 @@ int rmrf(char *path)
     return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
+void create_dir_if_not_exist(const char *directory) {
+	struct stat st;
+	if (stat(directory, &st) != 0) {
+		if (mkdir((const char*) directory, 0744) != 0) {
+			printf("Can't create directory %s within current directory",
+					directory);
+			exit(1);
+		}
+	}
+}
 

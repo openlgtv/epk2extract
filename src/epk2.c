@@ -5,122 +5,12 @@ AES_KEY _gdKeyImage, _geKeyImage;
 const int MAX_PAK_CHUNK_SIZE = 0x400000;
 const char PEM_FILE[] = "general_pub.pem";
 const char EPK2_MAGIC[] = "EPK2";
-const int PAK_ID_LENGTH = 5;
-
-const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
-		stringify( CRC3 ), stringify( ROOT ), stringify( LGIN ),
-		stringify( MODE ), stringify( KERN ), stringify( LGAP ),
-		stringify( LGRE ), stringify( LGFO ), stringify( ADDO ),
-		stringify( ECZA ), stringify( RECD ), stringify( MICO ),
-		stringify( SPIB ), stringify( SYST ), stringify( USER ),
-		stringify( NETF ), stringify( IDFI ), stringify( LOGO ),
-		stringify( OPEN ), stringify( YWED ), stringify( CMND ),
-		stringify( NVRA ), stringify( PREL ), stringify( KIDS ),
-		stringify( STOR ), stringify( CERT ), stringify( AUTH ),
-		stringify( ESTR ), stringify( GAME ), stringify( BROW ),
-		stringify( CE_F ), stringify( ASIG ), stringify( RESE ),
-		stringify( EPAK ), stringify( UNKNOWN ) };
 
 struct pak2_header_t* getPakHeader(unsigned char *buff) {
 	return (struct pak2_header_t *) buff;
 }
-;
 
-pak_type_t convertToPakType(unsigned char type[4]) {
-
-	uint32_t byte1 = type[0];
-	uint32_t byte2 = type[1];
-	uint32_t byte3 = type[2];
-	uint32_t byte4 = type[3];
-
-	byte1 = byte1 << 24;
-	byte4 = byte4 | byte1;
-	byte2 = byte2 << 16;
-	byte4 = byte4 | byte2;
-	byte3 = byte3 << 8;
-
-	uint32_t result = byte4 | byte3;
-
-	switch (result) {
-	case 0x6C67666F:
-		return LGFO;
-	case 0x63726333:
-		return CRC3;
-	case 0x626F6F74:
-		return BOOT;
-	case 0x61736967:
-		return ASIG;
-	case 0x61757468:
-		return AUTH;
-	case 0x6164646F:
-		return ADDO;
-	case 0x62726F77:
-		return BROW;
-	case 0x63655F66:
-		return CE_F;
-	case 0x67616D65:
-		return GAME;
-	case 0x6B65726E:
-		return KERN;
-	case 0x6B696473:
-		return KIDS;
-	case 0x6C676170:
-		return LGAP;
-	case 0x69646669:
-		return IDFI;
-	case 0x65737472:
-		return ESTR;
-	case 0x657A6361:
-		return ECZA;
-	case 0x6570616B:
-		return EPAK;
-	case 0x6F70656E:
-		return OPEN;
-		// for backward compatibility with older fw ('opsr' -> 'open')
-	case 0x6F707372:
-		return OPEN;
-	case 0x6D69636F:
-		return MICO;
-	case 0x6C677265:
-		return LGRE;
-	case 0x6C6F676F:
-		return LOGO;
-	case 0x6C67696E:
-		return LGIN;
-	case 0x6D746469:
-		return MTDI;
-	case 0x6E657466:
-		return NETF;
-	case 0x6E767261:
-		return NVRA;
-	case 0x6D6F6465:
-		return MODE;
-	case 0x73706962:
-		return SPIB;
-	case 0x72656364:
-		return RECD;
-	case 0x72657365:
-		return RESE;
-	case 0x726F6F74:
-		return ROOT;
-	case 0x7072656C:
-		return PREL;
-	case 0x73797374:
-		return SYST;
-	case 0x75736572:
-		return USER;
-	case 0x79776564:
-		return YWED;
-	case 0x73746F72:
-		return STOR;
-	case 0x63657274:
-		return CERT;
-	default:
-		return UNKNOWN;
-	}
-}
-
-struct epk2_header_t *getEPakHeader(unsigned char *buffer) {
+struct epk2_header_t *get_epk2_header(unsigned char *buffer) {
 	return (struct epk2_header_t*) (buffer);
 }
 
@@ -214,20 +104,6 @@ void API_SWU_DecryptImage(unsigned char* source, unsigned int len,
 	decryptImage(srcaddr, remaining, dstaddr);
 }
 
-const char* getPakName(unsigned int pakType) {
-	const char *pak_type_name = pak_type_names[pakType];
-
-	char *result = malloc(PAK_ID_LENGTH);
-
-	result[0] = tolower(pak_type_name[0]);
-	result[1] = tolower(pak_type_name[1]);
-	result[2] = tolower(pak_type_name[2]);
-	result[3] = tolower(pak_type_name[3]);
-	result[4] = 0;
-
-	return result;
-}
-
 int verifyImage(EVP_PKEY *key, unsigned char *signature, unsigned int sig_len,
 		unsigned char *image, unsigned int image_len) {
 
@@ -264,7 +140,7 @@ int verifyImage(EVP_PKEY *key, unsigned char *signature, unsigned int sig_len,
 
 pak_type_t SWU_UTIL_GetPakType(unsigned char* buffer) {
 
-	return convertToPakType(buffer);
+	return get_pak_type(buffer);
 }
 
 int SWU_Util_GetFileType(unsigned char* buffer) {
@@ -275,7 +151,7 @@ int SWU_Util_GetFileType(unsigned char* buffer) {
 	return pakType;
 }
 
-void printEPakHeader(struct epk2_header_t *epakHeader) {
+void print_epk2_header(struct epk2_header_t *epakHeader) {
 	printf("firmware format: %.*s\n", 4, epakHeader->_04_fw_format);
 	printf("firmware type: %s\n", epakHeader->_06_fw_type);
 	printf("firmware version: %02x.%02x.%02x.%02x\n",
@@ -285,33 +161,34 @@ void printEPakHeader(struct epk2_header_t *epakHeader) {
 	printf("images size: %d\n\n", epakHeader->_02_file_size);
 }
 
-void printPakInfo(struct pak2_t* pak) {
-	printf("pak '%s' contains %d chunk(s).\n", getPakName(pak->type),
+void print_pak2_info(struct pak2_t* pak) {
+	printf("pak '%s' contains %d chunk(s).\n", get_pak_type_name(pak->type),
 			pak->chunk_count);
 
 	int pak_chunk_index = 0;
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
 		struct pak2_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
 
-		int header_size = sizeof(struct pak2_chunk_header_t) - sizeof(pak_chunk->header->_00_signature);
+		int header_size = sizeof(struct pak2_chunk_header_t)
+				- sizeof(pak_chunk->header->_00_signature);
 
 		unsigned char *decrypted = malloc(header_size);
 
-		decryptImage(pak_chunk->header->_01_type_code, header_size,
-				decrypted);
+		decryptImage(pak_chunk->header->_01_type_code, header_size, decrypted);
 
 		//hexdump(decrypted, header_size);
 
-		pak_type_t pak_type = convertToPakType(decrypted);
+		pak_type_t pak_type = get_pak_type(decrypted);
 
 		printf("  chunk #%u ('%.*s') contains %u bytes\n", pak_chunk_index + 1,
-				4, getPakName(pak_type), pak_chunk->content_len);
+				4, get_pak_type_name(pak_type), pak_chunk->content_len);
 
 		free(decrypted);
 	}
 }
 
-void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
+void scan_pak_chunks(struct epk2_header_t *epak_header,
+		struct pak2_t **pak_array) {
 
 	unsigned char *epak_offset = epak_header->_00_signature;
 
@@ -319,7 +196,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 			+ sizeof(struct epk2_header_t);
 
 	struct pak2_chunk_header_t *pak_chunk_header =
-			(struct pak2_chunk_header_t*) ((epak_header->_01_type_code)
+			(struct pak2_chunk_header_t*) ((epak_header->_01_epak_magic)
 					+ (epak_header->_07_header_length));
 
 	// it contains the added lengths of signature data
@@ -335,7 +212,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 	while (count < epak_header->_03_pak_count) {
 		struct pak2_header_t *pak_header = getPakHeader(pak_header_offset);
 
-		pak_type_t pak_type = convertToPakType(pak_header->_00_type_code);
+		pak_type_t pak_type = get_pak_type(pak_header->_01_type_code);
 
 		struct pak2_t *pak = malloc(sizeof(struct pak2_t));
 
@@ -350,7 +227,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 
 		struct pak2_chunk_header_t *next_pak_offset =
 				(struct pak2_chunk_header_t*) (epak_offset
-						+ pak_header->_03_next_pak_file_offset + signature_sum);
+						+ pak_header->_04_next_pak_file_offset + signature_sum);
 
 		unsigned int distance_between_paks =
 				((int) next_pak_offset->_01_type_code)
@@ -390,7 +267,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 					pak_chunk_header->_00_signature, signed_length)) != 1) {
 				printf(
 						"verify pak chunk #%u of %s failed (size=0x%x). trying fallback...\n",
-						pak->chunk_count + 1, getPakName(pak->type),
+						pak->chunk_count + 1, get_pak_type_name(pak->type),
 						signed_length);
 
 				//hexdump(pak_chunk_header->_01_type_code, 0x80);
@@ -423,7 +300,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 				verified = 0;
 
 			} else {
-				current_pak_length = pak_header->_04_next_pak_length
+				current_pak_length = pak_header->_05_next_pak_length
 						+ pak_chunk_signature_length;
 			}
 
@@ -432,7 +309,8 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 			pak->chunks = realloc(pak->chunks, pak->chunk_count
 					* sizeof(struct pak2_chunk_t*));
 
-			struct pak2_chunk_t *pak_chunk = malloc(sizeof(struct pak2_chunk_t));
+			struct pak2_chunk_t *pak_chunk =
+					malloc(sizeof(struct pak2_chunk_t));
 
 			pak_chunk->header = pak_chunk_header;
 			pak_chunk->content = pak_chunk_header->_04_unknown3
@@ -455,7 +333,7 @@ void scanPAKs(struct epk2_header_t *epak_header, struct pak2_t **pak_array) {
 	}
 }
 
-void writePakChunks(struct pak2_t *pak, const char *filename) {
+void write_pak_chunks(struct pak2_t *pak, const char *filename) {
 	FILE *outfile = fopen(((const char*) filename), "w");
 
 	int pak_chunk_index;
@@ -475,11 +353,10 @@ void writePakChunks(struct pak2_t *pak, const char *filename) {
 }
 
 int is_epk2(char *buffer) {
-	struct epk2_header_t *epak_header = getEPakHeader(buffer);
+	struct epk2_header_t *epak_header = get_epk2_header(buffer);
 
 	return !memcmp(epak_header->_04_fw_format, EPK2_MAGIC, 4);
 }
-
 
 int is_epk2_file(const char *epk_file) {
 
@@ -502,25 +379,14 @@ int is_epk2_file(const char *epk_file) {
 
 	fclose(file);
 
-	int result =  is_epk2(buffer);
+	int result = is_epk2(buffer);
 
 	free(buffer);
 
 	return result;
 }
 
-void createDirIfNotExist(const char *directory) {
-	struct stat st;
-	if (stat(directory, &st) != 0) {
-		if (mkdir((const char*) directory, 0744) != 0) {
-			printf("Can't create directory %s within current directory",
-					directory);
-			exit(1);
-		}
-	}
-}
-
-char* getExtractionDir(struct epk2_header_t *epak_header) {
+char* get_epk2_extraction_dir(struct epk2_header_t *epak_header) {
 	char *fw_version = malloc(0x50);
 
 	sprintf(fw_version, "%02x.%02x.%02x.%02x-%s",
@@ -532,8 +398,8 @@ char* getExtractionDir(struct epk2_header_t *epak_header) {
 }
 
 
-void extract_epk2_file(const char *epk_file) {
 
+void extract_epk2_file(const char *epk_file) {
 
 	FILE *file = fopen(epk_file, "r");
 
@@ -568,11 +434,11 @@ void extract_epk2_file(const char *epk_file) {
 
 	SWU_CryptoInit();
 
-	struct epk2_header_t *epak_header = getEPakHeader(buffer);
+	struct epk2_header_t *epak_header = get_epk2_header(buffer);
 
 	printf("firmware info\n");
 	printf("-------------\n");
-	printEPakHeader(epak_header);
+	print_epk2_header(epak_header);
 
 	int verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
 			+ SIGNATURE_SIZE);
@@ -586,11 +452,11 @@ void extract_epk2_file(const char *epk_file) {
 	struct pak2_t **pak_array = malloc((epak_header->_03_pak_count)
 			* sizeof(struct pak2_t*));
 
-	scanPAKs(epak_header, pak_array);
+	scan_pak_chunks(epak_header, pak_array);
 
-	char *target_dir = getExtractionDir(epak_header);
+	char *target_dir = get_epk2_extraction_dir(epak_header);
 
-	createDirIfNotExist(target_dir);
+	create_dir_if_not_exist(target_dir);
 
 	int pak_index;
 	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
@@ -599,13 +465,13 @@ void extract_epk2_file(const char *epk_file) {
 		if (pak->type == UNKNOWN) {
 			printf(
 					"WARNING!! firmware file contains unknown pak type '%.*s'. ignoring it!\n",
-					4, pak->header->_00_type_code);
+					4, pak->header->_01_type_code);
 			continue;
 		}
 
-		printPakInfo(pak);
+		print_pak2_info(pak);
 
-		const char *pak_type_name = getPakName(pak->type);
+		const char *pak_type_name = get_pak_type_name(pak->type);
 
 		char filename[100] = "";
 		sprintf(filename, "./%s/%s.image", target_dir, pak_type_name);
@@ -613,37 +479,9 @@ void extract_epk2_file(const char *epk_file) {
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);
 
-		writePakChunks(pak, filename);
+		write_pak_chunks(pak, filename);
 
-		if (is_squashfs(filename)) {
-			char unsquashed[100] = "";
-			sprintf(unsquashed, "./%s/%s", target_dir, pak_type_name);
-			printf("unsquashfs %s to directory %s\n", filename, unsquashed);
-			rmrf(unsquashed);
-			unsquashfs(filename, unsquashed);
-		}
-
-		if (check_lzo_header(filename)) {
-			char unpacked[100] = "";
-
-			sprintf(unpacked, "./%s/%s.unpacked", target_dir, pak_type_name);
-
-			printf("decompressing %s with modified LZO algorithm to %s\n",
-					filename, unpacked);
-
-			if (lzo_unpack((const char*) filename, (const char*) unpacked) != 0) {
-				printf("sorry. decompression failed. aborting now.\n");
-				exit(1);
-			}
-
-			if (is_cramfs_image(unpacked)) {
-				char uncram[100] = "";
-				sprintf(uncram, "./%s/%s", target_dir, pak_type_name);
-				printf("uncramfs %s to directory %s\n", unpacked, uncram);
-				rmrf(uncram);
-				uncramfs(uncram, unpacked);
-			}
-		}
+		handle_extracted_image_file(filename, target_dir, pak_type_name);
 	}
 
 	printf("extraction succeeded\n");

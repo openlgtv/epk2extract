@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-
+#include <epk1.h>
 #include <epk2.h>
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
@@ -59,6 +59,10 @@ int handle_file(const char *file, char *destination) {
 	} else if (is_epk2_file(file)) {
 		printf("extracting firmware file...\n\n");
 		extract_epk2_file(file);
+		return EXIT_SUCCESS;
+	} else if (is_epk1_file(file)) {
+		printf("extracting epk1 firmware file...\n\n");
+		extract_epk1_file(file);
 		return EXIT_SUCCESS;
 	}
 
