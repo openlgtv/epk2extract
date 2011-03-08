@@ -69,5 +69,10 @@ struct pak2_t {
 	struct pak2_chunk_t **chunks;
 };
 
+struct keyset_t {
+	unsigned char *PEM_FILE;
+	unsigned char AES_KEY[16];
+};
+
 
 #endif /* EPK2_H_ */

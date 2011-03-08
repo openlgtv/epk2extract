@@ -73,8 +73,9 @@ int handle_file(const char *file, char *destination) {
 
 int main(int argc, char *argv[]) {
 
-	printf("LG electronics digital tv firmware EPK2 extractor\n");
-	printf("Version 0.8 by sirius (openlgtv.org.ru) 25.02.2011\n\n");
+	printf("LG electronics digital tv firmware EPK1/2 extractor\n");
+	printf("Version 0.9dev by sirius (openlgtv.org.ru)\n\n");
+
 
 	char *current_dir = getcwd(NULL, 0);
 
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc < 2) {
 		printf("\n");
+		printf("Thanks to xeros, tbage, jenya for their kind assistence...\n\n");
 		printf("usage: %s FILENAME\n", argv[0]);
 		exit(1);
 	}
