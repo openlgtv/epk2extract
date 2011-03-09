@@ -452,6 +452,7 @@ void extract_epk2_file(const char *epk_file) {
 	int verified = 0;
 	int keyset_index = 0;
 	for(keyset_index = 0; keyset_index < KEYSET_COUNT; keyset_index++) {
+		if(verified == 1) break;
 		SWU_CryptoInit(&KEY_SETS[keyset_index]);
 
 		verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
