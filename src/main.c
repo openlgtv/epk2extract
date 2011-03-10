@@ -15,8 +15,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <libgen.h>
+
 #include <epk1.h>
 #include <epk2.h>
+
+char *configuration_dir;
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
 	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
@@ -58,7 +62,7 @@ int handle_file(const char *file, char *destination) {
 		return EXIT_SUCCESS;
 	} else if (is_epk2_file(file)) {
 		printf("extracting firmware file...\n\n");
-		extract_epk2_file(file);
+		extract_epk2_file(configuration_dir, file);
 		return EXIT_SUCCESS;
 	} else if (is_epk1_file(file)) {
 		printf("extracting epk1 firmware file...\n\n");
@@ -74,12 +78,15 @@ int handle_file(const char *file, char *destination) {
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware EPK1/2 extractor\n");
-	printf("Version 0.9 by sirius (openlgtv.org.ru) 09.03.2011\n\n");
-
+	printf("Version 1.0dev by sirius (openlgtv.org.ru)\n\n");
 
 	char *current_dir = getcwd(NULL, 0);
 
 	printf("current directory: %s\n\n", current_dir);
+
+	configuration_dir = dirname(argv[0]);
+
+	printf("configuration directory: %s\n\n", configuration_dir);
 
 	if (argc < 2) {
 		printf("\n");

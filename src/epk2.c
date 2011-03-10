@@ -13,9 +13,8 @@ enum {
 };
 struct keyset_t KEY_SETS[KEYSET_COUNT] = { { "general_pub.pem", { 0x2f, 0x2e,
 		0x2d, 0x2c, 0x2b, 0x2a, 0x29, 0x28, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12,
-		0x11, 0x10 } }, { "netflix_pub.pem", {
-				0x1F, 0x1E, 0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
-				 } } };
+		0x11, 0x10 } }, { "netflix_pub.pem", { 0x1F, 0x1E, 0x1D, 0x1C, 0x1B,
+		0x1A, 0x19, 0x18, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } } };
 
 struct pak2_header_t* getPakHeader(unsigned char *buff) {
 	return (struct pak2_header_t *) buff;
@@ -25,20 +24,39 @@ struct epk2_header_t *get_epk2_header(unsigned char *buffer) {
 	return (struct epk2_header_t*) (buffer);
 }
 
-void SWU_CryptoInit(struct keyset_t *keyset) {
+void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 	OpenSSL_add_all_digests();
 
 	ERR_load_CRYPTO_strings();
 
-	FILE *pubKeyFile = fopen(keyset->PEM_FILE, "r");
+	char pem_file[1024] = "";
+
+	strcat(pem_file, configuration_dir);
+	strcat(pem_file, "/");
+	strcat(pem_file, keyset->PEM_FILE);
+
+	//printf("pem file: %s\n", pem_file);
+
+	FILE *pubKeyFile = fopen(pem_file, "r");
 
 	if (pubKeyFile == NULL) {
-		printf("error: can't open PEM file %s from current directory.\n",
-				keyset->PEM_FILE);
-		exit(1);
+
+		pubKeyFile = fopen(keyset->PEM_FILE, "r");
+
+		if (pubKeyFile == NULL) {
+			printf("error: can't find PEM file %s\n",
+					keyset->PEM_FILE);
+			exit(1);
+		}
 	}
 
 	_gpPubKey = PEM_read_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+
+	if(_gpPubKey == NULL) {
+		printf("error: can't read PEM file %s\n",
+							keyset->PEM_FILE);
+		exit(1);
+	}
 
 	fclose(pubKeyFile);
 
@@ -188,8 +206,9 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		pak_type_t pak_type = get_pak_type(decrypted);
 
-		if(pak_type == UNKNOWN) {
-			printf("FATAL: can't decrypt pak chunk. probably it's decrypted with an unknown key. aborting now. sorry.\n");
+		if (pak_type == UNKNOWN) {
+			printf(
+					"FATAL: can't decrypt pak chunk. probably it's decrypted with an unknown key. aborting now. sorry.\n");
 			exit(EXIT_FAILURE);
 		}
 
@@ -410,7 +429,7 @@ char* get_epk2_extraction_dir(struct epk2_header_t *epak_header) {
 	return fw_version;
 }
 
-void extract_epk2_file(const char *epk_file) {
+void extract_epk2_file(const char *configuration_dir, const char *epk_file) {
 
 	FILE *file = fopen(epk_file, "r");
 
@@ -451,9 +470,10 @@ void extract_epk2_file(const char *epk_file) {
 
 	int verified = 0;
 	int keyset_index = 0;
-	for(keyset_index = 0; keyset_index < KEYSET_COUNT; keyset_index++) {
-		if(verified == 1) break;
-		SWU_CryptoInit(&KEY_SETS[keyset_index]);
+	for (keyset_index = 0; keyset_index < KEYSET_COUNT; keyset_index++) {
+		if (verified == 1)
+			break;
+		SWU_CryptoInit(configuration_dir, &KEY_SETS[keyset_index]);
 
 		verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
 				+ SIGNATURE_SIZE);
@@ -465,7 +485,6 @@ void extract_epk2_file(const char *epk_file) {
 				"firmware package can't be verified by it's digital signature. aborting.\n");
 		exit(1);
 	}
-
 
 	struct pak2_t **pak_array = malloc((epak_header->_03_pak_count)
 			* sizeof(struct pak2_t*));
