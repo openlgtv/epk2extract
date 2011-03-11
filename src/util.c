@@ -3,6 +3,9 @@
 #include <ftw.h>
 #include <unistd.h>
 
+#include <config.h>
+
+
 
 void hexdump(void *pAddressIn, long lSize) {
 	char szBuf[100];
@@ -83,6 +86,15 @@ void create_dir_if_not_exist(const char *directory) {
 					directory);
 			exit(1);
 		}
+	}
+}
+
+void construct_path(char *result_path, const char *dir, const char *file_name, const char* postfix) {
+	strcat(result_path, dir);
+	strcat(result_path, G_DIR_SEPARATOR_S);
+	strcat(result_path, file_name);
+	if(postfix != NULL) {
+		strcat(result_path, postfix);
 	}
 }
 

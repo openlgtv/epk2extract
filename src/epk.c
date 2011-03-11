@@ -136,14 +136,14 @@ void handle_extracted_image_file(char *filename, char *target_dir,
 		const char *pak_type_name) {
 	if (is_squashfs(filename)) {
 		char unsquashed[100] = "";
-		sprintf(unsquashed, "./%s/%s", target_dir, pak_type_name);
+		construct_path(unsquashed, target_dir, pak_type_name, NULL);
 		printf("unsquashfs %s to directory %s\n", filename, unsquashed);
 		rmrf(unsquashed);
 		unsquashfs(filename, unsquashed);
 	}
 	if (check_lzo_header(filename)) {
 		char unpacked[100] = "";
-		sprintf(unpacked, "./%s/%s.unpacked", target_dir, pak_type_name);
+		construct_path(unpacked, target_dir, pak_type_name, ".unpacked");
 		printf("decompressing %s with modified LZO algorithm to %s\n",
 				filename, unpacked);
 		if (lzo_unpack((const char*) filename, (const char*) unpacked) != 0) {
@@ -152,7 +152,7 @@ void handle_extracted_image_file(char *filename, char *target_dir,
 		}
 		if (is_cramfs_image(unpacked)) {
 			char uncram[100] = "";
-			sprintf(uncram, "./%s/%s", target_dir, pak_type_name);
+			construct_path(uncram, target_dir, pak_type_name, NULL);
 			printf("uncramfs %s to directory %s\n", unpacked, uncram);
 			rmrf(uncram);
 			uncramfs(uncram, unpacked);

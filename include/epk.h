@@ -16,6 +16,10 @@
 #include <openssl/err.h>
 #include <openssl/aes.h>
 
+#include <config.h>
+
+
+
 typedef enum {
 	BOOT = 0x0,
 	MTDI = 0x1,

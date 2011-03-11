@@ -418,18 +418,14 @@ int is_epk2_file(const char *epk_file) {
 	return result;
 }
 
-char* get_epk2_extraction_dir(struct epk2_header_t *epak_header) {
-	char *fw_version = malloc(0x50);
-
+void get_version_string(char *fw_version, struct epk2_header_t *epak_header) {
 	sprintf(fw_version, "%02x.%02x.%02x.%02x-%s",
 			epak_header->_05_fw_version[3], epak_header->_05_fw_version[2],
 			epak_header->_05_fw_version[1], epak_header->_05_fw_version[0],
 			epak_header->_06_fw_type);
-
-	return fw_version;
 }
 
-void extract_epk2_file(const char *configuration_dir, const char *epk_file) {
+void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) {
 
 	FILE *file = fopen(epk_file, "r");
 
@@ -473,7 +469,7 @@ void extract_epk2_file(const char *configuration_dir, const char *epk_file) {
 	for (keyset_index = 0; keyset_index < KEYSET_COUNT; keyset_index++) {
 		if (verified == 1)
 			break;
-		SWU_CryptoInit(configuration_dir, &KEY_SETS[keyset_index]);
+		SWU_CryptoInit(config_opts->config_dir, &KEY_SETS[keyset_index]);
 
 		verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
 				+ SIGNATURE_SIZE);
@@ -491,7 +487,11 @@ void extract_epk2_file(const char *configuration_dir, const char *epk_file) {
 
 	scan_pak_chunks(epak_header, pak_array);
 
-	char *target_dir = get_epk2_extraction_dir(epak_header);
+	char version_string[1024];
+	get_version_string(version_string, epak_header);
+
+	char target_dir[1024];
+	construct_path(target_dir, config_opts->dest_dir, version_string, NULL);
 
 	create_dir_if_not_exist(target_dir);
 
@@ -510,8 +510,10 @@ void extract_epk2_file(const char *configuration_dir, const char *epk_file) {
 
 		const char *pak_type_name = get_pak_type_name(pak->type);
 
-		char filename[100] = "";
-		sprintf(filename, "./%s/%s.image", target_dir, pak_type_name);
+		char filename[1024] = "";
+		//sprintf(filename, "%s/%s.image", target_dir, pak_type_name);
+
+		construct_path(filename, target_dir, pak_type_name, ".image");
 
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);

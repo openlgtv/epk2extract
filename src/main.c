@@ -17,10 +17,12 @@
 
 #include <libgen.h>
 
+#include <getopt.h>
+
 #include <epk1.h>
 #include <epk2.h>
 
-char *configuration_dir;
+struct config_opts_t config_opts;
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
 	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
@@ -34,39 +36,38 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	return result;
 }
 
-int handle_file(const char *file, char *destination) {
+int handle_file(const char *file, struct config_opts_t *config_opts) {
+	const char *dest_dir = config_opts->dest_dir;
+	const char *file_name = basename(strdup(file));
+
+	char dest_file[1024] = "";
+
 	if (check_lzo_header(file)) {
-		if (destination == NULL) {
-			destination = "./lzounpack.out";
-		}
-		printf("extracting lzo compressed file to: %s\n", destination);
-		if (lzo_unpack(file, destination) == 0) {
-			handle_file(destination, NULL);
+		construct_path(dest_file, dest_dir, file_name, ".lzounpack");
+		printf("extracting lzo compressed file to: %s\n", dest_file);
+		if (lzo_unpack(file, dest_file) == 0) {
+			handle_file(dest_dir, NULL);
 			return EXIT_SUCCESS;
 		}
 	} else if (is_squashfs(file)) {
-		if (destination == NULL) {
-			destination = "./unsquashfs.out";
-		}
-		printf("unsquashfs compressed file system to: %s\n", destination);
-		rmrf(destination);
-		unsquashfs(file, destination);
+		construct_path(dest_file, dest_dir, file_name, ".unsquashfs");
+		printf("unsquashfs compressed file system to: %s\n", dest_file);
+		rmrf(dest_file);
+		unsquashfs(file, dest_file);
 		return EXIT_SUCCESS;
 	} else if (is_cramfs_image(file)) {
-		if (destination == NULL) {
-			destination = "./uncramfs.out";
-		}
-		printf("uncramfs compressed file system to: %s\n", destination);
-		rmrf(destination);
-		uncramfs(destination, file);
+		construct_path(dest_file, dest_dir, file_name, ".uncramfs");
+		printf("uncramfs compressed file system to: %s\n", dest_file);
+		rmrf(dest_file);
+		uncramfs(dest_file, file);
 		return EXIT_SUCCESS;
 	} else if (is_epk2_file(file)) {
 		printf("extracting firmware file...\n\n");
-		extract_epk2_file(configuration_dir, file);
+		extract_epk2_file(file, config_opts);
 		return EXIT_SUCCESS;
 	} else if (is_epk1_file(file)) {
 		printf("extracting epk1 firmware file...\n\n");
-		extract_epk1_file(file);
+		extract_epk1_file(file, config_opts);
 		return EXIT_SUCCESS;
 	}
 
@@ -77,31 +78,61 @@ int handle_file(const char *file, char *destination) {
 
 int main(int argc, char *argv[]) {
 
-	printf("LG electronics digital tv firmware EPK1/2 extractor\n");
+	printf("LG electronics digital tv firmware package (EPK) extractor\n");
 	printf("Version 1.0dev by sirius (openlgtv.org.ru)\n\n");
 
 	char *current_dir = getcwd(NULL, 0);
 
 	printf("current directory: %s\n\n", current_dir);
 
-	configuration_dir = dirname(argv[0]);
+	config_opts.config_dir = dirname(argv[0]);
 
-	printf("configuration directory: %s\n\n", configuration_dir);
+	printf("configuration directory: %s\n\n", config_opts.config_dir);
+
+	config_opts.dest_dir = NULL;
 
 	if (argc < 2) {
 		printf("\n");
-		printf("Thanks to xeros, tbage, and jenya for their kind assistance...\n\n");
-		printf("usage: %s FILENAME\n", argv[0]);
+		printf(
+				"Thanks to xeros, tbage, and jenya for their kind assistance...\n\n");
+		printf("usage: %s [-options] FILENAME\n", argv[0]);
+		printf("options:\n");
+		printf("-c : extract to current directory instead of source file directory\n", argv[0]);
 		exit(1);
 	}
 
-	char *input_file = argv[1];
+	int opt;
+	while ((opt = getopt(argc, argv, "c")) != -1) {
+		switch (opt) {
+		case 'c': {
+			config_opts.dest_dir = current_dir;
+			break;
+		}
+		case ':': {
+			fprintf(stderr, "option `%c' needs a value\n\n", optopt);
+			exit(1);
+			break;
+		}
+		case '?': {
+			fprintf(stderr, "unknown option: `%c'\n\n", optopt);
+			exit(1);
+		}
+		}
+	}
+
+	char *input_file = argv[optind];
 
 	printf("input file: %s\n\n", input_file);
 
-	int exit_code =  handle_file(input_file, NULL);
+	if(config_opts.dest_dir == NULL)
+		config_opts.dest_dir = dirname(strdup(input_file));
+
+	printf("destination directory: %s\n\n", config_opts.dest_dir);
+
+	int exit_code = handle_file(input_file, &config_opts);
 
 	printf("finished\n");
 
 	return exit_code;
+
 }

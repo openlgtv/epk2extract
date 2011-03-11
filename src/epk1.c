@@ -49,17 +49,13 @@ void print_epk1_header(struct epk1_header_t *epakHeader) {
 	printf("images size: %d\n\n", epakHeader->_02_file_size);
 }
 
-char* get_epk1_extraction_dir(struct epk1_header_t *epak_header) {
-	char *fw_version = malloc(0x50);
-
+void get_epk1_version_string(char *fw_version, struct epk1_header_t *epak_header) {
 	sprintf(fw_version, "%02x.%02x.%02x-%s", epak_header->_05_fw_version[2],
 			epak_header->_05_fw_version[1], epak_header->_05_fw_version[0],
 			epak_header->_06_fw_type);
-
-	return fw_version;
 }
 
-void extract_epk1_file(const char *epk_file) {
+void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) {
 
 	FILE *file = fopen(epk_file, "r");
 
@@ -98,7 +94,11 @@ void extract_epk1_file(const char *epk_file) {
 	printf("-------------\n");
 	print_epk1_header(epak_header);
 
-	char *target_dir = get_epk1_extraction_dir(epak_header);
+	char version_string[1024];
+	get_epk1_version_string(version_string, epak_header);
+
+	char target_dir[1024];
+	construct_path(target_dir, config_opts->dest_dir, version_string, NULL);
 
 	create_dir_if_not_exist(target_dir);
 
@@ -121,7 +121,7 @@ void extract_epk1_file(const char *epk_file) {
 		sprintf(pak_type_name, "%.*s", 4, pak_header->_01_type_code);
 
 		char filename[100] = "";
-		sprintf(filename, "./%s/%s.image", target_dir, pak_type_name);
+		construct_path(filename, target_dir, pak_type_name, ".image");
 
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);
