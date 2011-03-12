@@ -2042,7 +2042,7 @@ int unsquashfs(char *squashfs, char *dest) {
 	if (root_process)
 		umask(0);
 
-	if (lsonly || info)
+
 		progress = FALSE;
 
 #ifdef SQUASHFS_TRACE

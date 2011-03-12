@@ -22,7 +22,11 @@
 #include <epk1.h>
 #include <epk2.h>
 
+char exe_dir[1024];
+
 struct config_opts_t config_opts;
+
+
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
 	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
@@ -81,25 +85,25 @@ int main(int argc, char *argv[]) {
 	printf("LG electronics digital tv firmware package (EPK) extractor\n");
 	printf("Version 1.0dev by sirius (openlgtv.org.ru)\n\n");
 
+	if (argc < 2) {
+		printf(
+				"Thanks to xeros, tbage, and jenya for their kind assistance.\n\n");
+		printf("usage: epk2extract [-options] FILENAME\n\n");
+		printf("options:\n");
+		printf(
+				"  -c : extract to current directory instead of source file directory\n");
+		exit(1);
+	}
+
 	char *current_dir = getcwd(NULL, 0);
 
 	printf("current directory: %s\n\n", current_dir);
 
-	config_opts.config_dir = dirname(argv[0]);
+	readlink("/proc/self/exe", exe_dir, 1024);
 
-	printf("configuration directory: %s\n\n", config_opts.config_dir);
+	config_opts.config_dir = dirname(exe_dir);
 
 	config_opts.dest_dir = NULL;
-
-	if (argc < 2) {
-		printf("\n");
-		printf(
-				"Thanks to xeros, tbage, and jenya for their kind assistance...\n\n");
-		printf("usage: %s [-options] FILENAME\n", argv[0]);
-		printf("options:\n");
-		printf("-c : extract to current directory instead of source file directory\n", argv[0]);
-		exit(1);
-	}
 
 	int opt;
 	while ((opt = getopt(argc, argv, "c")) != -1) {
@@ -124,7 +128,7 @@ int main(int argc, char *argv[]) {
 
 	printf("input file: %s\n\n", input_file);
 
-	if(config_opts.dest_dir == NULL)
+	if (config_opts.dest_dir == NULL)
 		config_opts.dest_dir = dirname(strdup(input_file));
 
 	printf("destination directory: %s\n\n", config_opts.dest_dir);
