@@ -37,11 +37,11 @@ void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 
 	//printf("pem file: %s\n", pem_file);
 
-	FILE *pubKeyFile = fopen(pem_file, "r");
+	FILE *pubKeyFile = fopen(keyset->PEM_FILE, "r");
 
 	if (pubKeyFile == NULL) {
 
-		pubKeyFile = fopen(keyset->PEM_FILE, "r");
+		pubKeyFile = fopen(pem_file, "r");
 
 		if (pubKeyFile == NULL) {
 			printf("error: can't find PEM file %s\n",
@@ -50,7 +50,9 @@ void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 		}
 	}
 
-	_gpPubKey = PEM_read_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+	EVP_PKEY *gpPubKey = PEM_read_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+
+	_gpPubKey = gpPubKey;
 
 	if(_gpPubKey == NULL) {
 		printf("error: can't read PEM file %s\n",
@@ -240,7 +242,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 
 	int count = 0;
 
-	int current_pak_length = -1;
+	int next_pak_length = epak_header->_02_file_size;
 	while (count < epak_header->_03_pak_count) {
 		struct pak2_header_t *pak_header = getPakHeader(pak_header_offset);
 
@@ -267,7 +269,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 
 		// last contained pak...
 		if ((count == (epak_header->_03_pak_count - 1))) {
-			distance_between_paks = current_pak_length
+			distance_between_paks = next_pak_length
 					+ pak_chunk_signature_length;
 		}
 
@@ -285,13 +287,13 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 				is_next_chunk_needed = TRUE;
 			}
 
-			unsigned int signed_length = current_pak_length;
+			unsigned int signed_length = next_pak_length;
 
 			if (signed_length > max_distance) {
 				signed_length = max_distance;
 			}
 
-			if (current_pak_length < 0) {
+			if (count == 0) {
 				signed_length = pak_chunk_length;
 			}
 
@@ -328,11 +330,11 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 
 			if (is_next_chunk_needed) {
 				distance_between_paks -= pak_chunk_content_length;
-				current_pak_length -= pak_chunk_content_length;
+				next_pak_length -= pak_chunk_content_length;
 				verified = 0;
 
 			} else {
-				current_pak_length = pak_header->_05_next_pak_length
+				next_pak_length = pak_header->_05_next_pak_length
 						+ pak_chunk_signature_length;
 			}
 
