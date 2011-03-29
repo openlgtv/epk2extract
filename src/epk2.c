@@ -1,4 +1,5 @@
 #include <epk2.h>
+#include <crc.h>
 
 EVP_PKEY *_gpPubKey;
 AES_KEY _gdKeyImage, _geKeyImage;
@@ -204,7 +205,12 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		decryptImage(pak_chunk->header->_01_type_code, header_size, decrypted);
 
-		//hexdump(decrypted, header_size);
+//		char version_string[1024];
+//		get_pak_version_string(version_string, decrypted);
+//
+//		printf(	"version: %s\n", version_string);
+//
+		hexdump(decrypted, header_size);
 
 		pak_type_t pak_type = get_pak_type(decrypted);
 
@@ -347,8 +353,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 					malloc(sizeof(struct pak2_chunk_t));
 
 			pak_chunk->header = pak_chunk_header;
-			pak_chunk->content = pak_chunk_header->_04_unknown3
-					+ sizeof(pak_chunk_header->_04_unknown3);
+			pak_chunk->content = pak_chunk_header + sizeof(pak_chunk_header);
 
 			pak_chunk->content_len = signed_length
 					- sizeof(struct pak2_chunk_header_t);
@@ -367,7 +372,9 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 	}
 }
 
-void write_pak_chunks(struct pak2_t *pak, const char *filename) {
+int write_pak_chunks(struct pak2_t *pak, const char *filename) {
+	int length = 0;
+
 	FILE *outfile = fopen(((const char*) filename), "w");
 
 	int pak_chunk_index;
@@ -381,9 +388,13 @@ void write_pak_chunks(struct pak2_t *pak, const char *filename) {
 		fwrite(decrypted, 1, content_len, outfile);
 
 		free(decrypted);
+
+		length += content_len;
 	}
 
 	fclose(outfile);
+
+	return length;
 }
 
 int is_epk2(char *buffer) {
@@ -418,6 +429,12 @@ int is_epk2_file(const char *epk_file) {
 	free(buffer);
 
 	return result;
+}
+
+void get_pak_version_string(char *fw_version, unsigned char version[4]) {
+	sprintf(fw_version, "%02x.%02x.%02x.%02x",
+			version[3], version[2],
+			version[1], version[0]);
 }
 
 void get_version_string(char *fw_version, struct epk2_header_t *epak_header) {
@@ -513,14 +530,14 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 		const char *pak_type_name = get_pak_type_name(pak->type);
 
 		char filename[1024] = "";
-		//sprintf(filename, "%s/%s.image", target_dir, pak_type_name);
-
 		construct_path(filename, target_dir, pak_type_name, ".image");
 
 		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
 				epak_header->_03_pak_count, pak_type_name, filename);
 
-		write_pak_chunks(pak, filename);
+		int length = write_pak_chunks(pak, filename);
+
+
 
 		handle_extracted_image_file(filename, target_dir, pak_type_name);
 	}

@@ -89,10 +89,10 @@ void create_dir_if_not_exist(const char *directory) {
 	}
 }
 
-void construct_path(char *result_path, const char *dir, const char *file_name, const char* postfix) {
-	strcat(result_path, dir);
+void construct_path(char *result_path, const char *first, const char *second, const char* postfix) {
+	strcat(result_path, first);
 	strcat(result_path, G_DIR_SEPARATOR_S);
-	strcat(result_path, file_name);
+	strcat(result_path, second);
 	if(postfix != NULL) {
 		strcat(result_path, postfix);
 	}

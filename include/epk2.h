@@ -53,7 +53,14 @@ struct pak2_chunk_header_t {
 	unsigned char _01_type_code[4];
 	unsigned char _02_unknown1[4];
 	unsigned char _03_platform[15];
-	unsigned char _04_unknown3[105];
+	unsigned char _04_unknown2[49];
+	unsigned char _05_version[4];
+	unsigned char _06_date[4];
+	unsigned char _07_unknown3[4];
+	uint32_t _08_chunk_count;
+	uint32_t _09_chunk_length;
+	uint32_t _10_chunk_index;
+	unsigned char _11_unknown4[32];
 };
 
 struct pak2_chunk_t {

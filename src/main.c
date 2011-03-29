@@ -50,7 +50,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		construct_path(dest_file, dest_dir, file_name, ".lzounpack");
 		printf("extracting lzo compressed file to: %s\n", dest_file);
 		if (lzo_unpack(file, dest_file) == 0) {
-			handle_file(dest_dir, NULL);
+			handle_file(dest_file, config_opts);
 			return EXIT_SUCCESS;
 		}
 	} else if (is_squashfs(file)) {
