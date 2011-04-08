@@ -353,7 +353,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 					malloc(sizeof(struct pak2_chunk_t));
 
 			pak_chunk->header = pak_chunk_header;
-			pak_chunk->content = pak_chunk_header + sizeof(pak_chunk_header);
+			pak_chunk->content = pak_chunk_header->_11_unknown4 + (sizeof(pak_chunk_header->_11_unknown4));
 
 			pak_chunk->content_len = signed_length
 					- sizeof(struct pak2_chunk_header_t);
