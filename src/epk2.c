@@ -210,7 +210,7 @@ void print_pak2_info(struct pak2_t* pak) {
 //
 //		printf(	"version: %s\n", version_string);
 //
-		hexdump(decrypted, header_size);
+		//hexdump(decrypted, header_size);
 
 		pak_type_t pak_type = get_pak_type(decrypted);
 
@@ -536,8 +536,6 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 				epak_header->_03_pak_count, pak_type_name, filename);
 
 		int length = write_pak_chunks(pak, filename);
-
-
 
 		handle_extracted_image_file(filename, target_dir, pak_type_name);
 	}
