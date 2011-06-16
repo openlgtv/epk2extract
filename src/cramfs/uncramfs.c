@@ -41,7 +41,7 @@ static unsigned int blksize = PAGE_CACHE_SIZE;
 static char *opt_devfile = NULL;
 static char *opt_idsfile = NULL;
 
-static const int LG_FAKE_GID = 200;
+static int DIR_GID = NULL;
 
 void do_file_entry(const u8* base, const char* dir, const char* path,
 		const char* name, int namelen, struct cramfs_inode* inode);
@@ -549,10 +549,10 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 
 		u32 size = inode->size;
 
-		if(gid > LG_FAKE_GID) {
+		if(gid > DIR_GID) {
 			// sirius: this is a special LG encoding of the size.
 			// misusing gid field to encode the most significant byte of the size
-			int lg = gid - LG_FAKE_GID;
+			int lg = gid - DIR_GID;
 			gid -= lg;
 			lg = lg * 0x1000000;
 			size += (lg);
@@ -561,6 +561,9 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 		do_file(base, inode->offset << 2, size , pname, basename,
 				inode->mode);
 	} else if (S_ISDIR(inode->mode)) {
+		if(DIR_GID == NULL) {
+			DIR_GID = gid;
+		}
 		do_directory(base, inode->offset << 2, inode->size, pname, basename,
 				inode->mode);
 	} else if (S_ISLNK(inode->mode)) {
