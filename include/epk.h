@@ -56,7 +56,11 @@ typedef enum {
 	CE_F = 0x20,
 	ASIG = 0x21,
 	RESE = 0x22,
-	EPAK = 0x23,
+	BASE = 0x23,
+	PATC = 0x24,
+	CFGI = 0x25,
+	PQLD = 0x26,
+	EPAK = 0x41,
 	UNKNOWN = 0x42,
 } pak_type_t;
 

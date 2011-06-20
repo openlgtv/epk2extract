@@ -16,8 +16,8 @@ const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
 		stringify( STOR ), stringify( CERT ), stringify( AUTH ),
 		stringify( ESTR ), stringify( GAME ), stringify( BROW ),
 		stringify( CE_F ), stringify( ASIG ), stringify( RESE ),
-		stringify( EPAK ), stringify( UNKNOWN ), stringify( UNKNOWN ),
-		stringify( UNKNOWN ), stringify( UNKNOWN ), stringify( UNKNOWN ),
+		stringify( BASE ), stringify( PATC ), stringify( CFGI ),
+		stringify( PQLD ), stringify( UNKNOWN ), stringify( UNKNOWN ),
 		stringify( UNKNOWN ), stringify( UNKNOWN ), stringify( UNKNOWN ),
 		stringify( UNKNOWN ), stringify( UNKNOWN ), stringify( UNKNOWN ) };
 
@@ -113,6 +113,14 @@ pak_type_t get_pak_type(unsigned char type[4]) {
 		return STOR;
 	case 0x63657274:
 		return CERT;
+	case 0x62617365:
+		return BASE;
+	case 0x70617463:
+		return PATC;
+	case 0x63666769:
+		return CFGI;
+	case 0x70716C64:
+		return PQLD;
 	default:
 		return UNKNOWN;
 	}
@@ -157,6 +165,7 @@ void handle_extracted_image_file(char *filename, char *target_dir,
 			rmrf(uncram);
 			uncramfs(uncram, unpacked);
 		}
+
 	}
 
 }

@@ -7,7 +7,7 @@ const int MAX_PAK_CHUNK_SIZE = 0x400000;
 const char PEM_FILE[] = "general_pub.pem";
 const char EPK2_MAGIC[] = "EPK2";
 
-const int key_count = 2;
+//const int key_count = 2;
 
 enum {
 	KEYSET_COUNT = 2
@@ -45,8 +45,7 @@ void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 		pubKeyFile = fopen(pem_file, "r");
 
 		if (pubKeyFile == NULL) {
-			printf("error: can't find PEM file %s\n",
-					keyset->PEM_FILE);
+			printf("error: can't find PEM file %s\n", keyset->PEM_FILE);
 			exit(1);
 		}
 	}
@@ -55,9 +54,9 @@ void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 
 	_gpPubKey = gpPubKey;
 
-	if(_gpPubKey == NULL) {
-		printf("error: can't read PEM file %s\n",
-							keyset->PEM_FILE);
+	if (_gpPubKey == NULL) {
+		printf("error: can't read PEM signature from file %s\n",
+				keyset->PEM_FILE);
 		exit(1);
 	}
 
@@ -187,7 +186,8 @@ void print_epk2_header(struct epk2_header_t *epakHeader) {
 			epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2],
 			epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
 	printf("contained mtd images: %d\n", epakHeader->_03_pak_count);
-	printf("images size: %d\n\n", epakHeader->_02_file_size);
+	printf("images size: %d\n", epakHeader->_02_file_size);
+	printf("header length: %d\n\n", epakHeader->_07_header_length);
 }
 
 void print_pak2_info(struct pak2_t* pak) {
@@ -203,13 +203,9 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		unsigned char *decrypted = malloc(header_size);
 
-		decryptImage(pak_chunk->header->_01_type_code, header_size, decrypted);
+		decryptImage(pak_chunk->header->_01_type_code, header_size,
+				decrypted);
 
-//		char version_string[1024];
-//		get_pak_version_string(version_string, decrypted);
-//
-//		printf(	"version: %s\n", version_string);
-//
 		//hexdump(decrypted, header_size);
 
 		pak_type_t pak_type = get_pak_type(decrypted);
@@ -303,7 +299,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 				signed_length = pak_chunk_length;
 			}
 
-			if ((verified = API_SWU_VerifyImage(
+			if (verified != 1 && (verified = API_SWU_VerifyImage(
 					pak_chunk_header->_00_signature, signed_length)) != 1) {
 				printf(
 						"verify pak chunk #%u of %s failed (size=0x%x). trying fallback...\n",
@@ -353,7 +349,8 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 					malloc(sizeof(struct pak2_chunk_t));
 
 			pak_chunk->header = pak_chunk_header;
-			pak_chunk->content = pak_chunk_header->_11_unknown4 + (sizeof(pak_chunk_header->_11_unknown4));
+			pak_chunk->content = pak_chunk_header->_11_unknown4
+					+ (sizeof(pak_chunk_header->_11_unknown4));
 
 			pak_chunk->content_len = signed_length
 					- sizeof(struct pak2_chunk_header_t);
@@ -432,8 +429,7 @@ int is_epk2_file(const char *epk_file) {
 }
 
 void get_pak_version_string(char *fw_version, unsigned char version[4]) {
-	sprintf(fw_version, "%02x.%02x.%02x.%02x",
-			version[3], version[2],
+	sprintf(fw_version, "%02x.%02x.%02x.%02x", version[3], version[2],
 			version[1], version[0]);
 }
 
@@ -488,11 +484,36 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 	for (keyset_index = 0; keyset_index < KEYSET_COUNT; keyset_index++) {
 		if (verified == 1)
 			break;
-		SWU_CryptoInit(config_opts->config_dir, &KEY_SETS[keyset_index]);
+		struct keyset_t *keyset = &KEY_SETS[keyset_index];
+
+		SWU_CryptoInit(config_opts->config_dir, keyset);
+
+		printf("probing signature file: %s ...\n", keyset->PEM_FILE);
 
 		verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
 				+ SIGNATURE_SIZE);
 
+		if (verified == 1) {
+
+			printf(
+					"firmware was successfully verified by it's digital signature.\n");
+		} else {
+			int size = epak_header->_07_header_length;
+
+			while (size > 0) {
+				size -= 1;
+
+				verified = API_SWU_VerifyImage(buffer, size + SIGNATURE_SIZE);
+				if (verified == 1) {
+
+					printf(
+							"firmware was successfully verified by it's digital signature. signed bytes: %d\n\n",
+							size);
+					break;
+				}
+			}
+
+		}
 	}
 
 	if (verified != 1) {
