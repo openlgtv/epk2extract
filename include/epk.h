@@ -60,6 +60,7 @@ typedef enum {
 	PATC = 0x24,
 	CFGI = 0x25,
 	PQLD = 0x26,
+	TPLI = 0x27,
 	EPAK = 0x41,
 	UNKNOWN = 0x42,
 } pak_type_t;

@@ -17,7 +17,7 @@ const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
 		stringify( ESTR ), stringify( GAME ), stringify( BROW ),
 		stringify( CE_F ), stringify( ASIG ), stringify( RESE ),
 		stringify( BASE ), stringify( PATC ), stringify( CFGI ),
-		stringify( PQLD ), stringify( UNKNOWN ), stringify( UNKNOWN ),
+		stringify( PQLD ), stringify( TPLI ), stringify( UNKNOWN ),
 		stringify( UNKNOWN ), stringify( UNKNOWN ), stringify( UNKNOWN ),
 		stringify( UNKNOWN ), stringify( UNKNOWN ), stringify( UNKNOWN ) };
 
@@ -121,6 +121,8 @@ pak_type_t get_pak_type(unsigned char type[4]) {
 		return CFGI;
 	case 0x70716C64:
 		return PQLD;
+	case 0x74706C69	:
+		return TPLI;
 	default:
 		return UNKNOWN;
 	}

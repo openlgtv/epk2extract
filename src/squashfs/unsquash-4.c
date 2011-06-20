@@ -259,9 +259,11 @@ struct dir *squashfs_opendir_4(unsigned int block_start, unsigned int offset,
 	start = sBlk.s.directory_table_start + (*i)->start;
 	bytes = lookup_entry(directory_table_hash, start);
 
-	if(bytes == -1)
-		EXIT_UNSQUASH("squashfs_opendir: directory block %d not "
+	if(bytes == -1) {
+		printf("WARNING: squashfs_opendir: directory block %d not "
 			"found!\n", block_start);
+		bytes = 0;
+	}
 
 	bytes += (*i)->offset;
 	size = (*i)->data + bytes - 3;
