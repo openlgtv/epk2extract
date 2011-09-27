@@ -73,17 +73,21 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("extracting epk1 firmware file...\n\n");
 		extract_epk1_file(file, config_opts);
 		return EXIT_SUCCESS;
+	} else if (is_uboot_image(file)) {
+		printf("extracting u-boot image file...\n\n");
+		construct_path(dest_file, dest_dir, file_name, ".deimaged");
+		extract_uboot_image(file, dest_file);
+		handle_file(dest_file, config_opts);
+		return EXIT_SUCCESS;
 	}
 
-	printf("\n");
-	printf("unsupported file format:\n", file);
-	exit(EXIT_FAILURE);
+	return EXIT_FAILURE;
 }
 
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware package (EPK) extractor\n");
-	printf("Version 1.3 by sirius (openlgtv.org.ru) 20.06.2011\n\n");
+	printf("Version 1.4dev by sirius (openlgtv.org.ru) 27.09.2011\n\n");
 
 	if (argc < 2) {
 		printf(
@@ -134,6 +138,12 @@ int main(int argc, char *argv[]) {
 	printf("destination directory: %s\n\n", config_opts.dest_dir);
 
 	int exit_code = handle_file(input_file, &config_opts);
+
+	if(exit_code == EXIT_FAILURE) {
+		printf("\n");
+		printf("unsupported input file format:\n", input_file);
+		return exit_code;
+	}
 
 	printf("finished\n");
 
