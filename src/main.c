@@ -74,8 +74,8 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		extract_epk1_file(file, config_opts);
 		return EXIT_SUCCESS;
 	} else if (is_uboot_image(file)) {
-		printf("extracting u-boot image file...\n\n");
 		construct_path(dest_file, dest_dir, file_name, ".deimaged");
+		printf("extracting u-boot image file to: %s.\n\n", dest_file);
 		extract_uboot_image(file, dest_file);
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 		return exit_code;
 	}
 
-	printf("finished\n");
+	printf("\nfinished\n");
 
 	return exit_code;
 
