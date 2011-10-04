@@ -198,16 +198,17 @@ void print_pak2_info(struct pak2_t* pak) {
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
 		struct pak2_chunk_t *pak_chunk = pak->chunks[pak_chunk_index];
 
-		int header_size = sizeof(struct pak2_chunk_header_t)
-				- sizeof(pak_chunk->header->_00_signature);
+		int header_size = sizeof(struct pak2_chunk_header_t);
 
 		unsigned char *decrypted = malloc(header_size);
 
-		decryptImage(pak_chunk->header->_01_type_code, header_size, decrypted);
+		decryptImage(pak_chunk->header->_00_signature, header_size, decrypted);
 
 		//hexdump(decrypted, header_size);
 
-		pak_type_t pak_type = get_pak_type(decrypted);
+		struct pak2_chunk_header_t* decrypted_chunk_header = (struct pak2_chunk_header_t*)decrypted;
+
+		pak_type_t pak_type = get_pak_type(decrypted_chunk_header->_01_type_code);
 
 		if (pak_type == UNKNOWN) {
 			printf(
@@ -217,9 +218,9 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		char chunk_version[20];
 
-		get_pak2_version_string(chunk_version, decrypted + 72);
+		get_pak2_version_string(chunk_version, decrypted_chunk_header->_05_version);
 
-		printf("  chunk #%u ('%.*s', version='%s') contains %u bytes\n", pak_chunk_index + 1,
+		printf("  chunk #%u (type='%.*s', version='%s') contains %u bytes\n", pak_chunk_index + 1,
 				4, get_pak_type_name(pak_type), chunk_version, pak_chunk->content_len);
 
 		free(decrypted);
