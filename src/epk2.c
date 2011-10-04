@@ -203,8 +203,7 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		unsigned char *decrypted = malloc(header_size);
 
-		decryptImage(pak_chunk->header->_01_type_code, header_size,
-				decrypted);
+		decryptImage(pak_chunk->header->_01_type_code, header_size, decrypted);
 
 		//hexdump(decrypted, header_size);
 
@@ -216,8 +215,12 @@ void print_pak2_info(struct pak2_t* pak) {
 			exit(EXIT_FAILURE);
 		}
 
-		printf("  chunk #%u ('%.*s') contains %u bytes\n", pak_chunk_index + 1,
-				4, get_pak_type_name(pak_type), pak_chunk->content_len);
+		char chunk_version[20];
+
+		get_pak2_version_string(chunk_version, decrypted + 72);
+
+		printf("  chunk #%u ('%.*s', version='%s') contains %u bytes\n", pak_chunk_index + 1,
+				4, get_pak_type_name(pak_type), chunk_version, pak_chunk->content_len);
 
 		free(decrypted);
 	}
@@ -438,6 +441,10 @@ void get_version_string(char *fw_version, struct epk2_header_t *epak_header) {
 			epak_header->_05_fw_version[3], epak_header->_05_fw_version[2],
 			epak_header->_05_fw_version[1], epak_header->_05_fw_version[0],
 			epak_header->_06_fw_type);
+}
+
+void get_pak2_version_string(char *fw_version, char *ptr) {
+	sprintf(fw_version, "%02x.%02x.%02x.%02x", ptr[3], ptr[2], ptr[1],	ptr[0]);
 }
 
 void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) {
