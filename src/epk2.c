@@ -7,8 +7,6 @@ const int MAX_PAK_CHUNK_SIZE = 0x400000;
 const char PEM_FILE[] = "general_pub.pem";
 const char EPK2_MAGIC[] = "EPK2";
 
-//const int key_count = 2;
-
 enum {
 	NO_OF_PEM_FILES = 2
 };
@@ -16,10 +14,6 @@ enum {
 enum {
 	NO_OF_AES_KEYS = 3
 };
-//struct keyset_t KEY_SETS[KEYSET_COUNT] = { { "general_pub.pem", { 0x2F, 0x2E,
-//		0x2D, 0x2C, 0x2B, 0x2A, 0x29, 0x28, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12,
-//		0x11, 0x10 } }, { "netflix_pub.pem", { 0x1F, 0x1E, 0x1D, 0x1C, 0x1B,
-//		0x1A, 0x19, 0x18, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } } };
 
 struct pem_file_t PEM_FILES_SET[NO_OF_PEM_FILES] = { { "general_pub.pem" }, {
 		"netflix_pub.pem" } };
@@ -225,9 +219,11 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		//hexdump(decrypted, header_size);
 
-		struct pak2_chunk_header_t* decrypted_chunk_header = (struct pak2_chunk_header_t*)decrypted;
+		struct pak2_chunk_header_t* decrypted_chunk_header =
+				(struct pak2_chunk_header_t*) decrypted;
 
-		pak_type_t pak_type = get_pak_type(decrypted_chunk_header->_01_type_code);
+		pak_type_t pak_type = get_pak_type(
+				decrypted_chunk_header->_01_type_code);
 
 		if (pak_type == UNKNOWN) {
 			printf(
@@ -237,10 +233,12 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		char chunk_version[20];
 
-		get_pak2_version_string(chunk_version, decrypted_chunk_header->_05_version);
+		get_pak2_version_string(chunk_version,
+				decrypted_chunk_header->_05_version);
 
-		printf("  chunk #%u (type='%.*s', version='%s') contains %u bytes\n", pak_chunk_index + 1,
-				4, get_pak_type_name(pak_type), chunk_version, pak_chunk->content_len);
+		printf("  chunk #%u (type='%.*s', version='%s') contains %u bytes\n",
+				pak_chunk_index + 1, 4, get_pak_type_name(pak_type),
+				chunk_version, pak_chunk->content_len);
 
 		free(decrypted);
 	}
@@ -628,9 +626,7 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 
 	create_dir_if_not_exist(target_dir);
 
-
 	AES_key_lookup(pak_array[0]);
-
 
 	int pak_index;
 	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
