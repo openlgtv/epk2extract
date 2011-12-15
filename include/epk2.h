@@ -42,8 +42,8 @@ struct epk2_header_t {
 
 struct pak2_header_t {
 	unsigned char _01_type_code[4];
-	uint32_t _02_unknown1;
-	uint32_t _03_unknown2;
+	uint32_t _02_version;
+	uint32_t _03_max_pak_chunk_size;
 	uint32_t _04_next_pak_file_offset;
 	uint32_t _05_next_pak_length;
 };
@@ -66,6 +66,7 @@ struct pak2_chunk_header_t {
 struct pak2_chunk_t {
 	struct pak2_chunk_header_t *header;
 	unsigned char *content;
+	int content_file_offset;
 	int content_len;
 };
 
@@ -76,8 +77,11 @@ struct pak2_t {
 	struct pak2_chunk_t **chunks;
 };
 
-struct keyset_t {
+struct pem_file_t {
 	unsigned char *PEM_FILE;
+};
+
+struct aes_key_t {
 	unsigned char AES_KEY[16];
 };
 

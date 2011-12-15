@@ -10,12 +10,26 @@ const char EPK2_MAGIC[] = "EPK2";
 //const int key_count = 2;
 
 enum {
-	KEYSET_COUNT = 2
+	NO_OF_PEM_FILES = 2
 };
-struct keyset_t KEY_SETS[KEYSET_COUNT] = { { "general_pub.pem", { 0x2f, 0x2e,
-		0x2d, 0x2c, 0x2b, 0x2a, 0x29, 0x28, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12,
-		0x11, 0x10 } }, { "netflix_pub.pem", { 0x1F, 0x1E, 0x1D, 0x1C, 0x1B,
-		0x1A, 0x19, 0x18, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } } };
+
+enum {
+	NO_OF_AES_KEYS = 2
+};
+//struct keyset_t KEY_SETS[KEYSET_COUNT] = { { "general_pub.pem", { 0x2F, 0x2E,
+//		0x2D, 0x2C, 0x2B, 0x2A, 0x29, 0x28, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12,
+//		0x11, 0x10 } }, { "netflix_pub.pem", { 0x1F, 0x1E, 0x1D, 0x1C, 0x1B,
+//		0x1A, 0x19, 0x18, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } } };
+
+struct pem_file_t PEM_FILES_SET[NO_OF_PEM_FILES] = { { "general_pub.pem" }, {
+		"netflix_pub.pem" } };
+
+struct aes_key_t AES_KEYS_SET[NO_OF_AES_KEYS] = {
+		{ 0x2F, 0x2E, 0x2D, 0x2C, 0x2B, 0x2A, 0x29, 0x28, 0x17, 0x16, 0x15,
+				0x14, 0x13, 0x12, 0x11, 0x10 }, { 0x21, 0x4B, 0xF3, 0xC1, 0x29,
+				0x54, 0x7A, 0xF3, 0x1D, 0x32, 0xA5, 0xEC, 0xB4, 0x74, 0x21,
+				0x92 }, { 0x1F, 0x1E, 0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x07,
+				0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } };
 
 struct pak2_header_t* getPakHeader(unsigned char *buff) {
 	return (struct pak2_header_t *) buff;
@@ -25,27 +39,27 @@ struct epk2_header_t *get_epk2_header(unsigned char *buffer) {
 	return (struct epk2_header_t*) (buffer);
 }
 
-void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
+void SWU_CryptoInit_PEM(char *configuration_dir, struct pem_file_t *pem_file) {
 	OpenSSL_add_all_digests();
 
 	ERR_load_CRYPTO_strings();
 
-	char pem_file[1024] = "";
+	char pem_file_name[1024] = "";
 
-	strcat(pem_file, configuration_dir);
-	strcat(pem_file, "/");
-	strcat(pem_file, keyset->PEM_FILE);
+	strcat(pem_file_name, configuration_dir);
+	strcat(pem_file_name, "/");
+	strcat(pem_file_name, pem_file->PEM_FILE);
 
 	//printf("pem file: %s\n", pem_file);
 
-	FILE *pubKeyFile = fopen(keyset->PEM_FILE, "r");
+	FILE *pubKeyFile = fopen(pem_file->PEM_FILE, "r");
 
 	if (pubKeyFile == NULL) {
 
-		pubKeyFile = fopen(pem_file, "r");
+		pubKeyFile = fopen(pem_file_name, "r");
 
 		if (pubKeyFile == NULL) {
-			printf("error: can't find PEM file %s\n", keyset->PEM_FILE);
+			printf("error: can't find PEM file %s\n", pem_file->PEM_FILE);
 			exit(1);
 		}
 	}
@@ -56,7 +70,7 @@ void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 
 	if (_gpPubKey == NULL) {
 		printf("error: can't read PEM signature from file %s\n",
-				keyset->PEM_FILE);
+				pem_file->PEM_FILE);
 		exit(1);
 	}
 
@@ -64,11 +78,16 @@ void SWU_CryptoInit(char *configuration_dir, struct keyset_t *keyset) {
 
 	ERR_clear_error();
 
+}
+
+void SWU_CryptoInit_AES(struct aes_key_t *aes_key) {
+
 	int size = 0x80;
 
-	AES_set_decrypt_key(keyset->AES_KEY, size, &_gdKeyImage);
+	AES_set_decrypt_key(aes_key->AES_KEY, size, &_gdKeyImage);
 
-	AES_set_encrypt_key(keyset->AES_KEY, size, &_geKeyImage);
+	AES_set_encrypt_key(aes_key->AES_KEY, size, &_geKeyImage);
+
 }
 
 int _verifyImage(unsigned char *signature, unsigned int sig_len,
@@ -227,6 +246,58 @@ void print_pak2_info(struct pak2_t* pak) {
 	}
 }
 
+void AES_key_lookup(struct pak2_t* pak) {
+
+	int header_size = sizeof(struct pak2_chunk_header_t);
+
+	unsigned char *decrypted = malloc(header_size);
+
+	int aes_key_index = 0;
+
+	for (aes_key_index = 0; aes_key_index < NO_OF_AES_KEYS; aes_key_index++) {
+
+		struct aes_key_t *aes_key = &AES_KEYS_SET[aes_key_index];
+
+		SWU_CryptoInit_AES(aes_key);
+
+		printf("trying AES key #%d / %d for pak chunk decryption...",
+				aes_key_index + 1, NO_OF_AES_KEYS);
+
+		struct pak2_chunk_t *pak_chunk = pak->chunks[0];
+
+		decryptImage(pak_chunk->header->_00_signature, header_size, decrypted);
+
+		//hexdump(decrypted, 1000);
+
+		struct pak2_chunk_header_t* decrypted_chunk_header =
+				(struct pak2_chunk_header_t*) decrypted;
+
+		pak_type_t pak_type = get_pak_type(
+				decrypted_chunk_header->_01_type_code);
+
+		if (pak_type != UNKNOWN) {
+
+			free(decrypted);
+
+			printf("success!\n");
+
+			return;
+		} else {
+
+			printf("failed\n");
+
+		}
+
+	}
+
+	free(decrypted);
+
+	printf(
+			"\nFATAL: can't decrypt pak chunk. probably it's decrypted with an unknown key. aborting now. sorry.\n");
+	exit(EXIT_FAILURE);
+
+}
+
 void scan_pak_chunks(struct epk2_header_t *epak_header,
 		struct pak2_t **pak_array) {
 
@@ -356,6 +427,8 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 			pak_chunk->content = pak_chunk_header->_11_unknown4
 					+ (sizeof(pak_chunk_header->_11_unknown4));
 
+			pak_chunk->content_file_offset = pak_chunk->content - epak_offset;
+
 			pak_chunk->content_len = signed_length
 					- sizeof(struct pak2_chunk_header_t);
 
@@ -445,7 +518,7 @@ void get_version_string(char *fw_version, struct epk2_header_t *epak_header) {
 }
 
 void get_pak2_version_string(char *fw_version, char *ptr) {
-	sprintf(fw_version, "%02x.%02x.%02x.%02x", ptr[3], ptr[2], ptr[1],	ptr[0]);
+	sprintf(fw_version, "%02x.%02x.%02x.%02x", ptr[3], ptr[2], ptr[1], ptr[0]);
 }
 
 void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) {
@@ -485,18 +558,19 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 
 	printf("firmware info\n");
 	printf("-------------\n");
+	printf("file size: %d bytes\n", read);
 	print_epk2_header(epak_header);
 
 	int verified = 0;
-	int keyset_index = 0;
-	for (keyset_index = 0; keyset_index < KEYSET_COUNT; keyset_index++) {
+	int pem_file_index = 0;
+	for (pem_file_index = 0; pem_file_index < NO_OF_PEM_FILES; pem_file_index++) {
 		if (verified == 1)
 			break;
-		struct keyset_t *keyset = &KEY_SETS[keyset_index];
+		struct pem_file_t *pem_file = &PEM_FILES_SET[pem_file_index];
 
-		SWU_CryptoInit(config_opts->config_dir, keyset);
+		SWU_CryptoInit_PEM(config_opts->config_dir, pem_file);
 
-		printf("probing signature file: %s ...\n", keyset->PEM_FILE);
+		printf("probing signature file: %s ...\n", pem_file->PEM_FILE);
 
 		verified = API_SWU_VerifyImage(buffer, epak_header->_07_header_length
 				+ SIGNATURE_SIZE);
@@ -535,6 +609,17 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 
 	scan_pak_chunks(epak_header, pak_array);
 
+	int last_pak_index = epak_header->_03_pak_count - 1;
+
+	struct pak2_t *last_pak = pak_array[last_pak_index];
+
+	int pak_chunk_index = last_pak->chunk_count - 1;
+	struct pak2_chunk_t *last_pak_chunk = last_pak->chunks[pak_chunk_index];
+
+	int last_extracted_file_offset = (last_pak_chunk->content_file_offset
+			+ last_pak_chunk->content_len);
+
+	printf("last extracted file offset: %d\n\n", last_extracted_file_offset);
 	char version_string[1024];
 	get_version_string(version_string, epak_header);
 
@@ -542,6 +627,10 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 	construct_path(target_dir, config_opts->dest_dir, version_string, NULL);
 
 	create_dir_if_not_exist(target_dir);
+
+
+	AES_key_lookup(pak_array[0]);
+
 
 	int pak_index;
 	for (pak_index = 0; pak_index < epak_header->_03_pak_count; pak_index++) {
