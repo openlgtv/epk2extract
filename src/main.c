@@ -21,6 +21,7 @@
 
 #include <epk1.h>
 #include <epk2.h>
+#include <symfile.h>
 
 char exe_dir[1024];
 
@@ -38,6 +39,19 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	strcat(result, filename);
 
 	return result;
+}
+
+void write_idc_script(struct config_opts_t *config_opts) {
+
+	printf("There are %d symbols in the source file.\n", symfile_n_symbols());
+
+	char filename[1024] = "";
+	construct_path(filename, config_opts->dest_dir, "RELEASE", ".idc");
+
+	printf("Writing to file: %s\n", filename);
+
+	symfile_write_idc(filename);
+
 }
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
@@ -79,6 +93,12 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		extract_uboot_image(file, dest_file);
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
+	} else if(symfile_load(file) == 0) {
+		printf("converting symbol file to IDA script...\n\n");
+
+		write_idc_script(config_opts);
+
+		return EXIT_SUCCESS;
 	}
 
 	return EXIT_FAILURE;
@@ -91,7 +111,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc < 2) {
 		printf(
-				"Thanks to xeros, tbage, jenya and all other guys from openlgtv project for their kind assistance.\n\n");
+				"Thanks to xeros, tbage, jenya, Arno1, rtokarev and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("usage: epk2extract [-options] FILENAME\n\n");
 		printf("options:\n");
 		printf(
