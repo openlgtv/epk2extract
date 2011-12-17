@@ -174,9 +174,10 @@ void symfile_write_idc(const char *fname) {
 			char *sym_name = sym_table.sym_name
 					+ sym_table.sym_entry[i].sym_name_off;
 
-			uint32_t addr =  symfile_addr_by_name(sym_name);
+			uint32_t addr = sym_table.sym_entry[i].addr;
 
-			fprintf(outfile, "MakeName( 0x%x, \"%s\");\n", addr, sym_name);
+			//fprintf(outfile, "MakeName( 0x%x, \"%s\");\n", addr, sym_name);
+			fprintf(outfile, "MakeNameEx( 0x%x, \"%s\", SN_NOWARN | SN_CHECK);\n", addr, sym_name);
 
 	}
 
