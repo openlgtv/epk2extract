@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc < 2) {
 		printf(
-				"Thanks to xeros, tbage, jenya, Arno1, rtokarev and all other guys from openlgtv project for their kind assistance.\n\n");
+				"Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("usage: epk2extract [-options] FILENAME\n\n");
 		printf("options:\n");
 		printf(
