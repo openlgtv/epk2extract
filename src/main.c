@@ -107,7 +107,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware package (EPK) extractor\n");
-	printf("Version 1.5dev by sirius (openlgtv.org.ru)\n\n");
+	printf("Version 1.5 by sirius (openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
 		printf(
