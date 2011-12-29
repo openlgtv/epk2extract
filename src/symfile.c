@@ -185,6 +185,12 @@ void symfile_write_idc(const char *fname) {
 
 	fclose(outfile);
 
+	//printf("n_dwarf_lst: %d\n", sym_table.n_dwarf_lst);
+	//printf("dwarf_lst.d1: %d\n", sym_table.dwarf_lst->d1);
+	//printf("dwarf_lst.d2: %d\n", sym_table.dwarf_lst->d2);
+
+	//hexdump(sym_table.dwarf_data, 15000);
+
 }
 
 
