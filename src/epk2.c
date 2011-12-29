@@ -631,8 +631,9 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 	get_version_string(version_string, epak_header);
 
 	char target_dir[1024];
-	construct_path(target_dir, config_opts->dest_dir, version_string, NULL);
+	memset(target_dir, 0, 1024);
 
+	construct_path(target_dir, config_opts->dest_dir, version_string, NULL);
 	create_dir_if_not_exist(target_dir);
 
 	AES_key_lookup(pak_array[0]);

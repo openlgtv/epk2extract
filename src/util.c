@@ -82,7 +82,7 @@ void create_dir_if_not_exist(const char *directory) {
 	struct stat st;
 	if (stat(directory, &st) != 0) {
 		if (mkdir((const char*) directory, 0744) != 0) {
-			printf("Can't create directory %s within current directory",
+			printf("FATAL: Can't create directory '%s'",
 					directory);
 			exit(1);
 		}

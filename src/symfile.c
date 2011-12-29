@@ -148,7 +148,8 @@ int symfile_load(const char *fname) {
 }
 
 uint32_t symfile_addr_by_name(const char *name) {
-	for (unsigned i = 0; i < sym_table.n_symbols; ++i) {
+	unsigned i = 0;
+	for (i = 0; i < sym_table.n_symbols; ++i) {
 		char *sym_name = sym_table.sym_name
 				+ sym_table.sym_entry[i].sym_name_off;
 
@@ -170,7 +171,8 @@ void symfile_write_idc(const char *fname) {
 	fprintf(outfile, "%s\n\n", "#include <idc.idc>");
 	fprintf(outfile, "%s\n", "static main() {");
 
-	for (unsigned i = 0; i < sym_table.n_symbols; ++i) {
+	unsigned i = 0;
+	for (i = 0; i < sym_table.n_symbols; ++i) {
 			char *sym_name = sym_table.sym_name
 					+ sym_table.sym_entry[i].sym_name_off;
 
@@ -195,7 +197,8 @@ void symfile_write_idc(const char *fname) {
 
 
 const char *symfile_name_by_addr(uint32_t addr) {
-	for (int i = sym_table.n_symbols - 1; i >= 0; --i) {
+	int i = 0;
+	for (i = sym_table.n_symbols - 1; i >= 0; --i) {
 		if (sym_table.sym_entry[i].addr <= addr && sym_table.sym_entry[i].end
 				> addr)
 			return sym_table.sym_name + sym_table.sym_entry[i].sym_name_off;

@@ -42,7 +42,7 @@
 									<listOptionValue builtIn="false" value="_FILE_OFFSET_BITS=64"/>
 									<listOptionValue builtIn="false" value="_LARGEFILE_SOURCE"/>
 								</option>
-								<option id="gnu.c.compiler.option.misc.other.119721951" name="Other flags" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 -std=gnu99" valueType="string"/>
+								<option id="gnu.c.compiler.option.misc.other.119721951" name="Other flags" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 " valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1238479331" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1301944157" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
