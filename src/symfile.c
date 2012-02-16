@@ -177,9 +177,16 @@ void symfile_write_idc(const char *fname) {
 					+ sym_table.sym_entry[i].sym_name_off;
 
 			uint32_t addr = sym_table.sym_entry[i].addr;
+			uint32_t end = sym_table.sym_entry[i].end;
 
-			//fprintf(outfile, "MakeName( 0x%x, \"%s\");\n", addr, sym_name);
+			//printf("%s: %x...%x\n", sym_name, addr, end);
+
 			fprintf(outfile, "MakeNameEx( 0x%x, \"%s\", SN_NOWARN | SN_CHECK);\n", addr, sym_name);
+
+			fprintf(outfile, "if(SegName(0x%x)==\".text\") {\n", addr);
+			fprintf(outfile, "   MakeCode(0x%x);\n", addr);
+			fprintf(outfile, "   MakeFunction(0x%x, 0x%x);\n", addr, end);
+			fprintf(outfile, "};\n", addr);
 
 	}
 
