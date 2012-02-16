@@ -41,18 +41,7 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	return result;
 }
 
-void write_idc_script(struct config_opts_t *config_opts) {
 
-	printf("There are %d symbols in the source file.\n", symfile_n_symbols());
-
-	char filename[1024] = "";
-	construct_path(filename, config_opts->dest_dir, "RELEASE", ".idc");
-
-	printf("Writing to file: %s\n", filename);
-
-	symfile_write_idc(filename);
-
-}
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
 	const char *dest_dir = config_opts->dest_dir;
@@ -95,9 +84,9 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		return EXIT_SUCCESS;
 	} else if(symfile_load(file) == 0) {
 		printf("converting symbol file to IDA script...\n\n");
-
-		write_idc_script(config_opts);
-
+		construct_path(dest_file, dest_dir, file_name, ".idc");
+		printf("Writing to file: %s\n", dest_file);
+		symfile_write_idc(dest_file);
 		return EXIT_SUCCESS;
 	}
 
