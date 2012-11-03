@@ -22,6 +22,8 @@
  * unsquashfs.c
  */
 
+#define _GNU_SOURCE /* fnmatch */
+
 #include "unsquashfs.h"
 #include "squashfs_swap.h"
 #include "squashfs_compat.h"

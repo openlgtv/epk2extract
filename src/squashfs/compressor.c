@@ -20,6 +20,9 @@
  * compressor.c
  */
 
+#define GZIP_SUPPORT
+#define COMP_DEFAULT "gzip"
+
 #include <stdio.h>
 #include <string.h>
 #include "compressor.h"
