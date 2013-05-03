@@ -96,11 +96,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 int main(int argc, char *argv[]) {
 
 	printf("LG electronics digital tv firmware package (EPK) extractor\n");
-	printf("Version 1.8dev by sirius (openlgtv.org.ru)\n\n");
+	printf("Version 1.8 by sirius (openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
 		printf(
-				"Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix and all other guys from openlgtv project for their kind assistance.\n\n");
+				"Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("usage: epk2extract [-options] FILENAME\n\n");
 		printf("options:\n");
 		printf(
