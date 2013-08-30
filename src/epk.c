@@ -24,7 +24,6 @@ const char* pak_type_names[] = { stringify( BOOT ), stringify( MTDI ),
 		stringify( UNKNOWN ), stringify( UNKNOWN ), stringify( UNKNOWN ) };
 
 pak_type_t get_pak_type(unsigned char type[4]) {
-
 	uint32_t byte1 = type[0];
 	uint32_t byte2 = type[1];
 	uint32_t byte3 = type[2];
@@ -132,15 +131,12 @@ pak_type_t get_pak_type(unsigned char type[4]) {
 
 const char* get_pak_type_name(unsigned int pakType) {
 	const char *pak_type_name = pak_type_names[pakType];
-
 	char *result = malloc(PAK_ID_LENGTH);
-
 	result[0] = tolower(pak_type_name[0]);
 	result[1] = tolower(pak_type_name[1]);
 	result[2] = tolower(pak_type_name[2]);
 	result[3] = tolower(pak_type_name[3]);
 	result[4] = 0;
-
 	return result;
 }
 

@@ -3,22 +3,18 @@
  Name        : main.c
  Author      : sirius
  Copyright   : published under GPL
- Description : EPK2 firmware extractor for LG electronic digital tv's
+ Description : EPK2 firmware extractor for LG Electronic digital TVs
  ============================================================================
- */
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <ctype.h>
-
 #include <string.h>
 #include <unistd.h>
-
 #include <libgen.h>
-
 #include <getopt.h>
-
 #include <epk1.h>
 #include <epk2.h>
 #include <symfile.h>
@@ -26,8 +22,6 @@
 char exe_dir[1024];
 
 struct config_opts_t config_opts;
-
-
 
 char *appendFilenameToDir(const char *directory, const char *filename) {
 	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
@@ -37,11 +31,8 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	strcat(result, directory);
 	strcat(result, "/");
 	strcat(result, filename);
-
 	return result;
 }
-
-
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
 	const char *dest_dir = config_opts->dest_dir;
@@ -89,33 +80,25 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		symfile_write_idc(dest_file);
 		return EXIT_SUCCESS;
 	}
-
 	return EXIT_FAILURE;
 }
 
 int main(int argc, char *argv[]) {
-
-	printf("LG electronics digital tv firmware package (EPK) extractor\n");
+	printf("LG Electronics digital TV firmware package (EPK) extractor\n");
 	printf("Version 1.9 by sirius (openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
-		printf(
-				"Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
+		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("usage: epk2extract [-options] FILENAME\n\n");
 		printf("options:\n");
-		printf(
-				"  -c : extract to current directory instead of source file directory\n");
+		printf("  -c : extract to current directory instead of source file directory\n");
 		exit(1);
 	}
 
 	char *current_dir = getcwd(NULL, 0);
-
 	printf("current directory: %s\n\n", current_dir);
-
 	readlink("/proc/self/exe", exe_dir, 1024);
-
 	config_opts.config_dir = dirname(exe_dir);
-
 	config_opts.dest_dir = NULL;
 
 	int opt;
@@ -155,7 +138,5 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("\nfinished\n");
-
 	return exit_code;
-
 }

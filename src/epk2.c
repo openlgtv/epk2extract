@@ -205,9 +205,12 @@ void print_epk2_header(struct epk2_header_t *epakHeader) {
 	printf("header length: %d\n\n", epakHeader->_07_header_length);
 }
 
+void get_pak2_version_string(char *fw_version, unsigned char *ptr) {
+	sprintf(fw_version, "%02x.%02x.%02x.%02x", ptr[3], ptr[2], ptr[1], ptr[0]);
+}
+
 void print_pak2_info(struct pak2_t* pak) {
-	printf("pak '%s' contains %d chunk(s).\n", get_pak_type_name(pak->type),
-			pak->chunk_count);
+	printf("pak '%s' contains %d chunk(s).\n", (char*)get_pak_type_name(pak->type), pak->chunk_count);
 
 	int pak_chunk_index = 0;
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
@@ -235,16 +238,16 @@ void print_pak2_info(struct pak2_t* pak) {
 
 		char chunk_version[20];
 
-		get_pak2_version_string(chunk_version,
-				decrypted_chunk_header->_05_version);
+		get_pak2_version_string(chunk_version, decrypted_chunk_header->_05_version);
 
 		printf("  chunk #%u (type='%.*s', version='%s') contains %u bytes\n",
-				pak_chunk_index + 1, 4, get_pak_type_name(pak_type),
+				pak_chunk_index + 1, 4, (char*)get_pak_type_name(pak_type),
 				chunk_version, pak_chunk->content_len);
 
 		free(decrypted);
 	}
 }
+
 
 void AES_key_lookup(struct pak2_t* pak) {
 
@@ -377,7 +380,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 					pak_chunk_header->_00_signature, signed_length)) != 1) {
 				printf(
 						"verify pak chunk #%u of %s failed (size=0x%x). trying fallback...\n",
-						pak->chunk_count + 1, get_pak_type_name(pak->type),
+						pak->chunk_count + 1, (char*)get_pak_type_name(pak->type),
 						signed_length);
 
 				//hexdump(pak_chunk_header->_01_type_code, 0x80);
@@ -516,10 +519,6 @@ void get_version_string(char *fw_version, struct epk2_header_t *epak_header) {
 			epak_header->_06_fw_type);
 }
 
-void get_pak2_version_string(char *fw_version, unsigned char *ptr) {
-	sprintf(fw_version, "%02x.%02x.%02x.%02x", ptr[3], ptr[2], ptr[1], ptr[0]);
-}
-
 void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) {
 
 	FILE *file = fopen(epk_file, "r");
@@ -635,21 +634,18 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 		struct pak2_t *pak = pak_array[pak_index];
 
 		if (pak->type == UNKNOWN) {
-			printf(
-					"WARNING!! firmware file contains unknown pak type '%.*s'. ignoring it!\n",
-					4, pak->header->_01_type_code);
+			printf("WARNING!! firmware file contains unknown pak type '%.*s'. ignoring it!\n", 4, pak->header->_01_type_code);
 			continue;
 		}
 
 		print_pak2_info(pak);
 
-		const char *pak_type_name = get_pak_type_name(pak->type);
+		const char *pak_type_name = (char*)get_pak_type_name(pak->type);
 
 		char filename[1024] = "";
 		construct_path(filename, target_dir, pak_type_name, ".image");
 
-		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,
-				epak_header->_03_pak_count, pak_type_name, filename);
+		printf("saving content of pak #%u/%u (%s) to file %s\n", pak_index + 1,	epak_header->_03_pak_count, pak_type_name, filename);
 
 		int length = write_pak_chunks(pak, filename);
 

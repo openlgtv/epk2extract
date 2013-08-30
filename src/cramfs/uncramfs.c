@@ -9,7 +9,7 @@
 
 // C things
 #include <stdio.h>
-//#include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
@@ -41,10 +41,10 @@ static unsigned int blksize = PAGE_CACHE_SIZE;
 static char *opt_devfile = NULL;
 static char *opt_idsfile = NULL;
 
-static int DIR_GID = NULL;
+static int DIR_GID = 0;
 
 void do_file_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen, struct cramfs_inode* inode);
+		const char* name, int namelen, const struct cramfs_inode* inode);
 
 void do_dir_entry(const u8* base, const char* dir, const char* path,
 		const char* name, int namelen, const struct cramfs_inode* inode);
@@ -510,8 +510,7 @@ void process_directory(const u8* base, const char* dir, u32 offset, u32 size,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void do_file_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen,  struct cramfs_inode* inode) {
+void do_file_entry(const u8* base, const char* dir, const char* path, const char* name, int namelen, const struct cramfs_inode* inode) {
 	int dirlen = strlen(dir);
 	int pathlen = strlen(path);
 	char pname[dirlen + pathlen + namelen + 3];
@@ -561,7 +560,7 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 		do_file(base, inode->offset << 2, size , pname, basename,
 				inode->mode);
 	} else if (S_ISDIR(inode->mode)) {
-		if(DIR_GID == NULL) {
+		if(DIR_GID == 0) {
 			DIR_GID = gid;
 		}
 		do_directory(base, inode->offset << 2, inode->size, pname, basename,
@@ -619,7 +618,6 @@ void do_file_entry(const u8* base, const char* dir, const char* path,
 			}
 		}
 	}
-
 	//printf("\n");
 }
 
@@ -654,7 +652,7 @@ int is_cramfs_image(char const* imagefile) {
 	struct stat st;
 	int fd, result;
 	size_t fslen_ub;
-	u8 const* rom_image;
+	int* rom_image;
 	struct cramfs_super const* sb;
 
 	// Check the image file

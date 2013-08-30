@@ -2,6 +2,8 @@
 #include <ctype.h>
 #define __USE_XOPEN_EXTENDED
 #include <ftw.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <config.h>
@@ -32,7 +34,7 @@ void hexdump(void *pAddressIn, long lSize) {
 		// create a 64-character formatted output line:
 		sprintf(szBuf, " >                            "
 			"                      "
-			"    %08lX", pTmp - pAddress);
+			"    %08zX", pTmp - pAddress);
 		lOutLen2 = lOutLen;
 
 		for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0; lOutLen2; lOutLen2--, lIndex
