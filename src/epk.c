@@ -138,7 +138,7 @@ pak_type_t get_pak_type(unsigned char type[4]) {
 	case 0x74706C69:
 		return TPLI;
 	default:
-		printf("%zX\n", result);
+		printf("%X\n", result);
 		return UNKNOWN;
 	}
 }
