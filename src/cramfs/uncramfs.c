@@ -36,7 +36,7 @@ typedef unsigned int u32;
 #define PAGE_CACHE_SIZE (4096)
 
 /* The kernel assumes PAGE_CACHE_SIZE as block size. */
-static unsigned int blksize = PAGE_CACHE_SIZE;
+static unsigned long blksize = PAGE_CACHE_SIZE;
 
 static char *opt_devfile = NULL;
 static char *opt_idsfile = NULL;
@@ -235,8 +235,7 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 		// blksize must be a power of 2 for the following to work, but it seems
 		// quite likely.
 
-		srcdata = (const u8*) (((u32) (base + offset) + blksize - 1)
-				& ~(blksize - 1));
+		srcdata = (const u8*) (((long) (base + offset) + blksize - 1) & ~(blksize - 1));
 
 
 		//printsize(size, srcdata + size - (base + offset));

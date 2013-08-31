@@ -210,7 +210,7 @@ void get_pak2_version_string(char *fw_version, unsigned char *ptr) {
 }
 
 void print_pak2_info(struct pak2_t* pak) {
-	printf("pak '%s' contains %d chunk(s).\n", (char*)get_pak_type_name(pak->type), pak->chunk_count);
+	printf("pak '%s' contains %d chunk(s).\n", (char*)(long)get_pak_type_name(pak->type), pak->chunk_count);
 
 	int pak_chunk_index = 0;
 	for (pak_chunk_index = 0; pak_chunk_index < pak->chunk_count; pak_chunk_index++) {
@@ -241,7 +241,7 @@ void print_pak2_info(struct pak2_t* pak) {
 		get_pak2_version_string(chunk_version, decrypted_chunk_header->_05_version);
 
 		printf("  chunk #%u (type='%.*s', version='%s') contains %u bytes\n",
-				pak_chunk_index + 1, 4, (char*)get_pak_type_name(pak_type),
+				pak_chunk_index + 1, 4, (char*)(long)get_pak_type_name(pak_type),
 				chunk_version, pak_chunk->content_len);
 
 		free(decrypted);
@@ -343,8 +343,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 						+ pak_header->_04_next_pak_file_offset + signature_sum);
 
 		unsigned int distance_between_paks =
-				((int) next_pak_offset->_01_type_code)
-						- ((int) pak_chunk_header->_01_type_code);
+				(next_pak_offset->_01_type_code) - (pak_chunk_header->_01_type_code);
 
 		// last contained pak...
 		if ((count == (epak_header->_03_pak_count - 1))) {
@@ -380,7 +379,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,
 					pak_chunk_header->_00_signature, signed_length)) != 1) {
 				printf(
 						"verify pak chunk #%u of %s failed (size=0x%x). trying fallback...\n",
-						pak->chunk_count + 1, (char*)get_pak_type_name(pak->type),
+						pak->chunk_count + 1, (char*)(long)get_pak_type_name(pak->type),
 						signed_length);
 
 				//hexdump(pak_chunk_header->_01_type_code, 0x80);
@@ -640,7 +639,7 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 
 		print_pak2_info(pak);
 
-		const char *pak_type_name = (char*)get_pak_type_name(pak->type);
+		const char *pak_type_name = (char*)(long)get_pak_type_name(pak->type);
 
 		char filename[1024] = "";
 		construct_path(filename, target_dir, pak_type_name, ".image");
