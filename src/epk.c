@@ -254,7 +254,7 @@ void handle_extracted_image_file(char *filename, char *target_dir, const char *p
 		if (is_cramfs_image(unpacked)) {
 			char uncram[100] = "";
 			construct_path(uncram, target_dir, pak_type_name, NULL);
-			printf("uncramfs %s to directory %s\n", unpacked, uncram);
+			printf("uncramfs %s to folder %s\n", unpacked, uncram);
 			rmrf(uncram);
 			uncramfs(uncram, unpacked);
 		}

@@ -31,14 +31,14 @@ void print_epk1_header(struct epk1_header_t *epakHeader) {
 	printf("firmware type: %s\n", epakHeader->_06_fw_type);
 	printf("firmware version: %02x.%02x.%02x.%02x\n", epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2], epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
 	printf("contains %d mtd images\n", epakHeader->_03_pak_count);
-	printf("total size of images: %d\n\n", epakHeader->_02_file_size);
+	printf("total size of the images: %d\n\n", epakHeader->_02_file_size);
 }
 
 void print_epk1new_header(struct epk1new_header_t *epakHeader) {
 	printf("firmware type: %s\n", epakHeader->_06_fw_type);
 	printf("firmware version: %02x.%02x.%02x.%02x\n", epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2], epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
 	printf("contains %d mtd images\n", epakHeader->_03_pak_count);
-	printf("total size of images: %d\n\n", epakHeader->_02_file_size);
+	printf("total size of the images: %d\n\n", epakHeader->_02_file_size);
 }
 
 void get_epk1_version_string(char *fw_version, struct epk1_header_t *epak_header) {

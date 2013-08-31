@@ -137,6 +137,6 @@ int main(int argc, char *argv[]) {
 		return exit_code;
 	}
 
-	printf("\nExtraction is finished.\n");
+	printf("Extraction is finished.\n\n");
 	return exit_code;
 }
