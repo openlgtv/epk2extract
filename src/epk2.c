@@ -474,35 +474,24 @@ int write_pak_chunks(struct pak2_t *pak, const char *filename) {
 
 int is_epk2(char *buffer) {
 	struct epk2_header_t *epak_header = get_epk2_header(buffer);
-
 	return !memcmp(epak_header->_04_fw_format, EPK2_MAGIC, 4);
 }
 
 int is_epk2_file(const char *epk_file) {
-
 	FILE *file = fopen(epk_file, "r");
-
 	if (file == NULL) {
 		printf("Can't open file %s", epk_file);
 		exit(1);
 	}
-
 	size_t header_size = sizeof(struct epk2_header_t);
-
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header_size);
-
 	int read = fread(buffer, 1, header_size, file);
-
 	if (read != header_size) {
 		return 0;
 	}
-
 	fclose(file);
-
 	int result = is_epk2(buffer);
-
 	free(buffer);
-
 	return result;
 }
 

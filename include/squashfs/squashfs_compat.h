@@ -51,7 +51,7 @@ struct squashfs_super_block_3 {
 	unsigned int		no_uids:8;
 	unsigned int		no_guids:8;
 	unsigned int		mkfs_time /* time of filesystem creation */;
-	squashfs_inode_t	root_inode;
+	squashfs_inode		root_inode;
 	unsigned int		block_size;
 	unsigned int		fragments;
 	unsigned int		fragment_table_start_2;
@@ -103,7 +103,7 @@ struct squashfs_symlink_inode_header_3 {
 
 struct squashfs_reg_inode_header_3 {
 	SQUASHFS_BASE_INODE_HEADER_3;
-	squashfs_block_t	start_block;
+	squashfs_block		start_block;
 	unsigned int		fragment;
 	unsigned int		offset;
 	unsigned int		file_size;
@@ -113,7 +113,7 @@ struct squashfs_reg_inode_header_3 {
 struct squashfs_lreg_inode_header_3 {
 	SQUASHFS_BASE_INODE_HEADER_3;
 	unsigned int		nlink;
-	squashfs_block_t	start_block;
+	squashfs_block		start_block;
 	unsigned int		fragment;
 	unsigned int		offset;
 	long long		file_size;
@@ -185,7 +185,6 @@ typedef struct squashfs_ldir_inode_header_3 squashfs_ldir_inode_header_3;
 typedef struct squashfs_dir_entry_3 squashfs_dir_entry_3;
 typedef struct squashfs_dir_header_3 squashfs_dir_header_3;
 typedef struct squashfs_fragment_entry_3 squashfs_fragment_entry_3;
-typedef union squashfs_inode_header_3 squashfs_inode_header_3;
 
 /*
  * macros to convert each packed bitfield structure from little endian to big
@@ -483,7 +482,6 @@ typedef struct squashfs_dev_inode_header_1 squashfs_dev_inode_header_1;
 typedef struct squashfs_symlink_inode_header_1 squashfs_symlink_inode_header_1;
 typedef struct squashfs_reg_inode_header_1 squashfs_reg_inode_header_1;
 typedef struct squashfs_dir_inode_header_1 squashfs_dir_inode_header_1;
-typedef union squashfs_inode_header_1 squashfs_inode_header_1;
 
 #define SQUASHFS_SWAP_BASE_INODE_CORE_1(s, d, n) \
 	SQUASHFS_MEMSET(s, d, n);\
@@ -655,7 +653,6 @@ typedef struct squashfs_ldir_inode_header_2 squashfs_ldir_inode_header_2;
 typedef struct squashfs_dir_entry_2 squashfs_dir_entry_2;
 typedef struct squashfs_dir_header_2 squashfs_dir_header_2;
 typedef struct squashfs_fragment_entry_2 squashfs_fragment_entry_2;
-typedef union squashfs_inode_header_2 squashfs_inode_header_2;
 
 #define SQUASHFS_SWAP_BASE_INODE_CORE_2(s, d, n)\
 	SQUASHFS_MEMSET(s, d, n);\

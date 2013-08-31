@@ -55,7 +55,7 @@ int read_fragment_table_1()
 
 struct inode *read_inode_1(unsigned int start_block, unsigned int offset)
 {
-	static squashfs_inode_header_1 header;
+	static union squashfs_inode_header_1 header;
 	long long start = sBlk.s.inode_table_start + start_block;
 	int bytes = lookup_entry(inode_table_hash, start);
 	char *block_ptr = inode_table + bytes + offset;
@@ -138,7 +138,7 @@ struct inode *read_inode_1(unsigned int start_block, unsigned int offset)
 
 			i.data = inode->file_size;
 			i.time = inode->mtime;
-			i.blocks = (inode->file_size + sBlk.s.block_size - 1) >>
+			i.blocks = (i.data + sBlk.s.block_size - 1) >>
 				sBlk.s.block_log;
 			i.start = inode->start_block;
 			i.block_ptr = block_ptr + sizeof(*inode);
@@ -226,7 +226,8 @@ struct dir *squashfs_opendir_1(unsigned int block_start, unsigned int offset,
 	bytes += (*i)->offset;
 	size = (*i)->data + bytes;
 
-	if((dir = malloc(sizeof(struct dir))) == NULL)
+	dir = malloc(sizeof(struct dir));
+	if(dir == NULL)
 		EXIT_UNSQUASH("squashfs_opendir: malloc failed!\n");
 
 	dir->dir_count = 0;

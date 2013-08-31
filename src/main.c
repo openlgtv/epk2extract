@@ -69,7 +69,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		return EXIT_SUCCESS;
 	} else if (is_uboot_image(file)) {
 		construct_path(dest_file, dest_dir, file_name, ".deimaged");
-		printf("extracting u-boot image file to: %s.\n\n", dest_file);
+		printf("extracting U-Boot image to: %s.\n\n", dest_file);
 		extract_uboot_image(file, dest_file);
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
@@ -85,7 +85,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 
 int main(int argc, char *argv[]) {
 	printf("LG Electronics digital TV firmware package (EPK) extractor\n");
-	printf("Version 1.9 by sirius (openlgtv.org.ru)\n\n");
+	printf("Version 2.0 by sirius (openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
@@ -137,6 +137,6 @@ int main(int argc, char *argv[]) {
 		return exit_code;
 	}
 
-	printf("\nfinished\n");
+	printf("\nExtraction is finished.\n");
 	return exit_code;
 }

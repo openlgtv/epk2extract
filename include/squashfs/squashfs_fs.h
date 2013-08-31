@@ -61,6 +61,9 @@
 #define SQUASHFS_ALWAYS_FRAG		5
 #define SQUASHFS_DUPLICATE		6
 #define SQUASHFS_EXPORT			7
+#define SQUASHFS_NOX			8
+#define SQUASHFS_NO_XATTR		9
+#define SQUASHFS_COMP_OPT		10
 
 #define SQUASHFS_BIT(flag, bit)		((flag >> bit) & 1)
 
@@ -85,10 +88,21 @@
 #define SQUASHFS_EXPORTABLE(flags)		SQUASHFS_BIT(flags, \
 						SQUASHFS_EXPORT)
 
-#define SQUASHFS_MKFLAGS(noi, nod, nof, no_frag, always_frag, \
-		duplicate_checking, exportable)	(noi | (nod << 1) | \
-		(nof << 3) | (no_frag << 4) | (always_frag << 5) | \
-		(duplicate_checking << 6) | (exportable << 7))
+#define SQUASHFS_UNCOMPRESSED_XATTRS(flags)	SQUASHFS_BIT(flags, \
+						SQUASHFS_NOX)
+
+#define SQUASHFS_NO_XATTRS(flags)		SQUASHFS_BIT(flags, \
+						SQUASHFS_NO_XATTR)
+
+#define SQUASHFS_COMP_OPTS(flags)		SQUASHFS_BIT(flags, \
+						SQUASHFS_COMP_OPT)
+
+#define SQUASHFS_MKFLAGS(noi, nod, nof, nox, no_frag, always_frag, \
+		duplicate_checking, exportable, no_xattr, comp_opt) (noi | \
+		(nod << 1) | (nof << 3) | (no_frag << 4) | \
+		(always_frag << 5) | (duplicate_checking << 6) | \
+		(exportable << 7) | (nox << 8) | (no_xattr << 9) | \
+		(comp_opt << 10))
 
 /* Max number of types and file types */
 #define SQUASHFS_DIR_TYPE		1
@@ -137,7 +151,7 @@
 
 #define SQUASHFS_INODE_OFFSET(a)	((unsigned int) ((a) & 0xffff))
 
-#define SQUASHFS_MKINODE(A, B)		((squashfs_inode_t)(((squashfs_inode_t) (A)\
+#define SQUASHFS_MKINODE(A, B)		((squashfs_inode)(((squashfs_inode) (A)\
 					<< 16) + (B)))
 
 /* Compute 32 bit VFS inode number from squashfs inode number */
@@ -164,7 +178,7 @@
 						sizeof(long long))
 
 /* inode lookup table defines */
-#define SQUASHFS_LOOKUP_BYTES(A)	((A) * sizeof(squashfs_inode_t))
+#define SQUASHFS_LOOKUP_BYTES(A)	((A) * sizeof(squashfs_inode))
 
 #define SQUASHFS_LOOKUP_BLOCK(A)		(SQUASHFS_LOOKUP_BYTES(A) / \
 						SQUASHFS_METADATA_SIZE)
@@ -253,12 +267,13 @@ struct meta_index {
  * definitions for structures on disk
  */
 
-typedef long long		squashfs_block_t;
-typedef long long		squashfs_inode_t;
+typedef long long		squashfs_block;
+typedef long long		squashfs_inode;
 
 #define ZLIB_COMPRESSION	1
 #define LZMA_COMPRESSION	2
 #define LZO_COMPRESSION		3
+#define XZ_COMPRESSION		4
 
 struct squashfs_super_block {
 	unsigned int		s_magic;
@@ -272,7 +287,7 @@ struct squashfs_super_block {
 	unsigned short		no_ids;
 	unsigned short		s_major;
 	unsigned short		s_minor;
-	squashfs_inode_t	root_inode;
+	squashfs_inode		root_inode;
 	long long		bytes_used;
 	long long		id_table_start;
 	long long		xattr_id_table_start;
@@ -375,7 +390,7 @@ struct squashfs_lreg_inode_header {
 	unsigned short		guid;
 	unsigned int		mtime;
 	unsigned int 		inode_number;
-	squashfs_block_t	start_block;
+	squashfs_block		start_block;
 	long long		file_size;
 	long long		sparse;
 	unsigned int		nlink;

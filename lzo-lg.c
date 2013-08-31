@@ -503,10 +503,7 @@ int __lzo_cdecl_main lzo_unpack(const char* in_name, const char* out_name) {
 	fi = xopen_fi(in_name);
 	fo = xopen_fo(out_name);
 	r = do_decompress(fi, fo);
-	if (r == 0)
-		printf("decompressed %lu into %lu bytes\n", total_in,
-				total_out);
-
+//	if (r == 0)	printf("decompressed %lu into %lu bytes\n", total_in, total_out);
 	xclose(fi);
 	fi = NULL;
 	xclose(fo);

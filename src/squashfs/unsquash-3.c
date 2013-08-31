@@ -30,7 +30,7 @@ static squashfs_fragment_entry_3 *fragment_table;
 int read_fragment_table_3()
 {
 	int res, i, indexes = SQUASHFS_FRAGMENT_INDEXES_3(sBlk.s.fragments);
-	squashfs_fragment_index fragment_table_index[indexes];
+	long long fragment_table_index[indexes];
 
 	TRACE("read_fragment_table: %d fragments, reading %d fragment indexes "
 		"from 0x%llx\n", sBlk.s.fragments, indexes,
@@ -39,13 +39,14 @@ int read_fragment_table_3()
 	if(sBlk.s.fragments == 0)
 		return TRUE;
 
-	if((fragment_table = malloc(sBlk.s.fragments *
-			sizeof(squashfs_fragment_entry_3))) == NULL)
+	fragment_table = malloc(sBlk.s.fragments *
+		sizeof(squashfs_fragment_entry_3));
+	if(fragment_table == NULL)
 		EXIT_UNSQUASH("read_fragment_table: failed to allocate "
 			"fragment table\n");
 
 	if(swap) {
-		squashfs_fragment_index sfragment_table_index[indexes];
+		long long sfragment_table_index[indexes];
 
 		res = read_fs_bytes(fd, sBlk.s.fragment_table_start,
 			SQUASHFS_FRAGMENT_INDEX_BYTES_3(sBlk.s.fragments),
@@ -107,7 +108,7 @@ void read_fragment_3(unsigned int fragment, long long *start_block, int *size)
 
 struct inode *read_inode_3(unsigned int start_block, unsigned int offset)
 {
-	static squashfs_inode_header_3 header;
+	static union squashfs_inode_header_3 header;
 	long long start = sBlk.s.inode_table_start + start_block;
 	int bytes = lookup_entry(inode_table_hash, start);
 	char *block_ptr = inode_table + bytes + offset;
@@ -188,9 +189,9 @@ struct inode *read_inode_3(unsigned int start_block, unsigned int offset)
 			i.fragment = inode->fragment;
 			i.offset = inode->offset;
 			i.blocks = inode->fragment == SQUASHFS_INVALID_FRAG ?
-				(inode->file_size + sBlk.s.block_size - 1) >>
+				(i.data + sBlk.s.block_size - 1) >>
 				sBlk.s.block_log :
-				inode->file_size >> sBlk.s.block_log;
+				i.data >> sBlk.s.block_log;
 			i.start = inode->start_block;
 			i.sparse = 1;
 			i.block_ptr = block_ptr + sizeof(*inode);
@@ -298,7 +299,8 @@ struct dir *squashfs_opendir_3(unsigned int block_start, unsigned int offset,
 	bytes += (*i)->offset;
 	size = (*i)->data + bytes - 3;
 
-	if((dir = malloc(sizeof(struct dir))) == NULL)
+	dir = malloc(sizeof(struct dir));
+	if(dir == NULL)
 		EXIT_UNSQUASH("squashfs_opendir: malloc failed!\n");
 
 	dir->dir_count = 0;

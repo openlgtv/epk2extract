@@ -28,9 +28,18 @@ struct epk1_header_t {
 	unsigned char _06_fw_type[32];
 };
 
+struct epk1new_header_t {
+	unsigned char _01_epak_magic[4];
+	uint32_t _02_file_size;
+	uint32_t _03_pak_count;
+	unsigned char _05_fw_version[4];
+	unsigned char _06_fw_type[32];
+	struct pak1_info_t _04_pak_infos[26];
+};
+
 struct pak1_header_t {
 	unsigned char _01_type_code[4];
-	unsigned char _02_unknown1[4];
+	uint32_t _02_unknown1;
 	unsigned char _03_platform[15];
 	unsigned char _04_unknown3[105];
 };

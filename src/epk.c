@@ -36,8 +36,21 @@ pak_type_t get_pak_type(unsigned char type[4]) {
 	byte3 = byte3 << 8;
 
 	uint32_t result = byte4 | byte3;
-
 	switch (result) {
+	case 0x65787472:
+		return EXTR;
+	case 0x73656375:
+		return SECU;
+	case 0x73656461:
+		return SEDA;
+	case 0x747A6677:
+		return TZFW;
+	case 0x6C676C69:
+		return LGLI;
+	case 0x70617274:
+		return PART;
+	case 0x73777565:
+		return SWUE;
 	case 0x6C67666F:
 		return LGFO;
 	case 0x63726333:
@@ -125,6 +138,7 @@ pak_type_t get_pak_type(unsigned char type[4]) {
 	case 0x74706C69:
 		return TPLI;
 	default:
+		printf("%zX\n", result);
 		return UNKNOWN;
 	}
 }
@@ -142,7 +156,6 @@ const char* get_pak_type_name(unsigned int pakType) {
 
 int is_uboot(char *buffer) {
 	struct image_header *image_header = (struct image_header *) buffer;
-
 	return image_header->ih_magic == ntohl(IH_MAGIC);
 }
 
@@ -221,20 +234,19 @@ void extract_uboot_image(const char *image_file, const char *destination_file) {
 
 }
 
-void handle_extracted_image_file(char *filename, char *target_dir,
-		const char *pak_type_name) {
-	if (is_squashfs(filename)) {
+void handle_extracted_image_file(char *filename, char *target_dir, const char *pak_type_name) {
+	// skipping patc and extr as squashfs breaks on them...
+	if (is_squashfs(filename) && strcmp(pak_type_name, "patc") != 0 && strcmp(pak_type_name, "extr") != 0) {
 		char unsquashed[100] = "";
 		construct_path(unsquashed, target_dir, pak_type_name, NULL);
-		printf("unsquashfs %s to directory %s\n", filename, unsquashed);
+		printf("unsquashfs %s to folder %s\n", filename, unsquashed);
 		rmrf(unsquashed);
 		unsquashfs(filename, unsquashed);
 	}
 	if (check_lzo_header(filename)) {
 		char unpacked[100] = "";
 		construct_path(unpacked, target_dir, pak_type_name, ".unpacked");
-		printf("decompressing %s with modified LZO algorithm to %s\n",
-				filename, unpacked);
+		printf("lzo_unpack %s to folder %s\n", filename, unpacked);
 		if (lzo_unpack((const char*) filename, (const char*) unpacked) != 0) {
 			printf("sorry. decompression failed. aborting now.\n");
 			exit(1);
@@ -250,7 +262,7 @@ void handle_extracted_image_file(char *filename, char *target_dir,
 	if (is_uboot_image(filename)) {
 		char deimaged[100] = "";
 		construct_path(deimaged, target_dir, pak_type_name, ".deimaged");
-		printf("extracting u-boot image %s to %s\n", filename, deimaged);
+		printf("extracting U-Boot image %s to %s\n", filename, deimaged);
 		extract_uboot_image(filename, deimaged);
 		handle_extracted_image_file(deimaged, target_dir, pak_type_name);
 	}

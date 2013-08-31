@@ -121,7 +121,7 @@ void read_fragment_2(unsigned int fragment, long long *start_block, int *size)
 
 struct inode *read_inode_2(unsigned int start_block, unsigned int offset)
 {
-	static squashfs_inode_header_2 header;
+	static union squashfs_inode_header_2 header;
 	long long start = sBlk.s.inode_table_start + start_block;
 	int bytes = lookup_entry(inode_table_hash, start);
 	char *block_ptr = inode_table + bytes + offset;
@@ -205,8 +205,8 @@ struct inode *read_inode_2(unsigned int start_block, unsigned int offset)
 			i.fragment = inode->fragment;
 			i.offset = inode->offset;
 			i.blocks = inode->fragment == SQUASHFS_INVALID_FRAG ?
-				(inode->file_size + sBlk.s.block_size - 1) >>
-				sBlk.s.block_log : inode->file_size >>
+				(i.data + sBlk.s.block_size - 1) >>
+				sBlk.s.block_log : i.data >>
 				sBlk.s.block_log;
 			i.start = inode->start_block;
 			i.sparse = 0;

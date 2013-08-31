@@ -22,28 +22,48 @@
 #include <stdlib.h>
 #include <zlib.h>
 
-int gzip_compress(void **strm, char *d, char *s, int size, int block_size,
-		int *error)
+#include "squashfs_fs.h"
+#include "compressor.h"
+
+static int gzip_init(void **strm, int block_size, int flags)
 {
-	int res = 0;
-	z_stream *stream = *strm;
+	int res;
+	z_stream *stream;
 
-	if(stream == NULL) {
-		if((stream = *strm = malloc(sizeof(z_stream))) == NULL)
-			goto failed;
-
-		stream->zalloc = Z_NULL;
-		stream->zfree = Z_NULL;
-		stream->opaque = 0;
-
-		if((res = deflateInit(stream, 9)) != Z_OK)
-			goto failed;
-	} else if((res = deflateReset(stream)) != Z_OK)
+	stream = *strm = malloc(sizeof(z_stream));
+	if(stream == NULL)
 		goto failed;
 
-	stream->next_in = (unsigned char *) s;
+	stream->zalloc = Z_NULL;
+	stream->zfree = Z_NULL;
+	stream->opaque = 0;
+
+	res = deflateInit(stream, 9);
+	if(res != Z_OK)
+		goto failed2;
+
+	return 0;
+
+failed2:
+	free(stream);
+failed:
+	return -1;
+}
+
+
+static int gzip_compress(void *strm, void *d, void *s, int size, int block_size,
+		int *error)
+{
+	int res;
+	z_stream *stream = strm;
+
+	res = deflateReset(stream);
+	if(res != Z_OK)
+		goto failed;
+
+	stream->next_in = s;
 	stream->avail_in = size;
-	stream->next_out = (unsigned char *) d;
+	stream->next_out = d;
 	stream->avail_out = block_size;
 
 	res = deflate(stream, Z_FINISH);
@@ -67,14 +87,26 @@ failed:
 }
 
 
-int gzip_uncompress(char *d, char *s, int size, int block_size, int *error)
+static int gzip_uncompress(void *d, void *s, int size, int block_size, int *error)
 {
 	int res;
 	unsigned long bytes = block_size;
 
-	res = uncompress((unsigned char *) d, &bytes,
-		(const unsigned char *) s, size);
+	res = uncompress(d, &bytes, s, size);
 
 	*error = res;
 	return res == Z_OK ? (int) bytes : -1;
 }
+
+
+struct compressor gzip_comp_ops = {
+	.init = gzip_init,
+	.compress = gzip_compress,
+	.uncompress = gzip_uncompress,
+	.options = NULL,
+	.usage = NULL,
+	.id = ZLIB_COMPRESSION,
+	.name = "gzip",
+	.supported = 1
+};
+
