@@ -15,8 +15,7 @@ enum {
 	NO_OF_AES_KEYS = 7
 };
 
-struct pem_file_t PEM_FILES_SET[NO_OF_PEM_FILES] = { { "general_pub.pem" }, {
-		"netflix_pub.pem" } };
+struct pem_file_t PEM_FILES_SET[NO_OF_PEM_FILES] = { { "general_pub.pem" }, { "netflix_pub.pem" } };
 
 struct aes_key_t AES_KEYS_SET[NO_OF_AES_KEYS] = {
 		{ 0x2F, 0x2E, 0x2D, 0x2C, 0x2B, 0x2A, 0x29, 0x28, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10 }, 
@@ -339,17 +338,14 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,	struct pak2_t **pak_arra
 				verified = 0;
 
 			} else {
-				next_pak_length = pak_header->_05_next_pak_length
-						+ pak_chunk_signature_length;
+				next_pak_length = pak_header->_05_next_pak_length + pak_chunk_signature_length;
 			}
 
 			pak->chunk_count++;
 
-			pak->chunks = realloc(pak->chunks, pak->chunk_count
-					* sizeof(struct pak2_chunk_t*));
+			pak->chunks = realloc(pak->chunks, pak->chunk_count * sizeof(struct pak2_chunk_t*));
 
-			struct pak2_chunk_t *pak_chunk =
-					malloc(sizeof(struct pak2_chunk_t));
+			struct pak2_chunk_t *pak_chunk = malloc(sizeof(struct pak2_chunk_t));
 
 			pak_chunk->header = pak_chunk_header;
 			pak_chunk->content = pak_chunk_header->_11_unknown4
@@ -407,9 +403,7 @@ int is_epk2_file(const char *epk_file) {
 	size_t header_size = sizeof(struct epk2_header_t);
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header_size);
 	int read = fread(buffer, 1, header_size, file);
-	if (read != header_size) {
-		return 0;
-	}
+	if (read != header_size) return 0;
 	fclose(file);
 	int result = is_epk2(buffer);
 	free(buffer);
@@ -485,7 +479,7 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 	}
 
 	if (verified != 1) {
-		printf("Firmware package can't be verified by it's digital signature. aborting.\n");
+		printf("Firmware package can't be verified by it's digital signature. Aborting.\n\n");
 		exit(1);
 	}
 

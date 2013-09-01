@@ -78,7 +78,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	char version_string[1024];
 	char target_dir[1024];
 	int pak_index;
-	if (buffer[8] < 21) { //
+	if (buffer[8] < 21) { // old EPK1 header
 		struct epk1_header_t *epak_header = (struct epk1_header_t*) (buffer);
 		print_epk1_header(epak_header);
 		get_epk1_version_string(version_string, epak_header);
@@ -102,7 +102,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			fclose(outfile);
 			handle_extracted_image_file(filename, target_dir, pak_type_name);
 		}
-	} else {
+	} else { // new EPK1 header
 		struct epk1new_header_t *epak_header = (struct epk1new_header_t*) (buffer);
 		print_epk1new_header(epak_header);
 		get_epk1new_version_string(version_string, epak_header);
