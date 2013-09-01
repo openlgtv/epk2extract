@@ -7,6 +7,8 @@ apt-get install cmake liblzo2-dev
 
 make
 
-To get IDC from SYM run: ./epk2extract xxxxxxxx.SYM
+## How to get IDC from SYM run:
+./epk2extract xxxxxxxx.SYM
 
-Known issues: sometimes it Segfaults or skips extracting some partitions. In that case rerun it until it's ok.
+## Known issues:
+Sometimes it Segfaults or skips extracting some partitions. In that case rerun it until it's ok.
