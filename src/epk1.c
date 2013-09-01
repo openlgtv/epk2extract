@@ -28,17 +28,17 @@ int is_epk1_file(const char *epk_file) {
 }
 
 void print_epk1_header(struct epk1_header_t *epakHeader) {
-	printf("firmware type: %s\n", epakHeader->_06_fw_type);
-	printf("firmware version: %02x.%02x.%02x.%02x\n", epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2], epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
-	printf("contains %d mtd images\n", epakHeader->_03_pak_count);
-	printf("total size of the images: %d\n\n", epakHeader->_02_file_size);
+	printf("Firmware type: %s\n", epakHeader->_06_fw_type);
+	printf("Firmware version: %02x.%02x.%02x.%02x\n", epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2], epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
+	printf("Contains %d mtd images\n", epakHeader->_03_pak_count);
+	printf("Total size of the images: %d\n\n", epakHeader->_02_file_size);
 }
 
 void print_epk1new_header(struct epk1new_header_t *epakHeader) {
-	printf("firmware type: %s\n", epakHeader->_06_fw_type);
-	printf("firmware version: %02x.%02x.%02x.%02x\n", epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2], epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
-	printf("contains %d mtd images\n", epakHeader->_03_pak_count);
-	printf("total size of the images: %d\n\n", epakHeader->_02_file_size);
+	printf("Firmware type: %s\n", epakHeader->_06_fw_type);
+	printf("Firmware version: %02x.%02x.%02x.%02x\n", epakHeader->_05_fw_version[3], epakHeader->_05_fw_version[2], epakHeader->_05_fw_version[1], epakHeader->_05_fw_version[0]);
+	printf("Contains %d mtd images\n", epakHeader->_03_pak_count);
+	printf("Total size of the images: %d\n\n", epakHeader->_02_file_size);
 }
 
 void get_epk1_version_string(char *fw_version, struct epk1_header_t *epak_header) {
@@ -65,13 +65,13 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
 	int read = fread(buffer, 1, fileLength, file);
 	if (read != fileLength) {
-		printf("error reading file. read %d bytes from %d.\n", read, fileLength);
+		printf("Error reading file. read %d bytes from %d.\n", read, fileLength);
 		exit(1);
 	}
 	fclose(file);
 
 	if (!is_epk1(buffer)) {
-		printf("unsupported file type. aborting.\n");
+		printf("Unsupported file type. Aborting.\n");
 		exit(1);
 	}
 
@@ -89,14 +89,14 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			struct pak1_header_t *pak_header = (struct pak1_header_t *)(buffer + pak_info._01_file_offset);
 			pak_type_t pak_type = get_pak_type(pak_header->_01_type_code);
 			if (pak_type == UNKNOWN) {
-				printf("WARNING!! firmware file contains unknown PAK type '%.*s'. ignoring it!\n", 4, pak_header->_01_type_code);
+				printf("WARNING!! Firmware file contains unknown PAK type '%.*s'. Ignoring it!\n", 4, pak_header->_01_type_code);
 				continue;
 			}
 			char pak_type_name[5] = "";
 			sprintf(pak_type_name, "%.*s", 4, pak_header->_01_type_code);
 			char filename[100] = "";
 			construct_path(filename, target_dir, pak_type_name, ".image");
-			printf("Saving PAK #%u/%u (%s) to file %s\n", pak_index + 1, epak_header->_03_pak_count, pak_type_name, filename);
+			printf("#%u/%u saving PAK  (%s) to file %s\n", pak_index + 1, epak_header->_03_pak_count, pak_type_name, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pak_header->_01_type_code + sizeof(struct pak1_header_t), 1, pak_info._02_size, outfile);
 			fclose(outfile);
@@ -113,14 +113,14 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			struct pak1_header_t *pak_header = (struct pak1_header_t *)(buffer + pak_info._01_file_offset);
 			pak_type_t pak_type = get_pak_type(pak_header->_01_type_code);
 			if (pak_type == UNKNOWN) {
-				printf("WARNING!! firmware file contains unknown pak type '%.*s'. ignoring it!\n", 4, pak_header->_01_type_code);
+				printf("WARNING!! Firmware file contains unknown PAK type '%.*s'. Ignoring it!\n", 4, pak_header->_01_type_code);
 				continue;
 			}
 			char pak_type_name[5] = "";
 			sprintf(pak_type_name, "%.*s", 4, pak_header->_01_type_code);
 			char filename[100] = "";
 			construct_path(filename, target_dir, pak_type_name, ".image");
-			printf("Saving PAK #%u/%u (%s) to file %s\n", pak_index + 1, epak_header->_03_pak_count, pak_type_name, filename);
+			printf("#%u/%u saving PAK (%s) to file %s\n", pak_index + 1, epak_header->_03_pak_count, pak_type_name, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pak_header->_01_type_code + sizeof(struct pak1_header_t), 1, pak_header->_02_unknown1+4, outfile);
 			fclose(outfile);
