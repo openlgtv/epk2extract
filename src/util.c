@@ -8,8 +8,6 @@
 
 #include <config.h>
 
-
-
 void hexdump(void *pAddressIn, long lSize) {
 	char szBuf[100];
 	long lIndent = 1;
@@ -28,13 +26,10 @@ void hexdump(void *pAddressIn, long lSize) {
 	while (buf.lSize > 0) {
 		pTmp = (unsigned char *) buf.pData;
 		lOutLen = (int) buf.lSize;
-		if (lOutLen > 16)
-			lOutLen = 16;
+		if (lOutLen > 16) lOutLen = 16;
 
 		// create a 64-character formatted output line:
-		sprintf(szBuf, " >                            "
-			"                      "
-			"    %08zX", pTmp - pAddress);
+		sprintf(szBuf, " >                                                      %08zX", pTmp - pAddress);
 		lOutLen2 = lOutLen;
 
 		for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0; lOutLen2; lOutLen2--, lIndex
@@ -66,18 +61,13 @@ void hexdump(void *pAddressIn, long lSize) {
 	}
 }
 
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
     int rv = remove(fpath);
-
-    if (rv)
-        perror(fpath);
-
+    if (rv) perror(fpath);
     return rv;
 }
 
-int rmrf(char *path)
-{
+int rmrf(char *path) {
     return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 

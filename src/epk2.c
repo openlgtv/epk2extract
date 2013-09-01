@@ -321,7 +321,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,	struct pak2_t **pak_arra
 				}
 
 				if (verified) {
-					printf("Successfull verified with size: 0x%x\n", signed_length);
+					printf("Successfully verified with size: 0x%x\n", signed_length);
 				} else {
 					printf("Fallback failed. Sorry, aborting now.\n");
 					exit(1);
@@ -331,8 +331,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,	struct pak2_t **pak_arra
 			// sum signature lengths
 			signature_sum += pak_chunk_signature_length;
 
-			unsigned int pak_chunk_content_length = (pak_chunk_length
-					- pak_chunk_signature_length);
+			unsigned int pak_chunk_content_length = (pak_chunk_length - pak_chunk_signature_length);
 
 			if (is_next_chunk_needed) {
 				distance_between_paks -= pak_chunk_content_length;
@@ -358,8 +357,7 @@ void scan_pak_chunks(struct epk2_header_t *epak_header,	struct pak2_t **pak_arra
 
 			pak_chunk->content_file_offset = pak_chunk->content - epak_offset;
 
-			pak_chunk->content_len = signed_length
-					- sizeof(struct pak2_chunk_header_t);
+			pak_chunk->content_len = signed_length - sizeof(struct pak2_chunk_header_t);
 
 			pak->chunks[pak->chunk_count - 1] = pak_chunk;
 
@@ -442,14 +440,14 @@ void extract_epk2_file(const char *epk_file, struct config_opts_t *config_opts) 
 	int read = fread(buffer, 1, fileLength, file);
 
 	if (read != fileLength) {
-		printf("error reading file. read %d bytes from %d.\n", read, fileLength);
+		printf("Error reading file. read %d bytes from %d.\n", read, fileLength);
 		exit(1);
 	}
 
 	fclose(file);
 
 	if (!is_epk2(buffer)) {
-		printf("unsupported file type. aborting.\n");
+		printf("unsupported file type. Aborting.\n");
 		exit(1);
 	}
 

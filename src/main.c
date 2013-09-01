@@ -130,8 +130,7 @@ int main(int argc, char *argv[]) {
 	int exit_code = handle_file(input_file, &config_opts);
 
 	if(exit_code == EXIT_FAILURE) {
-		printf("\n");
-		printf("Unsupported input file format:\n", input_file);
+		printf("Unsupported input file format: %s\n\n", input_file);
 		return exit_code;
 	}
 
