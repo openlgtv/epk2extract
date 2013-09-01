@@ -235,13 +235,16 @@ void extract_uboot_image(const char *image_file, const char *destination_file) {
 }
 
 void handle_extracted_image_file(char *filename, char *target_dir, const char *pak_type_name) {
-	// skipping patc and extr as squashfs breaks on them...
-	if (is_squashfs(filename) && strcmp(pak_type_name, "patc") != 0 && strcmp(pak_type_name, "extr") != 0) {
-		char unsquashed[100] = "";
-		construct_path(unsquashed, target_dir, pak_type_name, NULL);
-		printf("unsquashfs %s to folder %s\n", filename, unsquashed);
-		rmrf(unsquashed);
-		unsquashfs(filename, unsquashed);
+	if (strcmp(pak_type_name, "patc") != 0 && strcmp(pak_type_name, "extr") != 0) {
+		if (is_squashfs(filename)) {
+			char unsquashed[100] = "";
+			construct_path(unsquashed, target_dir, pak_type_name, NULL);
+			printf("unsquashfs %s to folder %s\n", filename, unsquashed);
+			rmrf(unsquashed);
+			unsquashfs(filename, unsquashed);
+		}
+	} else {
+		printf("Skipping unsuashfs (%s) as it doesn't know how to handle it...\n", pak_type_name);
 	}
 	if (check_lzo_header(filename)) {
 		char unpacked[100] = "";
