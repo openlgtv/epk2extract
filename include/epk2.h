@@ -21,69 +21,54 @@ typedef int bool;
 #define TRUE   (1)
 #define FALSE  (0)
 
-enum {
-	MAX_PAK_CHUNKS = 0x10
-};
-enum {
-	SIGNATURE_SIZE = 0x80
+enum { SIGNATURE_SIZE = 0x80 };
+
+struct epk2header_t {
+	unsigned char signature[SIGNATURE_SIZE];
+	unsigned char epakMagic[4];
+	uint32_t fileSize;
+	uint32_t pakCount;
+	unsigned char EPK2magic[4];
+	unsigned char fwVersion[4];
+	unsigned char otaID[32];
+	uint32_t headerLength;
+	uint32_t unknown;
+}; 
+
+struct pak2header_t {
+	unsigned char name[4];
+	uint32_t version;
+	uint32_t maxPAKsegmentSize;
+	uint32_t nextPAKfileOffset;
+	uint32_t nextPAKlength;
 };
 
-struct epk2_header_t {
-	unsigned char _00_signature[SIGNATURE_SIZE];
-	unsigned char _01_epak_magic[4];
-	uint32_t _02_file_size;
-	uint32_t _03_pak_count;
-	unsigned char _04_fw_format[4];
-	unsigned char _05_fw_version[4];
-	unsigned char _06_fw_type[32];
-	uint32_t _07_header_length;
-	uint32_t _08_unknown;
+struct pak2segmentHeader_t {
+	unsigned char signature[SIGNATURE_SIZE];
+	unsigned char name[4];
+	unsigned char unknown1[4];
+	unsigned char platform[15];
+	unsigned char unknown2[49];
+	unsigned char version[4];
+	unsigned char date[4];
+	unsigned char unknown3[4];
+	uint32_t segmentCount;
+	uint32_t segmentLength;
+	uint32_t segmentIndex;
+	unsigned char unknown4[32];
 };
 
-struct pak2_header_t {
-	unsigned char _01_type_code[4];
-	uint32_t _02_version;
-	uint32_t _03_max_pak_chunk_size;
-	uint32_t _04_next_pak_file_offset;
-	uint32_t _05_next_pak_length;
-};
-
-struct pak2_chunk_header_t {
-	unsigned char _00_signature[SIGNATURE_SIZE];
-	unsigned char _01_type_code[4];
-	unsigned char _02_unknown1[4];
-	unsigned char _03_platform[15];
-	unsigned char _04_unknown2[49];
-	unsigned char _05_version[4];
-	unsigned char _06_date[4];
-	unsigned char _07_unknown3[4];
-	uint32_t _08_chunk_count;
-	uint32_t _09_chunk_length;
-	uint32_t _10_chunk_index;
-	unsigned char _11_unknown4[32];
-};
-
-struct pak2_chunk_t {
-	struct pak2_chunk_header_t *header;
+struct pak2segment_t {
+	struct pak2segmentHeader_t *header;
 	unsigned char *content;
 	int content_file_offset;
 	int content_len;
 };
 
 struct pak2_t {
-	pak_type_t type;
-	struct pak2_header_t *header;
-	unsigned int chunk_count;
-	struct pak2_chunk_t **chunks;
+	struct pak2header_t *header;
+	unsigned int segment_count;
+	struct pak2segment_t **segments;
 };
-
-struct pem_file_t {
-	unsigned char *PEM_FILE;
-};
-
-struct aes_key_t {
-	unsigned char AES_KEY[16];
-};
-
 
 #endif /* EPK2_H_ */

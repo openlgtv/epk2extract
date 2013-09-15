@@ -14,34 +14,34 @@
 #include <stdio.h>
 #include <epk.h>
 
-struct pak1_info_t {
-	uint32_t _01_file_offset;
-	uint32_t _02_size;
+struct pakRec_t {
+	uint32_t offset;
+	uint32_t size;
 };
 
-struct epk1_header_t {
-	unsigned char _01_epak_magic[4];
-	uint32_t _02_file_size;
-	uint32_t _03_pak_count;
-	struct pak1_info_t _04_pak_infos[20];
-	unsigned char _05_fw_version[4];
-	unsigned char _06_fw_type[32];
+struct epk1Header_t {
+	unsigned char epakMagic[4];
+	uint32_t fileSize;
+	uint32_t pakCount;
+	struct pakRec_t pakRecs[20];
+	unsigned char fwVer[4];
+	unsigned char otaID[32];
 };
 
-struct epk1new_header_t {
-	unsigned char _01_epak_magic[4];
-	uint32_t _02_file_size;
-	uint32_t _03_pak_count;
-	unsigned char _05_fw_version[4];
-	unsigned char _06_fw_type[32];
-	struct pak1_info_t _04_pak_infos[26];
+struct epk1NewHeader_t {
+	unsigned char epakMagic[4];
+	uint32_t fileSize;
+	uint32_t pakCount;
+	unsigned char fwVer[4];
+	unsigned char otaID[32];
+	struct pakRec_t pakRecs[26];
 };
 
-struct pak1_header_t {
-	unsigned char _01_type_code[4];
-	uint32_t _02_unknown1;
-	unsigned char _03_platform[15];
-	unsigned char _04_unknown3[105];
+struct pakHeader_t {
+	unsigned char pakName[4];
+	uint32_t pakSize;
+	unsigned char platform[15];
+	unsigned char unknown[105];
 };
 
 #endif /* EPK1_H_ */
