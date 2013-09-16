@@ -7,8 +7,14 @@ apt-get install cmake liblzo2-dev
 
 make
 
+## To use:
+put *.pem and AES.key to epk2extract folder
+run it via sudo because rootfs extraction needs root
+sudo ./epk2extract file
+
 ## How to get IDC from SYM run:
 ./epk2extract xxxxxxxx.SYM
 
 ## Known issues:
-Sometimes it Segfaults or skips extracting some partitions. In that case rerun it until it's ok.
+Sometimes it segfaults on some partitions. In that case just rerun it again.
+

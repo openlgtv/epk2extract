@@ -81,12 +81,12 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 }
 
 int main(int argc, char *argv[]) {
-	printf("\nLG Electronics digital TV firmware package (EPK) extractor v2.9 by sirius (http://openlgtv.org.ru)\n\n");
+	printf("\nLG Electronics digital TV firmware package (EPK) extractor v2.9.1 by sirius (http://openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
-		printf("usage: epk2extract [-options] FILENAME\n\n");
-		printf("options:\n");
+		printf("Usage: epk2extract [-options] FILENAME\n\n");
+		printf("Options:\n");
 		printf("  -c : extract to current directory instead of source file directory\n");
 		exit(1);
 	}
@@ -105,12 +105,12 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 		case ':': {
-			fprintf(stderr, "option `%c' needs a value\n\n", optopt);
+			printf("Option `%c' needs a value\n\n", optopt);
 			exit(1);
 			break;
 		}
 		case '?': {
-			fprintf(stderr, "unknown option: `%c'\n\n", optopt);
+			printf("Unknown option: `%c'\n\n", optopt);
 			exit(1);
 		}
 		}
