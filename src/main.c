@@ -20,6 +20,7 @@
 #include <symfile.h>
 
 char exe_dir[1024];
+char *current_dir;
 
 struct config_opts_t config_opts;
 
@@ -34,11 +35,28 @@ char *appendFilenameToDir(const char *directory, const char *filename) {
 	return result;
 }
 
+int is_lz4(const char *lz4file) {
+	FILE *file = fopen(lz4file, "r");
+	if (file == NULL) {
+		printf("Can't open file %s", lz4file);
+		exit(1);
+	}
+	size_t headerSize = 4;
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
+	int read = fread(buffer, 1, headerSize, file);
+	if (read != headerSize) return 0;
+	fclose(file);
+	int result = !memcmp(&buffer[0], "LZ4P", 4); 
+	free(buffer);
+	return result;
+}
+
 int handle_file(const char *file, struct config_opts_t *config_opts) {
 	const char *dest_dir = config_opts->dest_dir;
 	const char *file_name = basename(strdup(file));
 
 	char dest_file[1024] = "";
+	char lz4pack[1024] = "";
 
 	if (check_lzo_header(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".lzounpack");
@@ -47,6 +65,13 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 			handle_file(dest_file, config_opts);
 			return EXIT_SUCCESS;
 		}
+	} else if (is_lz4(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".unlz4");
+		printf("UnLZ4 file to: %s\n", dest_file);
+		rmrf(dest_file);
+		sprintf(lz4pack, "./lz4pack -d %s/%s %s", current_dir, file, dest_file);
+		system(lz4pack);
+		return EXIT_SUCCESS;			
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
 		printf("Unsquashfs file to: %s\n", dest_file);
@@ -91,7 +116,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	char *current_dir = getcwd(NULL, 0);
+	current_dir = getcwd(NULL, 0);
 	printf("Current directory: %s\n", current_dir);
 	readlink("/proc/self/exe", exe_dir, 1024);
 	config_opts.config_dir = dirname(exe_dir);

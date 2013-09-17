@@ -1,5 +1,4 @@
 #include <epk1.h>
-#include <crc.h>
 
 const char EPK1_MAGIC[] = "epak";
 
@@ -60,8 +59,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	}
 	fclose(file);
 	char verString[1024];
-	char targetFolder[1024];
-	memset(targetFolder, 0, 1024);
+	char targetFolder[1024]="";
 	int index;
 	if (((struct epk1Header_t*)(buffer))->pakCount < 21) { // old EPK1 header
 		struct epk1Header_t *epakHeader = (struct epk1Header_t*) (buffer);

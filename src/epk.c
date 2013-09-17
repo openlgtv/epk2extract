@@ -56,7 +56,7 @@ void extract_uboot_image(const char *image_file, const char *destination_file) {
 void processExtractedFile(char *filename, char *target_dir, const char *pak_type_name) {
 	if (strcmp(pak_type_name, "patc") != 0 && strcmp(pak_type_name, "extr") != 0) {
 		if (is_squashfs(filename)) {
-			char unsquashed[100] = "";
+			char unsquashed[255] = "";
 			constructPath(unsquashed, target_dir, pak_type_name, NULL);
 			printf("Unsquashfs %s to folder %s\n", filename, unsquashed);
 			rmrf(unsquashed);
@@ -65,28 +65,35 @@ void processExtractedFile(char *filename, char *target_dir, const char *pak_type
 	} else {
 		printf("!!!Skipping unsquashfs (%s) as it doesn't know how to handle it...\n", pak_type_name);
 	}
+	if (is_lz4(filename)) {
+		char unpacked[255] = "";
+		constructPath(unpacked, target_dir, pak_type_name, ".unLZ4");
+		char lz4pack[1024] = "";
+		sprintf(lz4pack, "./lz4pack -d %s %s", filename, unpacked);
+		system(lz4pack);
+		processExtractedFile(unpacked, target_dir, pak_type_name);	
+	}
 	if (check_lzo_header(filename)) {
-		char unpacked[100] = "";
+		char unpacked[255] = "";
 		constructPath(unpacked, target_dir, pak_type_name, ".unpacked");
 		printf("LZOunpack %s to folder %s\n", filename, unpacked);
 		if (lzo_unpack((const char*) filename, (const char*) unpacked) != 0) {
 			printf("Decompression failed. Aborting now.\n");
 			exit(1);
 		}
-		if (is_cramfs_image(unpacked)) {
-			char uncram[100] = "";
-			constructPath(uncram, target_dir, pak_type_name, NULL);
-			printf("Uncramfs %s to folder %s\n", unpacked, uncram);
-			rmrf(uncram);
-			uncramfs(uncram, unpacked);
-		}
+	}
+	if (is_cramfs_image(filename)) {
+		char uncram[255] = "";
+		constructPath(uncram, target_dir, pak_type_name, NULL);
+		printf("Uncramfs %s to folder %s\n", filename, uncram);
+		rmrf(uncram);
+		uncramfs(uncram, filename);
 	}
 	if (is_uboot_image(filename)) {
-		char deimaged[100] = "";
+		char deimaged[255] = "";
 		constructPath(deimaged, target_dir, pak_type_name, ".unPAKed");
 		printf("Extracting boot image %s to %s\n", filename, deimaged);
 		extract_uboot_image(filename, deimaged);
 		processExtractedFile(deimaged, target_dir, pak_type_name);
 	}
-
 }

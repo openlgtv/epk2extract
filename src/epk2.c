@@ -429,8 +429,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	char version_string[1024];
 	getEPK2versionString(version_string, epakHeader);
 
-	char targetFolder[1024];
-	memset(targetFolder, 0, 1024);
+	char targetFolder[1024]="";
 	constructPath(targetFolder, config_opts->dest_dir, version_string, NULL);
 	createFolder(targetFolder);
 
