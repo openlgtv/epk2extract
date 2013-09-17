@@ -2,12 +2,7 @@
 #include <u-boot/image.h>
 #include <arpa/inet.h>
 
-int is_uboot(char *buffer) {
-	struct image_header *image_header = (struct image_header *) buffer;
-	return image_header->ih_magic == ntohl(IH_MAGIC);
-}
-
-int is_uboot_image(const char *image_file) {
+int is_kernel(const char *image_file) {
 	FILE *file = fopen(image_file, "r");
 	if (file == NULL) {
 		printf("Can't open file %s", image_file);
@@ -18,12 +13,13 @@ int is_uboot_image(const char *image_file) {
 	int read = fread(buffer, 1, header_size, file);
 	if (read != header_size) return 0;
 	fclose(file);
-	int result = is_uboot(buffer);
+	struct image_header *image_header = (struct image_header *) buffer;
+	int result = image_header->ih_magic == ntohl(IH_MAGIC);
 	free(buffer);
 	return result;
 }
 
-void extract_uboot_image(const char *image_file, const char *destination_file) {
+void extract_kernel(const char *image_file, const char *destination_file) {
 	FILE *file = fopen(image_file, "r");
 	if (file == NULL) {
 		printf("Can't open file %s", image_file);
@@ -39,11 +35,6 @@ void extract_uboot_image(const char *image_file, const char *destination_file) {
 		exit(1);
 	}
 	fclose(file);
-
-	if (!is_uboot(buffer)) {
-		printf("Unsupported file type. Aborting.\n");
-		exit(1);
-	}
 
 	struct image_header *image_header = (struct image_header *) buffer;
 	FILE *out = fopen(destination_file, "w");
@@ -68,7 +59,7 @@ void processExtractedFile(char *filename, char *target_dir, const char *pak_type
 	if (is_lz4(filename)) {
 		char unpacked[255] = "";
 		constructPath(unpacked, target_dir, pak_type_name, ".unLZ4");
-		char lz4pack[1024] = "";
+		char lz4pack[255] = "";
 		sprintf(lz4pack, "./lz4pack -d %s %s", filename, unpacked);
 		system(lz4pack);
 		processExtractedFile(unpacked, target_dir, pak_type_name);	
@@ -81,6 +72,7 @@ void processExtractedFile(char *filename, char *target_dir, const char *pak_type
 			printf("Decompression failed. Aborting now.\n");
 			exit(1);
 		}
+		processExtractedFile(unpacked, target_dir, pak_type_name);
 	}
 	if (is_cramfs_image(filename)) {
 		char uncram[255] = "";
@@ -89,11 +81,11 @@ void processExtractedFile(char *filename, char *target_dir, const char *pak_type
 		rmrf(uncram);
 		uncramfs(uncram, filename);
 	}
-	if (is_uboot_image(filename)) {
+	if (is_kernel(filename)) {
 		char deimaged[255] = "";
 		constructPath(deimaged, target_dir, pak_type_name, ".unPAKed");
-		printf("Extracting boot image %s to %s\n", filename, deimaged);
-		extract_uboot_image(filename, deimaged);
+		printf("Extracting kernel %s to %s\n", filename, deimaged);
+		extract_kernel(filename, deimaged);
 		processExtractedFile(deimaged, target_dir, pak_type_name);
 	}
-}
+}																																																																																																																																																																																																																																																			

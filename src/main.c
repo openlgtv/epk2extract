@@ -90,10 +90,10 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
 		return EXIT_SUCCESS;
-	} else if (is_uboot_image(file)) {
+	} else if (is_kernel(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unPAKed");
 		printf("Extracting boot image to: %s.\n\n", dest_file);
-		extract_uboot_image(file, dest_file);
+		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
 	} else if(symfile_load(file) == 0) {

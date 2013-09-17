@@ -381,7 +381,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 				pos += 2 * sizeof(char);
 			}
 			SWU_CryptoInit_AES(aes_key);
-			printf("Trying AES key (%s) ", strtok(line,"\n"));
+			printf("Trying AES key (%s) ", strtok(line,"\n\r"));
 			decryptImage(&buffer[0x80], headerSize, decrypted);
 			if (!memcmp(&decrypted[0xC], EPK2_MAGIC, 4)) {
 				printf("Success!\n");
