@@ -1,3 +1,5 @@
+#include <sys/mman.h>
+#include <fcntl.h>
 #include <epk1.h>
 
 const char EPK1_MAGIC[] = "epak";
@@ -41,27 +43,28 @@ void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader)
 }
 
 void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) {
-	FILE *file = fopen(epk_file, "r");
-	if (file == NULL) {
+	int file;
+	if (!(file = open(epk_file, O_RDONLY))) {
 		printf("\nCan't open file %s\n", epk_file);
 		exit(1);
 	}
-	fseek(file, 0, SEEK_END);
-	int fileLength = ftell(file);
-	rewind(file);
-	printf("File size: %d bytes\n", fileLength);
-	printf("\nLoading EPK1 firmware file into RAM. Please wait...\n");
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
-	int read = fread(buffer, 1, fileLength, file);
-	if (read != fileLength) {
-		printf("\n\Error reading file. Read %d bytes from %d.\n", read, fileLength);
+	struct stat statbuf;
+	if (fstat(file, &statbuf) < 0) {
+		printf("\nfstat error\n"); 
 		exit(1);
 	}
-	fclose(file);
+	int fileLength = statbuf.st_size;
+	printf("File size: %d bytes\n", fileLength);
+	void *buffer;
+	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
+		printf("\nCannot mmap input file. Aborting\n"); 
+		exit(1);
+	}
 	char verString[1024];
 	char targetFolder[1024]="";
 	int index;
 	if (((struct epk1Header_t*)(buffer))->pakCount < 21) { // old EPK1 header
+		printf("\nFirmware type is EPK1...\n");
 		struct epk1Header_t *epakHeader = (struct epk1Header_t*) (buffer);
 		printHeaderInfo(epakHeader);
 		constructVerString(verString, epakHeader);
@@ -81,6 +84,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			processExtractedFile(filename, targetFolder, pakName);
 		}
 	} else { // new EPK1 header
+		printf("\nFirmware type is EPK1(new)...\n");
 		struct epk1NewHeader_t *epakHeader = (struct epk1NewHeader_t*) (buffer);
 		printNewHeaderInfo(epakHeader);
 		constructNewVerString(verString, epakHeader);
@@ -100,6 +104,6 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			processExtractedFile(filename, targetFolder, pakName);
 		}
 	}
-	free(buffer);
+	close(file);
 }
 

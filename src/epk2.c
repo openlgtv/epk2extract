@@ -1,3 +1,5 @@
+#include <sys/mman.h>
+#include <fcntl.h>
 #include <epk2.h>
 #include <crc.h>
 #include <dirent.h>
@@ -308,23 +310,41 @@ void getEPK2versionString(char *fw_version, struct epk2header_t *epakHeader) {
 }
 
 void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
-	FILE *file = fopen(epk2file, "r");
-	if (file == NULL) {
-		printf("\nCan't open file %s", epk2file);
+//	FILE *file = fopen(epk2file, "r");
+//	if (file == NULL) {
+//		printf("\nCan't open file %s", epk2file);
+//		exit(1);
+//	}
+	int file;
+	if (!(file = open(epk2file, O_RDONLY))) {
+		printf("\nCan't open file %s\n", epk2file);
 		exit(1);
 	}
-	fseek(file, 0, SEEK_END);
-	fileLength = ftell(file);
-	rewind(file);
+	struct stat statbuf;
+	if (fstat(file, &statbuf) < 0) {
+		printf("\nfstat error\n"); 
+		exit(1);
+	}
+	int fileLength = statbuf.st_size;
 	printf("File size: %d bytes\n", fileLength);
+	void *buffer;
+	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
+		printf("\nCannot mmap input file. Aborting\n"); 
+		exit(1);
+	}
+
+//	fseek(file, 0, SEEK_END);
+//	fileLength = ftell(file);
+//	rewind(file);
+//	printf("File size: %d bytes\n", fileLength);
 	printf("\nVerifying digital signature of EPK2 firmware header...\n");
 	int EPK2headerSize = 0x6B4;
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
-	int read = fread(buffer, 1, EPK2headerSize, file);
-	if (read != EPK2headerSize) {
-		printf("\nError reading EPK2 header. Read %d bytes from %d.\n", read, EPK2headerSize);
-		exit(1);
-	}
+//	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
+//	int read = fread(buffer, 1, EPK2headerSize, file);
+//	if (read != EPK2headerSize) {
+//		printf("\nError reading EPK2 header. Read %d bytes from %d.\n", read, EPK2headerSize);
+//		exit(1);
+//	}
 
 	int verified = 0;
 
@@ -354,7 +374,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 
 	if (!verified) {
 		printf("Cannot verify firmware's digital signature (maybe you don't have proper PEM file). Aborting.\n\n");
-		fclose(file);
+		close(file);
 		exit(1);
 	}
 
@@ -407,13 +427,13 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	printEPK2header(epakHeader);
 
 	printf("Loading EPK2 firmware file into RAM. Please wait...\n");
-	read = fread(&buffer[EPK2headerSize], 1, fileLength - EPK2headerSize, file);
-	if (read != fileLength - EPK2headerSize) {
-		printf("\nError reading file. Read %d bytes from %d.\n", read, fileLength - EPK2headerSize);
-		fclose(file);
-		exit(1);
-	}
-	fclose(file);
+//	read = fread(&buffer[EPK2headerSize], 1, fileLength - EPK2headerSize, file);
+//	if (read != fileLength - EPK2headerSize) {
+//		printf("\nError reading file. Read %d bytes from %d.\n", read, fileLength - EPK2headerSize);
+//		fclose(file);
+//		exit(1);
+//	}
+//	fclose(file);
 
 	struct pak2_t **pakArray = malloc((epakHeader->pakCount) * sizeof(struct pak2_t*));
 	if (fileLength < epakHeader->fileSize) printf("\nWARNING: Real file size is shorter than file size listed in the header!!!\n");

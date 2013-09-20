@@ -68,7 +68,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		if (check_lzo_header(filename)) {
 			constructPath(extractedFile, folderExtractTo, PAKname, ".unpacked");
 			printf("LZOunpack %s to %s\n", filename, extractedFile);
-			extracted = lzo_unpack((const char*) filename, (const char*) extractedFile);
+			extracted = !lzo_unpack((const char*) filename, (const char*) extractedFile);
 		} else {
 	    		if (is_cramfs_image(filename)) {
 				constructPath(extractedFile, folderExtractTo, PAKname, NULL);
