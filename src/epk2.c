@@ -11,14 +11,6 @@ int fileLength;
 
 unsigned char aes_key[16];
 
-struct pak2header_t* getPakHeader(unsigned char *buff) {
-	return (struct pak2header_t *) buff;
-}
-
-struct epk2header_t *get_epk2header(unsigned char *buffer) {
-	return (struct epk2header_t*) (buffer);
-}
-
 void SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
 	OpenSSL_add_all_digests();
 	ERR_load_CRYPTO_strings();
@@ -189,7 +181,7 @@ int scanPAKsegments(struct epk2header_t *epakHeader, struct pak2_t **pakArray) {
 	int count = 0;
 	int next_pak_length = epakHeader->fileSize;
 	while (count < epakHeader->pakCount) {
-		struct pak2header_t *pakHeader = getPakHeader(pakHeader_offset);
+		struct pak2header_t *pakHeader = (struct pak2header_t *) (pakHeader_offset);
 		struct pak2_t *pak = malloc(sizeof(struct pak2_t));
 		pakArray[count] = pak;
 		pak->header = pakHeader;
@@ -310,41 +302,23 @@ void getEPK2versionString(char *fw_version, struct epk2header_t *epakHeader) {
 }
 
 void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
-//	FILE *file = fopen(epk2file, "r");
-//	if (file == NULL) {
-//		printf("\nCan't open file %s", epk2file);
-//		exit(1);
-//	}
-	int file;
-	if (!(file = open(epk2file, O_RDONLY))) {
-		printf("\nCan't open file %s\n", epk2file);
+	FILE *file = fopen(epk2file, "r");
+	if (file == NULL) {
+		printf("\nCan't open file %s", epk2file);
 		exit(1);
 	}
-	struct stat statbuf;
-	if (fstat(file, &statbuf) < 0) {
-		printf("\nfstat error\n"); 
-		exit(1);
-	}
-	int fileLength = statbuf.st_size;
+	fseek(file, 0, SEEK_END);
+	fileLength = ftell(file);
+	rewind(file);
 	printf("File size: %d bytes\n", fileLength);
-	void *buffer;
-	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
-		printf("\nCannot mmap input file. Aborting\n"); 
-		exit(1);
-	}
-
-//	fseek(file, 0, SEEK_END);
-//	fileLength = ftell(file);
-//	rewind(file);
-//	printf("File size: %d bytes\n", fileLength);
 	printf("\nVerifying digital signature of EPK2 firmware header...\n");
 	int EPK2headerSize = 0x6B4;
-//	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
-//	int read = fread(buffer, 1, EPK2headerSize, file);
-//	if (read != EPK2headerSize) {
-//		printf("\nError reading EPK2 header. Read %d bytes from %d.\n", read, EPK2headerSize);
-//		exit(1);
-//	}
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
+	int read = fread(buffer, 1, EPK2headerSize, file);
+	if (read != EPK2headerSize) {
+		printf("\nError reading EPK2 header. Read %d bytes from %d.\n", read, EPK2headerSize);
+		exit(1);
+	}
 
 	int verified = 0;
 
@@ -378,7 +352,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 		exit(1);
 	}
 
-	struct epk2header_t *epakHeader = get_epk2header(buffer);
+	struct epk2header_t *epakHeader = (struct epk2header_t*) buffer;
 	if (memcmp(epakHeader->EPK2magic, EPK2_MAGIC, 4)) {
 		printf("EPK2 header is encrypted. Trying to decrypt...\n");
 		int headerSize = 0x634;
@@ -427,17 +401,15 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	printEPK2header(epakHeader);
 
 	printf("Loading EPK2 firmware file into RAM. Please wait...\n");
-//	read = fread(&buffer[EPK2headerSize], 1, fileLength - EPK2headerSize, file);
-//	if (read != fileLength - EPK2headerSize) {
-//		printf("\nError reading file. Read %d bytes from %d.\n", read, fileLength - EPK2headerSize);
-//		fclose(file);
-//		exit(1);
-//	}
-//	fclose(file);
-
+	read = fread(&buffer[EPK2headerSize], 1, fileLength - EPK2headerSize, file);
+	if (read != fileLength - EPK2headerSize) {
+		printf("\nError reading file. Read %d bytes from %d.\n", read, fileLength - EPK2headerSize);
+		fclose(file);
+		exit(1);
+	}
+	
 	struct pak2_t **pakArray = malloc((epakHeader->pakCount) * sizeof(struct pak2_t*));
 	if (fileLength < epakHeader->fileSize) printf("\nWARNING: Real file size is shorter than file size listed in the header!!!\n");
-	
 	int last_index = scanPAKsegments(epakHeader, pakArray) - 1;
 	struct pak2_t *last_pak = pakArray[last_index];
 	int PAKsegment_index = last_pak->segment_count - 1;
