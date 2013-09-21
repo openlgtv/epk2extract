@@ -76,7 +76,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			char pakName[5] = "";
 			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 			char filename[255] = "";
-			constructPath(filename, targetFolder, pakName, ".PAK");
+			constructPath(filename, targetFolder, pakName, ".pak");
 			printf("#%u/%u saving PAK  (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size, outfile);
@@ -96,7 +96,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			char pakName[5] = "";
 			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 			char filename[255] = "";
-			constructPath(filename, targetFolder, pakName, ".PAK");
+			constructPath(filename, targetFolder, pakName, ".pak");
 			printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakHeader->pakSize+4, outfile);

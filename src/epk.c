@@ -60,7 +60,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		return;
 	}
 	if (is_lz4(filename)) {
-		constructPath(extractedFile, folderExtractTo, PAKname, ".unLZ4");
+		constructPath(extractedFile, folderExtractTo, PAKname, ".unlz4");
 		char args[255] = "";
 		sprintf(args, "./lz4pack -d %s %s", filename, extractedFile);
 		extracted = !system(args);
@@ -78,7 +78,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 				extracted = 0;
 			} else {
 			    	if (is_kernel(filename)) {
-					constructPath(extractedFile, folderExtractTo, PAKname, ".unPAKed");
+					constructPath(extractedFile, folderExtractTo, PAKname, ".unpaked");
 					printf("Extracting kernel %s to %s\n", filename, extractedFile);
 					extract_kernel(filename, extractedFile);
 					extracted = 1;
