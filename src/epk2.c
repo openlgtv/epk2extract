@@ -8,7 +8,6 @@ EVP_PKEY *_gpPubKey;
 AES_KEY _gdKeyImage, _geKeyImage;
 const char EPK2_MAGIC[] = "EPK2";
 int fileLength;
-
 unsigned char aes_key[16];
 
 void SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
@@ -34,7 +33,7 @@ void SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
 }
 
 void SWU_CryptoInit_AES(const unsigned char* AES_KEY) {
-	int size = 0x80;
+	int size = SIGNATURE_SIZE;
 	AES_set_decrypt_key(AES_KEY, size, &_gdKeyImage);
 	AES_set_encrypt_key(AES_KEY, size, &_geKeyImage);
 }
@@ -136,9 +135,8 @@ void SelectAESkey(struct pak2_t* pak) {
 		exit(1);
 	}
 	char* line = NULL;
-	size_t len = 0;
+	size_t len, count;
 	ssize_t read;
-	size_t count = 0;
 
 	while ((read = getline(&line, &len, fp)) != -1) {
 		char* pos = line;
@@ -169,101 +167,13 @@ void SelectAESkey(struct pak2_t* pak) {
 	exit(EXIT_FAILURE);
 }
 
-int scanPAKsegments(struct epk2header_t *epakHeader, struct pak2_t **pakArray) {
-	unsigned char *epak_offset = epakHeader->signature;
-	unsigned char *pakHeader_offset = epak_offset + sizeof(struct epk2header_t);
-	struct pak2segmentHeader_t *PAKsegment_header = (struct pak2segmentHeader_t*) 
-			((epakHeader->epakMagic) + (epakHeader->headerLength));
 
-	// Contains added lengths of signature data
-	unsigned int signature_sum = sizeof(epakHeader->signature) + sizeof(PAKsegment_header->signature);
-	unsigned int PAKsegment_signature_length = sizeof(PAKsegment_header->signature);
-	int count = 0;
-	int next_pak_length = epakHeader->fileSize;
-	while (count < epakHeader->pakCount) {
-		struct pak2header_t *pakHeader = (struct pak2header_t *) (pakHeader_offset);
-		struct pak2_t *pak = malloc(sizeof(struct pak2_t));
-		pakArray[count] = pak;
-		pak->header = pakHeader;
-		pak->segment_count = 0;
-		pak->segments = NULL;
-		int verified = 0;
-		struct pak2segmentHeader_t *next_pak_offset = (struct pak2segmentHeader_t*) 
-			(epak_offset + pakHeader->nextPAKfileOffset + signature_sum);
-		unsigned int distance_between_paks = (next_pak_offset->name) - (PAKsegment_header->name);
-
-		// File truncation check
-		//printf("%d %d %d\n",pakHeader->nextPAKfileOffset, pakHeader->nextPAKlength, fileLength);
-                if (pakHeader->nextPAKfileOffset < fileLength && (pakHeader->nextPAKfileOffset+pakHeader->nextPAKlength > fileLength)) {
-			printf("Processed only %d PAK(s) because file is truncated...\n", count);
-			return count;
-		}
-
-		// Last contained PAK...
-		if ((count == (epakHeader->pakCount - 1))) distance_between_paks = next_pak_length + PAKsegment_signature_length;
-		unsigned int max_distance = pakHeader->maxPAKsegmentSize + sizeof(struct pak2segmentHeader_t);
-		while (!verified) { 
-			unsigned int PAKsegment_length = distance_between_paks;
-			bool is_next_segment_needed = FALSE;
-			if (PAKsegment_length > max_distance) {
-				PAKsegment_length = max_distance;
-				is_next_segment_needed = TRUE;
-			}
-			unsigned int signed_length = next_pak_length;
-			if (signed_length > max_distance) {
-				signed_length = max_distance;
-			}
-			if (count == 0) signed_length = PAKsegment_length;
-			if (!verified && (verified = API_SWU_VerifyImage(PAKsegment_header->signature, signed_length - SIGNATURE_SIZE)) != 1) {
-				printf("Verify PAK segment #%u of %.4s failed (size=0x%x). Trying to fallback...\n", pak->segment_count + 1, PAKsegment_header->name, signed_length);
-				//hexdump(PAKsegment_header->name, 0x80);
-				while (((verified = API_SWU_VerifyImage(PAKsegment_header->signature,
-						 signed_length - SIGNATURE_SIZE)) != 1)&& (signed_length > 0)) {
-					signed_length--;
-					//printf(	"probe with size: 0x%x\n", signed_length);
-				}
-				if (verified) {
-					printf("Successfully verified with size: 0x%x\n", signed_length);
-				} else {
-					printf("Fallback failed. Sorry, aborting now.\n");
-					exit(1);
-				}
-			}
-
-			// Sum signature lengths
-			signature_sum += PAKsegment_signature_length;
-			unsigned int PAKsegment_content_length = (PAKsegment_length - PAKsegment_signature_length);
-			if (is_next_segment_needed) {
-				distance_between_paks -= PAKsegment_content_length;
-				next_pak_length -= PAKsegment_content_length;
-				verified = 0;
-			} else {
-				next_pak_length = pakHeader->nextPAKlength + PAKsegment_signature_length;
-			}
-			pak->segment_count++;
-			pak->segments = realloc(pak->segments, pak->segment_count * sizeof(struct pak2segment_t*));
-			struct pak2segment_t *PAKsegment = malloc(sizeof(struct pak2segment_t));
-			PAKsegment->header = PAKsegment_header;
-			PAKsegment->content = PAKsegment_header->unknown4 + (sizeof(PAKsegment_header->unknown4));
-			PAKsegment->content_file_offset = PAKsegment->content - epak_offset;
-			PAKsegment->content_len = signed_length - sizeof(struct pak2segmentHeader_t);
-			pak->segments[pak->segment_count - 1] = PAKsegment;
-
-			// Move pointer to the next pak segment offset
-			PAKsegment_header = (struct pak2segmentHeader_t *) (PAKsegment_header->signature + PAKsegment_length);
-		}
-		pakHeader_offset += sizeof(struct pak2header_t);
-		count++;
-	}
-	return count;
-}
-
-int write_PAKsegments(struct pak2_t *pak, const char *filename) {
+int writePAKsegment(struct pak2_t *pak, const char *filename) {
 	int length = 0;
 	FILE *outfile = fopen(((const char*) filename), "w");
-	int PAKsegment_index;
-	for (PAKsegment_index = 0; PAKsegment_index < pak->segment_count; PAKsegment_index++) {
-		struct pak2segment_t *PAKsegment = pak->segments[PAKsegment_index];
+	int index;
+	for (index = 0; index < pak->segment_count; index++) {
+		struct pak2segment_t *PAKsegment = pak->segments[index];
 		int content_len = PAKsegment->content_len;
 		unsigned char* decrypted = malloc(content_len);
 		memset(decrypted, 0xFF, content_len);
@@ -282,23 +192,16 @@ int isFileEPK2(const char *epk2file) {
 		printf("Can't open file %s", epk2file);
 		exit(1);
 	}
-	size_t headerSize = 0x6D0;
+	size_t headerSize = 0x650+SIGNATURE_SIZE;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
 	int read = fread(buffer, 1, headerSize, file);
 	if (read != headerSize) return 0;
 	fclose(file);
-	int result = !memcmp(&buffer[0x8c], EPK2_MAGIC, 4); //old EPK2
-	if (!result) result = (buffer[0x6B0] == 0 && buffer[0x6B8] == 0x2E && buffer[0x6BD] == 0x2E); //new EPK2
+	int result = !memcmp(&buffer[0x8C], EPK2_MAGIC, 4); //old EPK2
+	if (!result) result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x638+SIGNATURE_SIZE] == 0x2E &&
+		 buffer[0x63D+SIGNATURE_SIZE] == 0x2E); //new EPK2
 	free(buffer);
 	return result;
-}
-
-void getPAKversionStr(char *fw_version, unsigned char version[4]) {
-	sprintf(fw_version, "%02x.%02x.%02x.%02x", version[3], version[2], version[1], version[0]);
-}
-
-void getEPK2versionString(char *fw_version, struct epk2header_t *epakHeader) {
-	sprintf(fw_version, "%02x.%02x.%02x.%02x-%s", epakHeader->fwVersion[3], epakHeader->fwVersion[2], epakHeader->fwVersion[1], epakHeader->fwVersion[0], epakHeader->otaID);
 }
 
 void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
@@ -312,7 +215,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	rewind(file);
 	printf("File size: %d bytes\n", fileLength);
 	printf("\nVerifying digital signature of EPK2 firmware header...\n");
-	int EPK2headerSize = 0x6B4;
+	int EPK2headerSize = 0x634+SIGNATURE_SIZE;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
 	int read = fread(buffer, 1, EPK2headerSize, file);
 	if (read != EPK2headerSize) {
@@ -321,7 +224,6 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	}
 
 	int verified = 0;
-
 	DIR* dirFile = opendir(".");
 	if (dirFile) {
 		struct dirent* hFile;
@@ -355,7 +257,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	struct epk2header_t *epakHeader = (struct epk2header_t*) buffer;
 	if (memcmp(epakHeader->EPK2magic, EPK2_MAGIC, 4)) {
 		printf("EPK2 header is encrypted. Trying to decrypt...\n");
-		int headerSize = 0x634;
+		int headerSize = 0x5B4 + SIGNATURE_SIZE;
 		unsigned char *decrypted = malloc(headerSize);
 		int uncrypted = 0;
 		FILE *fp = fopen("AES.key", "r");
@@ -376,11 +278,11 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 			}
 			SWU_CryptoInit_AES(aes_key);
 			printf("Trying AES key (%s) ", strtok(line,"\n\r"));
-			decryptImage(&buffer[0x80], headerSize, decrypted);
+			decryptImage(&buffer[SIGNATURE_SIZE], headerSize, decrypted);
 			if (!memcmp(&decrypted[0xC], EPK2_MAGIC, 4)) {
 				printf("Success!\n");
 				//hexdump(decrypted, headerSize);
-				memcpy(&buffer[0x80], decrypted, headerSize);
+				memcpy(&buffer[SIGNATURE_SIZE], decrypted, headerSize);
 				uncrypted = 1;
 				break;
 			} else {
@@ -409,8 +311,93 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	}
 	
 	struct pak2_t **pakArray = malloc((epakHeader->pakCount) * sizeof(struct pak2_t*));
-	if (fileLength < epakHeader->fileSize) printf("\nWARNING: Real file size is shorter than file size listed in the header!!!\n");
-	int last_index = scanPAKsegments(epakHeader, pakArray) - 1;
+	if (fileLength < epakHeader->fileSize) printf("\n!!!WARNING: Real file size is shorter than file size listed in the header. Number of extracted PAKs will be lowered to filesize...\n");
+
+	// Scan PAK segments
+	unsigned char *epak_offset = epakHeader->signature;
+	unsigned char *pakHeader_offset = epak_offset + sizeof(struct epk2header_t);
+	struct pak2segmentHeader_t *PAKsegment_header = (struct pak2segmentHeader_t*) ((epakHeader->epakMagic) + (epakHeader->headerLength));
+
+	// Contains added lengths of signature data
+	unsigned int signature_sum = sizeof(epakHeader->signature) + sizeof(PAKsegment_header->signature);
+	unsigned int PAKsegment_signature_length = sizeof(PAKsegment_header->signature);
+	int count = 0;
+	int next_pak_length = epakHeader->fileSize;
+	while (count < epakHeader->pakCount) {
+		struct pak2header_t *pakHeader = (struct pak2header_t *) (pakHeader_offset);
+		struct pak2_t *pak = malloc(sizeof(struct pak2_t));
+		pakArray[count] = pak;
+		pak->header = pakHeader;
+		pak->segment_count = 0;
+		pak->segments = NULL;
+		int verified = 0;
+		struct pak2segmentHeader_t *next_pak_offset = (struct pak2segmentHeader_t*) 
+			(epak_offset + pakHeader->nextPAKfileOffset + signature_sum);
+		unsigned int distance_between_paks = (next_pak_offset->name) - (PAKsegment_header->name);
+
+		// Last contained PAK...
+		if ((count == (epakHeader->pakCount - 1))) distance_between_paks = next_pak_length + PAKsegment_signature_length;
+		unsigned int max_distance = pakHeader->maxPAKsegmentSize + sizeof(struct pak2segmentHeader_t);
+		while (!verified) { 
+			unsigned int PAKsegment_length = distance_between_paks;
+			bool is_next_segment_needed = FALSE;
+			if (PAKsegment_length > max_distance) {
+				PAKsegment_length = max_distance;
+				is_next_segment_needed = TRUE;
+			}
+			unsigned int signed_length = next_pak_length;
+			if (signed_length > max_distance) {
+				signed_length = max_distance;
+			}
+			if (count == 0) signed_length = PAKsegment_length;
+			if (!verified && (verified = API_SWU_VerifyImage(PAKsegment_header->signature, signed_length - SIGNATURE_SIZE)) != 1) {
+				printf("Verification of the PAK segment #%u failed (size=0x%X). Trying to fallback...\n", pak->segment_count + 1, signed_length);
+				//hexdump(PAKsegment_header->name, 0x80);
+				while (((verified = API_SWU_VerifyImage(PAKsegment_header->signature,
+						 signed_length - SIGNATURE_SIZE)) != 1)&& (signed_length > 0)) {
+					signed_length--;
+					//printf(	"probe with size: 0x%x\n", signed_length);
+				}
+				if (verified) {
+					printf("Successfully verified with size: 0x%X\n", signed_length);
+				} else {
+					printf("Fallback failed. Sorry, aborting now.\n");
+					exit(1);
+				}
+			}
+
+			// Sum signature lengths
+			signature_sum += PAKsegment_signature_length;
+			unsigned int PAKsegment_content_length = (PAKsegment_length - PAKsegment_signature_length);
+
+			if (is_next_segment_needed) {
+				distance_between_paks -= PAKsegment_content_length;
+				next_pak_length -= PAKsegment_content_length;
+				verified = 0;
+			} else {
+				next_pak_length = pakHeader->nextPAKlength + PAKsegment_signature_length;
+			}
+			pak->segment_count++;
+			pak->segments = realloc(pak->segments, pak->segment_count * sizeof(struct pak2segment_t*));
+			struct pak2segment_t *PAKsegment = malloc(sizeof(struct pak2segment_t));
+			PAKsegment->header = PAKsegment_header;
+			PAKsegment->content = PAKsegment_header->unknown4 + (sizeof(PAKsegment_header->unknown4));
+			PAKsegment->content_file_offset = PAKsegment->content - epak_offset;
+			PAKsegment->content_len = signed_length - sizeof(struct pak2segmentHeader_t);
+			pak->segments[pak->segment_count - 1] = PAKsegment;
+
+			// Move pointer to the next pak segment offset
+			PAKsegment_header = (struct pak2segmentHeader_t *) (PAKsegment_header->signature + PAKsegment_length);
+		}
+		pakHeader_offset += sizeof(struct pak2header_t);
+		count++;
+		// printf("%d %d\n", pakHeader->nextPAKfileOffset, next_pak_length);
+		// File truncation check
+                if ((pakHeader->nextPAKfileOffset + next_pak_length) > fileLength) break;
+	}
+
+	int last_index = count - 1;
+
 	struct pak2_t *last_pak = pakArray[last_index];
 	int PAKsegment_index = last_pak->segment_count - 1;
 
@@ -418,11 +405,11 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	int last_extracted_file_offset = (last_PAKsegment->content_file_offset + last_PAKsegment->content_len);
 	printf("Last extracted file offset: %d\n\n", last_extracted_file_offset);
 
-	char version_string[1024];
-	getEPK2versionString(version_string, epakHeader);
+	char fwVersion[1024];
+	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", epakHeader->fwVersion[3], epakHeader->fwVersion[2], epakHeader->fwVersion[1], epakHeader->fwVersion[0], epakHeader->otaID);
 
 	char targetFolder[1024]="";
-	constructPath(targetFolder, config_opts->dest_dir, version_string, NULL);
+	constructPath(targetFolder, config_opts->dest_dir, fwVersion, NULL);
 	createFolder(targetFolder);
 
 	SelectAESkey(pakArray[0]);
@@ -434,9 +421,9 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 		char filename[1024] = "";
 		char name[4];
 		sprintf(name, "%.4s", pakArray[index]->header->name);
-		constructPath(filename, targetFolder, name, ".PAK");
+		constructPath(filename, targetFolder, name, ".pak");
 		printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, epakHeader->pakCount, name, filename);
-		int length = write_PAKsegments(pakArray[index], filename);
+		int length = writePAKsegment(pakArray[index], filename);
 		processExtractedFile(filename, targetFolder, name);
 	}
 }
