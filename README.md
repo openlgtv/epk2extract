@@ -1,7 +1,7 @@
 To compile on Ubuntu 12.04LTS:
 ==============================
 
-apt-get install cmake liblzo2-dev
+apt-get install git build-essential cmake liblzo2-dev libssl-dev
 
 ./cmake
 
