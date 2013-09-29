@@ -65,6 +65,12 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 			handle_file(dest_file, config_opts);
 			return EXIT_SUCCESS;
 		}
+	} else if (is_nfsb(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".unnfsb");
+		printf("Extracting nfsb image to: %s.\n\n", dest_file);
+		unnfsb(file, dest_file);
+		handle_file(dest_file, config_opts);
+		return EXIT_SUCCESS;
 	} else if (is_lz4(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unlz4");
 		printf("UnLZ4 file to: %s\n", dest_file);
