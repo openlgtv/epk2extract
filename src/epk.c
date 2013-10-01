@@ -49,9 +49,8 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 	int extracted = 0;
 	if (is_lz4(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unlz4");
-		char args[255] = "";
-		sprintf(args, "./lz4pack -d %s %s", filename, extractedFile);
-		extracted = !system(args);
+		printf("UnLZ4 %s to %s\n", filename, extractedFile);
+		extracted = !decode_file(filename, extractedFile);
 	} else {
 		if (check_lzo_header(filename)) {
 			constructPath(extractedFile, folderExtractTo, PAKname, ".unpacked");

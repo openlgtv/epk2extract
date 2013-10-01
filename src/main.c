@@ -74,9 +74,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else if (is_lz4(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unlz4");
 		printf("UnLZ4 file to: %s\n", dest_file);
-		rmrf(dest_file);
-		sprintf(lz4pack, "./lz4pack -d %s/%s %s", current_dir, file, dest_file);
-		system(lz4pack);
+		decode_file(file, dest_file);
 		return EXIT_SUCCESS;			
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
@@ -112,7 +110,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 }
 
 int main(int argc, char *argv[]) {
-	printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.0 by sirius (http://openlgtv.org.ru)\n\n");
+	printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.1 by sirius (http://openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
