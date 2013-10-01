@@ -307,7 +307,7 @@ int decode_file(char* input_filename, char* output_filename) {
 
 	// Status
 	end = clock();
-	DISPLAY( "Successfully decoded %llu bytes \n", (unsigned long long)filesize); {
+	DISPLAY( "Successfully decoded %llu bytes. ", (unsigned long long)filesize); {
 		double seconds = (double)(end - start)/CLOCKS_PER_SEC;
 		DISPLAY( "Done in %.2f s ==> %.2f MB/s\n", seconds, (double)filesize / seconds / 1024 / 1024);
 	}

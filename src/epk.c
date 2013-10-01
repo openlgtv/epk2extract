@@ -32,6 +32,7 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 	int read = fread(buffer, 1, fileLength, file);
 	if (read != fileLength) {
 		printf("Error reading file. read %d bytes from %d.\n", read, fileLength);
+		free(buffer);
 		exit(1);
 	}
 	fclose(file);

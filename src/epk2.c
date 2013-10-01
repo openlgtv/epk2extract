@@ -126,14 +126,15 @@ void printPAKinfo(struct pak2_t* pak) {
 }
 
 void SelectAESkey(struct pak2_t* pak) {
-	int headerSize = sizeof(struct pak2segmentHeader_t);
-	unsigned char *decrypted = malloc(headerSize);
-
 	FILE *fp = fopen("AES.key", "r");
 	if (fp == NULL) {
 		printf("\nError: Cannot open AES.key file.\n");
 		exit(1);
 	}
+
+	int headerSize = sizeof(struct pak2segmentHeader_t);
+	unsigned char *decrypted = malloc(headerSize);
+
 	char* line = NULL;
 	size_t len, count;
 	ssize_t read;
@@ -156,6 +157,7 @@ void SelectAESkey(struct pak2_t* pak) {
 			printf("Success!\n");
 			fclose(fp);
 			if (line) free(line);
+			free(decrypted);
 			return;
 		} else {
 			printf("Failed\n");
@@ -163,6 +165,7 @@ void SelectAESkey(struct pak2_t* pak) {
 	}
 	fclose(fp);
 	if (line) free(line);
+	free(decrypted);
 	printf("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n");
 	exit(EXIT_FAILURE);
 }
@@ -220,6 +223,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	int read = fread(buffer, 1, EPK2headerSize, file);
 	if (read != EPK2headerSize) {
 		printf("\nError reading EPK2 header. Read %d bytes from %d.\n", read, EPK2headerSize);
+		free(buffer);
 		exit(1);
 	}
 
@@ -251,6 +255,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	if (!verified) {
 		printf("Cannot verify firmware's digital signature (maybe you don't have proper PEM file). Aborting.\n\n");
 		close(file);
+		free(buffer);
 		exit(1);
 	}
 
@@ -263,6 +268,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 		FILE *fp = fopen("AES.key", "r");
 		if (fp == NULL) {
 			printf("\nError: Cannot open AES.key file.\n");
+			free(buffer);
 			exit(1);
 		}
 		char* line = NULL;
@@ -294,6 +300,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 		free(decrypted);
 		if (!uncrypted) {
 			printf("\nFATAL: Cannot decrypt EPK2 header (proper AES key is missing). Aborting now. Sorry.\n\n");
+			free(buffer);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -307,6 +314,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 	if (read != fileLength - EPK2headerSize) {
 		printf("\nError reading file. Read %d bytes from %d.\n", read, fileLength - EPK2headerSize);
 		fclose(file);
+		free(buffer);
 		exit(1);
 	}
 	
@@ -362,6 +370,7 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 					printf("Successfully verified with size: 0x%X\n", signed_length);
 				} else {
 					printf("Fallback failed. Sorry, aborting now.\n");
+					free(buffer);
 					exit(1);
 				}
 			}
@@ -426,5 +435,6 @@ void extractEPK2file(const char *epk2file, struct config_opts_t *config_opts) {
 		int length = writePAKsegment(pakArray[index], filename);
 		processExtractedFile(filename, targetFolder, name);
 	}
+	free(buffer);
 }
 
