@@ -39,15 +39,25 @@ if [ ! "$1" == "clean" ]; then
 		$lred; echo "Build Failed!"; $normal
 		exit 1
 	else
+		if [ ! -e "bin" ]; then
+			mkdir bin
+		else
+			rm bin/*
+		fi
 		if [ "$rel" == "linux" ]; then
-			cp src/epk2extract .
+			cp src/epk2extract bin/
 		elif [ "$rel" == "cygwin" ]; then
-			cp src/epk2extract.exe .
-			for cyglib in "cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll"; do
+			cp src/epk2extract.exe bin/
+			if [ "$HOSTTYPE" == "i686" ]; then #cygwin32
+				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll")
+			elif [ "$HOSTTYPE" == "x86_64" ]; then #cygwin64
+				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cygcrypto-1.0.0.dll")
+			fi
+			for cyglib in ${sharedlibs[@]}; do
 				$white; echo "Installing $cyglib"; $normal
 				islibok=$(which "$cyglib" &>/dev/null; echo $?)
 				if [ $islibok == 0 ]; then
-					cp `which $cyglib` .
+					cp `which $cyglib` bin/
 				else
 					$lred
 					echo "Something wrong! $cyglib not found."
@@ -73,4 +83,3 @@ else
 		exit 1
 	fi
 fi
-
