@@ -73,23 +73,6 @@ void decryptImage(unsigned char* srcaddr, unsigned int len, unsigned char* dstad
 	}
 }
 
-void encryptImage(unsigned char* srcaddr, unsigned int len, unsigned char* dstaddr) {
-	unsigned int remaining = len;
-	while (remaining >= AES_BLOCK_SIZE) {
-		AES_encrypt(srcaddr, dstaddr, &_gdKeyImage);
-		srcaddr += AES_BLOCK_SIZE;
-		dstaddr += AES_BLOCK_SIZE;
-		remaining -= AES_BLOCK_SIZE;
-	}
-}
-
-void API_SWU_DecryptImage(unsigned char* source, unsigned int len, unsigned char* destination) {
-	unsigned char *srcaddr = source + SIGNATURE_SIZE;
-	unsigned char *dstaddr = destination;
-	unsigned int remaining = len - SIGNATURE_SIZE;
-	decryptImage(srcaddr, remaining, dstaddr);
-}
-
 void printPAKinfo(struct pak2_t* pak) {
 	printf("\nPAK '%.4s' contains %d segment(s):\n", pak->header->name, pak->segment_count);
 	int index = 0;
@@ -100,7 +83,6 @@ void printPAKinfo(struct pak2_t* pak) {
 		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
 		//hexdump(decrypted, headerSize);
 		struct pak2segmentHeader_t* decryptedSegmentHeader = (struct pak2segmentHeader_t*) decrypted;
-		char segment_version[20];
 		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', size='%u bytes')\n",
 			index + 1, pak->header->name, decryptedSegmentHeader->version[3],
 			decryptedSegmentHeader->version[2], decryptedSegmentHeader->version[1],
@@ -118,7 +100,6 @@ void SelectAESkey(struct pak2_t* pak) {
 
 	int headerSize = sizeof(struct pak2segmentHeader_t);
 	unsigned char *decrypted = malloc(headerSize);
-
 	char* line = NULL;
 	size_t len, count;
 	ssize_t read;
@@ -245,9 +226,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	}
 
 	int headerSize = 0x5B4 + SIGNATURE_SIZE;
-	unsigned char *decrypted = malloc(headerSize);
-	memcpy(decrypted, buffer, headerSize);
-	struct epk2header_t *fwInfo = (struct epk2header_t*) decrypted;
+	struct epk2header_t *fwInfo = malloc(headerSize);
+	memcpy(fwInfo, buffer, headerSize);
 	if (memcmp(fwInfo->EPK2magic, EPK2_MAGIC, 4)) {
 		printf("EPK2 header is encrypted. Trying to decrypt...\n");
 		int uncrypted = 0;
@@ -256,6 +236,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			printf("\nError: Cannot open AES.key file.\n");
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 			close(file);
+			free(fwInfo);
 			exit(1);
 		}
 		char* line = NULL;
@@ -271,8 +252,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			}
 			SWU_CryptoInit_AES(aes_key);
 			printf("Trying AES key (%s) ", strtok(line,"\n\r"));
-			decryptImage(buffer+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE, decrypted+SIGNATURE_SIZE);
-			if (!memcmp(decrypted+SIGNATURE_SIZE+0xC, EPK2_MAGIC, 4)) {
+			decryptImage(buffer+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE, (unsigned char*)fwInfo+SIGNATURE_SIZE);
+			if (!memcmp(fwInfo->EPK2magic, EPK2_MAGIC, 4)) {
 				printf("Success!\n");
 				//hexdump(decrypted, headerSize);
 				uncrypted = 1;
@@ -286,7 +267,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		if (!uncrypted) {
 			printf("\nFATAL: Cannot decrypt EPK2 header (proper AES key is missing). Aborting now. Sorry.\n\n");
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
-			free(decrypted);
+			close(file);
+			free(fwInfo);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -354,7 +336,10 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 					printf("Fallback failed. Sorry, aborting now.\n");
 					if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 					close(file);
-					free(decrypted);
+					free(fwInfo);
+					int i;
+					for (i=0; i<count; ++i) free(pakArray[i]);
+					free(pakArray);
 					exit(1);
 				}
 			}
@@ -367,9 +352,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 				distance_between_paks -= PAKsegment_content_length;
 				next_pak_length -= PAKsegment_content_length;
 				verified = 0;
-			} else {
-				next_pak_length = pakHeader->nextPAKlength + pak2segmentHeaderSignatureLength;
-			}
+			} else next_pak_length = pakHeader->nextPAKlength + pak2segmentHeaderSignatureLength;
+
 			pak->segment_count++;
 			pak->segments = realloc(pak->segments, pak->segment_count * sizeof(struct pak2segment_t*));
 			struct pak2segment_t *PAKsegment = malloc(sizeof(struct pak2segment_t));
@@ -384,7 +368,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		}
 		pak2headerOffset += sizeof(struct pak2header_t);
 		count++;
-		// printf("%d %d\n", pakHeader->nextPAKfileOffset, next_pak_length);
+
 		// File truncation check
                 if ((pakHeader->nextPAKfileOffset + next_pak_length) > fileLength) break;
 	}
@@ -417,10 +401,12 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		constructPath(filename, targetFolder, name, ".pak");
 		printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, fwInfo->pakCount, name, filename);
 		int length = writePAKsegment(pakArray[index], filename);
+		free(pakArray[index]);
 		processExtractedFile(filename, targetFolder, name);
 	}
 	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 	close(file);
-	free(decrypted);
+	free(fwInfo);
+	free(pakArray);
 }
 

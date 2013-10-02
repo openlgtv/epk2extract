@@ -24,17 +24,6 @@ char *current_dir;
 
 struct config_opts_t config_opts;
 
-char *appendFilenameToDir(const char *directory, const char *filename) {
-	int len = sizeof(directory) + sizeof("/") + sizeof(filename) + 10;
-	char *result = malloc(len);
-	memset(result, 0, len);
-	strcat(result, "./");
-	strcat(result, directory);
-	strcat(result, "/");
-	strcat(result, filename);
-	return result;
-}
-
 int is_lz4(const char *lz4file) {
 	FILE *file = fopen(lz4file, "r");
 	if (file == NULL) {

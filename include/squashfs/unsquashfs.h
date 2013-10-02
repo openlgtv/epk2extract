@@ -46,12 +46,14 @@
 #include <sys/time.h>
 
 #ifndef linux
+#ifndef __CYGWIN__
 #define __BYTE_ORDER BYTE_ORDER
 #define __BIG_ENDIAN BIG_ENDIAN
 #define __LITTLE_ENDIAN LITTLE_ENDIAN
 #else
 #include <endian.h>
 #endif
+#endif /*__CYGWIN__*/
 
 #include "squashfs_fs.h"
 
