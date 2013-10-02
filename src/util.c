@@ -131,7 +131,7 @@ void unnfsb(char* filename, char* extractedFile) {
 
 	/* Don't forget to free the mmapped memory */
 	if (munmap(src, statbuf.st_size) == -1) printf("Error un-mmapping the file");
-	if (munmap(dst, statbuf.st_size) == -1) printf("Error un-mmapping the file");
+	if (munmap(dst, statbuf.st_size - headerSize) == -1) printf("Error un-mmapping the file");
 
 	/* Un-mmaping doesn't close the file, so we still need to do that. */
 	close(fdout);

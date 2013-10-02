@@ -104,6 +104,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			processExtractedFile(filename, targetFolder, pakName);
 		}
 	}
+	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 	close(file);
 }
 
