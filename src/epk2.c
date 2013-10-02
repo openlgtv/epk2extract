@@ -346,15 +346,11 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 
 			if (!verified && (verified = API_SWU_VerifyImage(pak2segmentHeader->signature, signed_length)) != 1) {
 				printf("Verification of the PAK segment #%u failed (size=0x%X). Trying to fallback...\n", pak->segment_count + 1, signed_length);
-				//hexdump(pak2segmentHeader->name, 0x80);
 				while (((verified = API_SWU_VerifyImage(pak2segmentHeader->signature,
-						 signed_length)) != 1)&& (signed_length > 0)) {
-					signed_length--;
-					//printf(	"probe with size: 0x%x\n", signed_length);
-				}
-				if (verified) {
+						 signed_length)) != 1) && (signed_length > 0)) signed_length--;
+				if (verified) 
 					printf("Successfully verified with size: 0x%X\n", signed_length);
-				} else {
+				else {
 					printf("Fallback failed. Sorry, aborting now.\n");
 					if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 					close(file);

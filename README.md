@@ -16,4 +16,5 @@ sudo ./epk2extract file
 ./epk2extract xxxxxxxx.sym
 
 ## Known issues:
-Sometimes it segfaults or fails to write something. In that case just run it again.
+Sometimes Uncramfs segfaults or Unsquashfs does "Read on filesystem failed because Bad file descriptor". 
+In that case just run epk2extract again and it will do the job right.
