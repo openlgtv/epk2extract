@@ -143,14 +143,14 @@ int main(int argc, char *argv[]) {
 		printf("Unsupported input file format: %s\n\n", input_file);
 		#ifdef __CYGWIN__
 			puts("Press any key to continue...");
-			getchar();
+			getch();
 		#endif
 		return exit_code;
 	}
 	printf("\nExtraction is finished.\n\n");
 	#ifdef __CYGWIN__
 		puts("Press any key to continue...");
-		getchar();
+		getch();
 	#endif
 	return exit_code;
 }

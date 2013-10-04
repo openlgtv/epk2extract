@@ -135,7 +135,11 @@ void SelectAESkey(struct pak2_t* pak, struct config_opts_t *config_opts) {
 	fclose(fp);
 	if (line) free(line);
 	free(decrypted);
-	printf("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n");
+	printf("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n\n");
+	#ifdef __CYGWIN__
+		puts("Press any key to continue...");
+		getch();
+	#endif
 	exit(EXIT_FAILURE);
 }
 
@@ -224,6 +228,10 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 
 	if (!verified) {
 		printf("Cannot verify firmware's digital signature (maybe you don't have proper PEM file). Aborting.\n\n");
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 		close(file);
 		exit(1);
@@ -277,6 +285,10 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 			close(file);
 			free(fwInfo);
+			#ifdef __CYGWIN__
+				puts("Press any key to continue...");
+				getch();
+			#endif
 			exit(EXIT_FAILURE);
 		}
 	}

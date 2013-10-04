@@ -7,7 +7,19 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <termios.h>
 #include <config.h>
+
+void getch(void) {
+    struct termios oldattr, newattr;
+    int ch;
+    tcgetattr( STDIN_FILENO, &oldattr );
+    newattr = oldattr;
+    newattr.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
+    ch = getchar();
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
+}
 
 void hexdump(void *pAddressIn, long lSize) {
 	char szBuf[100];
