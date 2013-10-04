@@ -141,8 +141,16 @@ int main(int argc, char *argv[]) {
 	int exit_code = handle_file(input_file, &config_opts);
 	if(exit_code == EXIT_FAILURE) {
 		printf("Unsupported input file format: %s\n\n", input_file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getchar();
+		#endif
 		return exit_code;
 	}
 	printf("\nExtraction is finished.\n\n");
+	#ifdef __CYGWIN__
+		puts("Press any key to continue...");
+		getchar();
+	#endif
 	return exit_code;
 }

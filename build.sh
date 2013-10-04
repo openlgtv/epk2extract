@@ -32,7 +32,7 @@ if [ ! "$1" == "clean" ]; then
 	cmake .
 	cd src
 	make
-	
+
 	if [ ! $? == 0 ]; then
 		$lred; echo "Build Failed!"; $normal
 		exit 1
