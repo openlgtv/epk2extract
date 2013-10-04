@@ -15,6 +15,9 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <getopt.h>
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
+#endif
 #include <epk1.h>
 #include <epk2.h>
 #include <symfile.h>
@@ -99,7 +102,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 }
 
 int main(int argc, char *argv[]) {
-	printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.2 by sirius (http://openlgtv.org.ru)\n\n");
+	printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.3 by sirius (http://openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
@@ -134,7 +137,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	char *input_file = argv[optind];
+	#ifdef __CYGWIN__
+		char posix[PATH_MAX];
+		cygwin_conv_path(CCP_WIN_A_TO_POSIX, argv[optind], posix, PATH_MAX);
+		char *input_file = posix;
+	#else
+		char *input_file = argv[optind];
+	#endif
 	printf("Input file: %s\n", input_file);
 	if (config_opts.dest_dir == NULL) config_opts.dest_dir = dirname(strdup(input_file));
 	printf("Destination directory: %s\n", config_opts.dest_dir);
@@ -154,3 +163,4 @@ int main(int argc, char *argv[]) {
 	#endif
 	return exit_code;
 }
+
