@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <config.h>
 #include <openssl/aes.h>
+#include <inttypes.h>
 
 void getch(void) {
     struct termios oldattr, newattr;
@@ -203,7 +204,7 @@ unsigned char process_section (unsigned char *data , unsigned char *outdata, con
 	if (data[3] & 0x20) offset += (data[4] + 1);	// skip adaption field
 	outdata[3] &= 0x3F;								// remove scrambling bits
 	if (offset > TS_FRAME_SIZE)	{ //application will crash without this check when file is corrupted
-		printf("\nInvalid data @ %zX\n", dec_count);
+		printf("\nInvalid data @ %" PRIx64 "\n", dec_count);
 		offset = TS_FRAME_SIZE;
 	}
 	inbuf = data + offset;
@@ -306,7 +307,7 @@ void convertSTR2TS(char* filename, char* outfilename) {
 				fwrite(outdata, 1, TS_FRAME_SIZE, outputfp);
 			}
 		}
-		printf("\nWritten to file %d bytes.\n", dec_count);
+		printf("\nWritten to file %" PRIu64 " bytes.\n", dec_count);
 	}
 	fclose(inputfp);
 	fclose(outputfp);
