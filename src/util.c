@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <config.h>
+#include <openssl/aes.h>
 
 void getch(void) {
     struct termios oldattr, newattr;
@@ -103,10 +104,12 @@ int is_nfsb(const char *filename) {
 	size_t headerSize = 0x10;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
 	int read = fread(buffer, 1, headerSize, file);
-	if (read != headerSize) return 0;
+	int result = 0;
+	if (read == headerSize) {
+		result = !memcmp(&buffer[0x0], "NFSB", 4);
+		if (!result) result = !memcmp(&buffer[0xE], "md5", 3);
+	}
 	fclose(file);
-	int result = !memcmp(&buffer[0x0], "NFSB", 4);
-	if (!result) result = !memcmp(&buffer[0xE], "md5", 3);
 	free(buffer);
 	return result;
 }
@@ -149,4 +152,162 @@ void unnfsb(char* filename, char* extractedFile) {
 	/* Un-mmaping doesn't close the file, so we still need to do that. */
 	close(fdout);
 	close(fdin);
+}
+
+int isSTRfile(const char *filename) {
+	FILE *file = fopen(filename, "r");
+	if (file == NULL) {
+		printf("Can't open file %s", filename);
+		exit(1);
+	}
+	size_t headerSize = 0xC0*4;
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
+	int read = fread(buffer, 1, headerSize, file);
+	int result = 0;
+	if (read == headerSize && buffer[4] == 0x47 && buffer[0xC0+4] == 0x47 && buffer[0xC0*2+4] == 0x47 && buffer[0xC0*3+4] == 0x47) result=1;
+	fclose(file);
+	free(buffer);
+	return result;
+}
+
+#define TS_FRAME_SIZE 192
+unsigned char drm_key[0x10];
+AES_KEY UnwrappedKey;
+
+//sync byte							8		0x47
+//Transport Error Indicator (TEI)	1		Set by demodulator if can't correct errors in the stream, to tell the demultiplexer that the packet has an uncorrectable error [11]
+//Payload Unit Start Indicator		1		1 means start of PES data or PSI otherwise zero only.
+//Transport Priority				1		1 means higher priority than other packets with the same PID.
+//PID								13		Packet ID
+//Scrambling control				2		'00' = Not scrambled.   The following per DVB spec:[12]   
+//											'01' = Reserved for future use,   
+//											'10' = Scrambled with even key,   
+//											'11' = Scrambled with odd key
+//Adaptation field exist			2		01 = no adaptation fields, payload only
+//											10 = adaptation field only
+//											11 = adaptation field and payload
+//Continuity counter				4		Incremented only when a payload is present (i.e., adaptation field exist is 01 or 11)[13]
+//Note: the total number of bits above is 32 and is called the transport stream 4-byte prefix or Transport Stream Header.
+
+//aes use from openssl
+
+unsigned char process_section (unsigned char *data , unsigned char *outdata, const uint64_t dec_count) {
+	unsigned char *inbuf, *outbuf;
+	unsigned int i, rounds;
+	int offset = 4;	
+
+	memcpy(outdata, data, TS_FRAME_SIZE);
+
+	if( (data[3] & 0xC0) != 0xC0 && (data[3] & 0xC0) != 0x80) return 0;
+		
+	if (data[3] & 0x20) offset += (data[4] + 1);	// skip adaption field
+	outdata[3] &= 0x3F;								// remove scrambling bits
+	if (offset > TS_FRAME_SIZE)	{ //application will crash without this check when file is corrupted
+		printf("\nInvalid data @ %zX\n", dec_count);
+		offset = TS_FRAME_SIZE;
+	}
+	inbuf = data + offset;
+	outbuf = outdata + offset;
+		
+	rounds = (TS_FRAME_SIZE - offset) / 0x10;
+	// AES CBC
+	for (i = 0; i < rounds; i++) AES_decrypt(inbuf + i* 0x10, outbuf + i * 0x10, &UnwrappedKey);
+	return 1;
+}
+
+void convertSTR2TS(char* filename, char* outfilename) {
+	FILE *file = fopen("dvr", "r");
+	if (file == NULL) {
+		printf("Can't open file %s", filename);
+		exit(1);
+	}
+	unsigned char wKey[24];
+	int read = fread(&wKey, 1, 24, file);
+	int i;
+	printf("Wrapped key: ");
+	for (i = 0; i < sizeof(wKey); i++) printf("%02X", wKey[i]);
+	printf("\nUnwrap key: ");
+	for (i = 0; i < sizeof(drm_key); i++) {
+		drm_key[i]=i;
+		printf("%02X", drm_key[i]);
+	}
+	static const unsigned char iv[] = {
+		0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,
+	};
+	AES_KEY AESkey;
+	AES_set_decrypt_key(&drm_key[0], 128, &AESkey);
+	unsigned char uwKey[16];
+	AES_unwrap_key(&AESkey, iv,	&drm_key[0], &wKey[0], 24);
+	printf("\nUnwrapped key: ");
+	for (i = 0; i < sizeof(drm_key); i++) printf("%02X", drm_key[i]);
+	printf("\n");
+	fclose(file);
+	
+	AES_set_decrypt_key(&drm_key[0], 128, &UnwrappedKey);
+	
+	int sync_find = 0, j;
+	uint64_t filesize = 0, dec_count = 0;
+	int print_count = 0;
+
+	unsigned char buf[1024];
+	unsigned char outdata[1024];
+	char split_file_name[1024];
+	int split_file_count = 0;
+	char outfile[256];
+
+	FILE *inputfp = fopen(filename, "r");
+	if (inputfp  == NULL) {
+		printf("Can't open file %s", filename);
+		exit(1);
+	}
+	
+	FILE *outputfp = fopen(outfilename, "w");
+	if (outputfp  == NULL) {
+		printf("Can't open file %s", outfilename);
+		exit(1);
+	}
+
+	fseeko(inputfp,0,2);
+	filesize = ftello(inputfp); 
+	rewind(inputfp);
+	
+	fread(buf, sizeof(unsigned char), 1024, inputfp);
+
+	for(i=0; i<(1024 - TS_FRAME_SIZE); i++){
+		if (buf[i] == 0x47 && buf[i+TS_FRAME_SIZE] == 0x47 && buf[i+TS_FRAME_SIZE+TS_FRAME_SIZE] == 0x47){
+			sync_find = 1;
+			fseeko(inputfp,i,SEEK_SET); 
+			break;
+		}
+	}
+	if (sync_find) {
+		for(i = 0; i < filesize; i += TS_FRAME_SIZE) {
+			fread(buf, 1, TS_FRAME_SIZE, inputfp);
+			if (buf[0] != 0x47)  {
+				printf("lost sync %zX\n", i);
+				fseeko(inputfp,i,SEEK_SET); 
+				sync_find = 0;
+				while (sync_find == 0) {
+					if(fread(buf, 1, 1024, inputfp) < 1024) { //prevent infinite loop at end of file
+						break;
+					}
+					for(j=0; j<(1024 - TS_FRAME_SIZE); j++) {
+						if (buf[j] == 0x47 && buf[j+TS_FRAME_SIZE] == 0x47 && buf[j+TS_FRAME_SIZE+TS_FRAME_SIZE] == 0x47){
+							sync_find = 1;
+							fseeko(inputfp,i+j,SEEK_SET); 
+							break;
+						}
+					}
+					i+=1024;
+				}
+			}else{
+				dec_count += TS_FRAME_SIZE;
+				process_section (buf, outdata, dec_count);
+				fwrite(outdata, 1, TS_FRAME_SIZE, outputfp);
+			}
+		}
+		printf("\nWritten to file %d bytes.\n", dec_count);
+	}
+	fclose(inputfp);
+	fclose(outputfp);
 }

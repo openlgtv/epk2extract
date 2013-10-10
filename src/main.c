@@ -97,6 +97,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
 		return EXIT_SUCCESS;
+	} else if(isSTRfile(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".ts");
+		printf("Converting %s file to TS: %s\n", file, dest_file);
+		convertSTR2TS(file, dest_file);
+		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;
 }
