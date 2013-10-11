@@ -92,15 +92,15 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
-	} else if(symfile_load(file) == 0) {
-		constructPath(dest_file, dest_dir, file_name, ".idc");
-		printf("Converting SYM file to IDC script: %s\n", dest_file);
-		symfile_write_idc(dest_file);
-		return EXIT_SUCCESS;
 	} else if(isSTRfile(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".ts");
 		printf("Converting %s file to TS: %s\n", file, dest_file);
 		convertSTR2TS(file, dest_file);
+		return EXIT_SUCCESS;
+	} else if(symfile_load(file) == 0) {
+		constructPath(dest_file, dest_dir, file_name, ".idc");
+		printf("Converting SYM file to IDC script: %s\n", dest_file);
+		symfile_write_idc(dest_file);
 		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;
