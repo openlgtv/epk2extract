@@ -121,28 +121,28 @@ void unnfsb(char* filename, char* extractedFile) {
 	struct stat statbuf;
 	int headerSize = 0x1000;
 	/* open the input file */
-	if ((fdin = open (filename, O_RDONLY)) < 0) printf("Can't open %s for reading", filename);
+	if ((fdin = open (filename, O_RDONLY)) < 0) printf("Can't open file %s for reading\n", filename);
 
 	/* open/create the output file */
 	if ((fdout = open (extractedFile, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600)) < 0) 
-		printf("Can't create %s for writing", extractedFile);
+		printf("Can't create file %s for writing\n", extractedFile);
 
 	/* find size of input file */
-	if (fstat (fdin, &statbuf) < 0) printf("fstat error");
+	if (fstat (fdin, &statbuf) < 0) printf("fstat error\n");
 
 	/* mmap the input file */
 	if ((src = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0)) == (caddr_t) -1)
-		printf("mmap error for input");
+		printf("mmap error for input\n");
 
 	/* go to the location corresponding to the last byte */
-	if (lseek (fdout, statbuf.st_size - headerSize - 1, SEEK_SET) == -1) printf("lseek error");
+	if (lseek (fdout, statbuf.st_size - headerSize - 1, SEEK_SET) == -1) printf("lseek error\n");
  
 	/* write a dummy byte at the last location */
-	if (write (fdout, "", 1) != 1) printf("write error");
+	if (write (fdout, "", 1) != 1) printf("write error\n");
 
 	/* mmap the output file */
 	if ((dst = mmap (0, statbuf.st_size - headerSize, PROT_READ | PROT_WRITE, MAP_SHARED, fdout, 0)) == (caddr_t) -1)
-		printf("mmap error for output");
+		printf("mmap error for output\n");
 	/* this copies the input file to the output file */
 		memcpy(dst, &src[headerSize], statbuf.st_size - headerSize);
 
@@ -174,17 +174,18 @@ int isSTRfile(const char *filename) {
 #define TS_PACKET_SIZE 192
 AES_KEY AESkey;
 
-void convertSTR2TS(char* inFilename, char* outFilename) {
+void setKey() {
 	FILE *keyFile = fopen("dvr", "r");
 	if (keyFile == NULL) {
-		printf("Can't open file %s", inFilename);
-		exit(1);
+		printf("dvr is not found.\n");
+		return;
 	}
 	unsigned char wKey[24];
 	int read = fread(&wKey, 1, 24, keyFile);
 	fclose(keyFile);
-	uint64_t i;
+
 	printf("Wrapped key: ");
+	int i;
 	for (i = 0; i < sizeof(wKey); i++) printf("%02X", wKey[i]);
 	
 	unsigned char drm_key[0x10];
@@ -200,31 +201,38 @@ void convertSTR2TS(char* inFilename, char* outFilename) {
 	AES_unwrap_key(&AESkey, iv, &drm_key[0], &wKey[0], 24);
 	printf("\nUnwrapped key: ");
 	for (i = 0; i < sizeof(drm_key); i++) printf("%02X", drm_key[i]);
-	printf("\n");
-	
 	AES_set_decrypt_key(&drm_key[0], 128, &AESkey);
-	
-	FILE *inFile = fopen(inFilename, "r");
+}
+
+void convertSTR2TS(char* inFilename, char* outFilename, int notOverwrite) {
+	FILE *inFile = fopen(inFilename, "rb");
 	if (inFile  == NULL) {
-		printf("Can't open file %s", inFilename);
-		exit(1);
+		printf("Can't open file %s\n", inFilename);
+		return;
 	}
 
 	fseeko(inFile, 0, SEEK_END);
 	uint64_t filesize = ftello(inFile); 
 	rewind(inFile);
 	
-	FILE *outFile = fopen(outFilename, "w");
+	FILE *outFile;
+	if (notOverwrite) outFile = fopen(outFilename, "a+b"); 
+	else outFile = fopen(outFilename, "wb");
+	
 	if (outFile  == NULL) {
-		printf("Can't open file %s", outFilename);
-		exit(1);
+		printf("Can't open file %s\n", outFilename);
+		return;
 	}
+	
+	if (notOverwrite) fseeko(outFile, 0, SEEK_END);
 
 	unsigned char inBuf[TS_PACKET_SIZE*10];
 	unsigned char outBuf[TS_PACKET_SIZE];
 	unsigned int k, rounds;			
 	int syncFound = 0, j;
 	fread(inBuf, 1, sizeof(inBuf), inFile);
+
+	uint64_t i;
 	for (i = 0; i < (sizeof(inBuf) - TS_PACKET_SIZE*2); i++) {
 		if (inBuf[i] == 0x47 && inBuf[i+TS_PACKET_SIZE] == 0x47 && inBuf[i+TS_PACKET_SIZE*2] == 0x47) {
 			fseeko(inFile, i-4, SEEK_SET); 
@@ -277,3 +285,30 @@ void convertSTR2TS(char* inFilename, char* outFilename) {
 	Adaptation field exist			2		'01' = no adaptation fields, payload only, '10' = adaptation field only, '11' = adaptation field and payload
 	Continuity counter				4		Incremented only when a payload is present (i.e., adaptation field exist is 01 or 11)[13]
 */
+
+void processPIF(const char* filename, char* dest_file) {
+	FILE *file = fopen(filename, "r");
+	if (file == NULL) {
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	fseek(file, 0, SEEK_END);
+	int filesize = ftell(file);
+	rewind(file);
+
+	int append = 0;
+	unsigned char* buffer = (unsigned char*) malloc(filesize);
+	int read = fread(buffer, 1, filesize, file);
+	if (read == filesize) {
+		int i;
+		for (i = 0; i < (filesize-5); i++) {
+			if (!memcmp(&buffer[i], "/mnt/", 5) && !memcmp(&buffer[i+strlen(&buffer[i])-3], "STR", 3)) {
+				printf("Converting file: %s\n", strrchr(&buffer[i], '/')+1);
+				convertSTR2TS(strrchr(&buffer[i], '/')+1, dest_file, append);
+				append = 1;
+			}
+		}
+	}
+	fclose(file);
+	free(buffer);
+}
