@@ -93,13 +93,13 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
 	} else if(isSTRfile(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".m2ts");
+		constructPath(dest_file, dest_dir, file_name, ".ts");
 		setKey();
-		printf("\nConverting %s file to M2TS: %s\n", file, dest_file);
+		printf("\nConverting %s file to TS: %s\n", file, dest_file);
 		convertSTR2TS(file, dest_file, 0);
 		return EXIT_SUCCESS;
 	} else if(!memcmp(&file[strlen(file)-3], "PIF", 3)) {
-		constructPath(dest_file, dest_dir, file_name, ".m2ts");
+		constructPath(dest_file, dest_dir, file_name, ".ts");
 		setKey();
 		printf("\nProcessing PIF file: %s\n", file);
 		processPIF(file, dest_file);
