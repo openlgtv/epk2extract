@@ -11,6 +11,11 @@
 #include <config.h>
 #include <openssl/aes.h>
 #include <inttypes.h>
+#include <time.h>
+//partinfo
+#include <fnmatch.h>
+#include <partinfo.h>
+int ps;
 
 void getch(void) {
     struct termios oldattr, newattr;
@@ -168,6 +173,84 @@ int isSTRfile(const char *filename) {
 	if (read == headerSize && buffer[4] == 0x47 && buffer[0xC0+4] == 0x47 && buffer[0xC0*2+4] == 0x47 && buffer[0xC0*3+4] == 0x47) result=1;
 	fclose(file);
 	free(buffer);
+	return result;
+}
+
+int isdatetime(char *datetime)
+{
+    // datetime format is YYYYMMDD
+    struct tm   time_val;
+	if ((strptime(datetime,"%Y%m%d",&time_val)) == 0)
+		return 0;
+	else
+		return 1;
+}
+
+/* detect_model - detect model and corresponding part struct
+0 --> partinfo v2 struct
+1 --> partinfo v1 struct
+2 --> mdtinfo struct */
+int detect_model(struct p2_device_info *pid){
+	int retval;
+	char *model;
+	retval = 0; //partinfo v2
+	int ismtk1   = !fnmatch("mtk3569-emmc",pid->name,FNM_NOMATCH); //match mtk2012
+	int ismtk1_1 = !fnmatch("mtk5369-emmc",pid->name,FNM_NOMATCH); //match mtk2012
+
+	int ismtk2   = !fnmatch("mtk3598-emmc",pid->name,FNM_NOMATCH); //match mtk2013
+	int ismtk2_2 = !fnmatch("mtk5398-emmc",pid->name,FNM_NOMATCH); //match mtk2013
+	
+	int is1152 = !fnmatch("l9_emmc",pid->name,FNM_NOMATCH); //match 1152
+	int is1154 = !fnmatch("h13_emmc",pid->name,FNM_NOMATCH); //match 1154
+	int isbcm1  = !fnmatch("bcm35xx_map0",pid->name,FNM_NOMATCH); //match broadcom
+	int isbcm2  = !fnmatch("bcm35230_map0",pid->name,FNM_NOMATCH); //match broadcom
+	int ismstar= !fnmatch("mstar_map0",pid->name,FNM_NOMATCH); //match mstar
+	
+	if(ismtk1 || ismtk1_1) model="Mtk 2012 - MTK5369";
+	else if(ismtk2 || ismtk2_2)	model="Mtk 2012 - MTK5398";
+	else if(is1152)	model="LG1152";
+	else if(is1154)	model="LG1154";
+	else if(isbcm1)	model="BCM 2011 - BCM35230";
+	else if(isbcm2)	model="BCM 2010 - BCM35XX";
+	else if(ismstar) model="Mstar Saturn/LM1";
+	else return -1;
+	
+	if(!ismtk2 && !is1154){
+		if(ismtk1 || is1152) retval=1; //partinfo v1
+		else retval=2; //mtdinfo
+	}
+	printf("\nMTD name -> %s\n",pid->name);
+	printf("%s Detected\n\n", model);
+
+	return retval;
+}
+
+int isPartPakfile(const char *filename) {
+   FILE *file = fopen(filename, "rb");
+	if (file == NULL) {
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	struct p2_partmap_info partinfo;
+	
+	struct p2_partmap_info *pi= (struct p2_partmap_info*)malloc(sizeof(struct p2_partmap_info));       
+	
+	size_t size = sizeof(struct p2_partmap_info);
+	fread(pi, 1, size, file);
+	
+	memcpy(&partinfo, pi, sizeof(struct p2_partmap_info));
+	
+	int result = 0;
+	char cmagic[4];
+	sprintf(cmagic, "%x", pi->magic);
+	
+	if (!isdatetime((char *)cmagic)) {
+		printf("Invalid partpak magic 0x%x from %s\n", pi->magic, filename);
+	}
+	
+	ps = detect_model(&(*pi).dev);
+	if (ps != -1) result = 1;
+	fclose(file);
 	return result;
 }
 
