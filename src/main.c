@@ -92,6 +92,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
+	} else if(isPartPakfile(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".txt");
+		printf("Saving Partition info to: %s\n", dest_file);
+		dump_partinfo(file, dest_file);
+		return EXIT_SUCCESS;
 	} else if(isSTRfile(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".ts");
 		setKey();
@@ -175,4 +180,3 @@ int main(int argc, char *argv[]) {
 	#endif
 	return exit_code;
 }
-

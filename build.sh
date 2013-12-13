@@ -28,7 +28,6 @@ if [ ! "$1" == "clean" ]; then
 	if [ ! -e "$rel" ]; then
 		mkdir $rel
 	fi
-
 	cmake .
 	cd src
 	make
