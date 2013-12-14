@@ -37,6 +37,10 @@ To compile on Cygwin:
 After compilation epk2extract and Cygwin *.dll libs can be found in ./build_cygwin/
 The build script automatically copies Cygwin shared libraries to the ./build_cygwin/  folder, so you can use epk2extract without having to install Cygwin
 
+To change default editor for commits to nano:
+	
+	git config --global core.editor "nano"
+
 ## To use:
 
 Put *.pem and AES.key to epk2extract folder.
@@ -48,6 +52,10 @@ Run it via sudo because rootfs extraction needs root:
 ## To to get IDC from SYM run:
 
     ./epk2extract xxxxxxxx.sym
+    
+## To to decode part.pak or mtdi.pak do:
+
+    ./epk2extract part.pak    
 
 ## Known issues:
 Sometimes Uncramfs segfaults or Unsquashfs does "Read on filesystem failed because Bad file descriptor".
