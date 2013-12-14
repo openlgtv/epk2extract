@@ -81,16 +81,11 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 			}
 		}
 	}
-	if (strcmp(PAKname, "patc") != 0 && strcmp(PAKname, "extr") != 0) {
-		if (is_squashfs(filename)) {
-			constructPath(extractedFile, folderExtractTo, PAKname, NULL);
-			printf("Unsquashfs %s to folder %s\n", filename, extractedFile);
-			rmrf(extractedFile);
-			unsquashfs(filename, extractedFile);
-			return;
-		}
-	} else {
-		printf("!!!Skipping unsquashfs (%s) as it doesn't know how to handle it...\n", PAKname);
+	if (is_squashfs(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, NULL);
+		printf("Unsquashfs %s to folder %s\n", filename, extractedFile);
+		rmrf(extractedFile);
+		unsquashfs(filename, extractedFile);
 		return;
 	}
 	if (extracted) processExtractedFile(extractedFile, folderExtractTo, PAKname);

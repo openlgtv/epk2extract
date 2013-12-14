@@ -2254,15 +2254,26 @@ options:
 
 int is_squashfs(char *filename) {
 	if ((fd = open(filename, O_RDONLY)) == -1) {
-		ERROR("Could not open %s, because %s\n", filename,
-				strerror(errno));
-		exit(1);
+		ERROR("Could not open %s, because %s\n", filename, strerror(errno));
+		return FALSE;
 	}
-
-	int result = read_super(filename);
-
+	char *buffer = (char*) malloc(sizeof(char)*0x67);
+	if (buffer == NULL) {
+		printf("Memory allocation error!\n");
+		return FALSE;
+	}
+	int result = read(fd, buffer, 0x67);
+	if (result != 0x67) {
+		printf("File reading error!\n");
+		return FALSE;
+	}
+	result = memcmp(&buffer[0x64], "cdx", 3);
+	free(buffer);
+	
+	if (!result) return FALSE;
+	
+	result = read_super(filename);
 	close(fd);
-
 	return result;
 }
 
