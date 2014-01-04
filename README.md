@@ -1,9 +1,10 @@
-To compile on Linux (Ubuntu or Linux Mint):
+To compile on Linux (Ubuntu, Linux Mint, Mandriva or Mageia):
 ===========================================
 
 ## 1. Install build dependencies:
 
-    sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-i386
+    In Ubuntu, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-
+    In Mandriva or Mageia, do: urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 
 ## 2. Get sources
 
