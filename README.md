@@ -1,9 +1,9 @@
-To compile on Linux (Ubuntu, Linux Mint, Mandriva or Mageia):
+To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
 ===========================================
 
 ## 1. Install build dependencies:
 
-    In Ubuntu, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-
+    In Ubuntu, Debian or Linux Mint, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-
     In Mandriva or Mageia, do: urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 
 ## 2. Get sources
@@ -44,11 +44,16 @@ To change default editor for commits to nano:
 
 ## To use:
 
-Put *.pem and AES.key to epk2extract folder.
+Put *.pem and AES.key-files in the epk2extract-dir.
 
-Run it via sudo because rootfs extraction needs root:
+Run it via sudo or su because rootfs extraction requires root-access:
 
+In Ubuntu, Debian or Linux Mint, run:
     sudo ./epk2extract file
+
+In Mandriva or Mageia, run:
+    su
+    ./epk2extract file
 
 ## To to get IDC from SYM run:
 
