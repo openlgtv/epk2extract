@@ -44,7 +44,7 @@ if [ ! "$1" == "clean" ]; then
 			if [ "$HOSTTYPE" == "i686" ]; then #cygwin32
 				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll")
 			elif [ "$HOSTTYPE" == "x86_64" ]; then #cygwin64
-				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cygcrypto-1.0.0.dll")
+				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cygcrypto-1.0.0.dll" "cyggcc_s-seh-1.dll" "cygstdc++-6.dll")
 			fi
 			for cyglib in ${sharedlibs[@]}; do
 				$white; echo "Installing $cyglib"; $normal
