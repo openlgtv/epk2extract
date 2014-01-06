@@ -3,7 +3,7 @@ To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
 
 ## 1. Install build dependencies:
 
-    In Ubuntu, Debian or Linux Mint, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-
+    In Ubuntu, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
     In Mandriva or Mageia, do: urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 
 ## 2. Get sources
@@ -36,7 +36,7 @@ To compile on Cygwin:
     cd epk2extract ; ./build.sh
 
 After compilation epk2extract and Cygwin *.dll libs can be found in ./build_cygwin/
-The build script automatically copies Cygwin shared libraries to the ./build_cygwin/  folder, so you can use epk2extract without having to install Cygwin
+The build script automatically copies Cygwin shared libraries to the ./build_cygwin/ folder, so you can use epk2extract without having to install Cygwin
 
 To change default editor for commits to nano:
 	
@@ -44,12 +44,16 @@ To change default editor for commits to nano:
 
 ## To use:
 
-Put *.pem and AES.key-files in the epk2extract-dir.
+Put *.pem and AES.key files beside epk2extract binary.
 
 Run it via sudo or su because rootfs extraction requires root-access:
 
 In Ubuntu, Debian or Linux Mint, run:
     sudo ./epk2extract file
+
+Alternatively you can use fakeroot to avoid rootfs extraction warnings
+
+    fakeroot ./epk2extract file
 
 In Mandriva or Mageia, run:
     su
@@ -61,7 +65,11 @@ In Mandriva or Mageia, run:
     
 ## To to decode part.pak or mtdi.pak do:
 
-    ./epk2extract part.pak    
+    ./epk2extract part.pak
+
+Or use partinfo.py
+
+    python partinfo.py part.pak
 
 ## Known issues:
 Sometimes Uncramfs segfaults or Unsquashfs does "Read on filesystem failed because Bad file descriptor".

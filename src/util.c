@@ -12,20 +12,26 @@
 #include <openssl/aes.h>
 #include <inttypes.h>
 #include <time.h>
+
 //partinfo
 #include <fnmatch.h>
 #include <partinfo.h>
+
+//jffs2
+#include <jffs2/jffs2.h>
 int ps;
+char *modelname;
+char *mtdname;
 
 void getch(void) {
-    struct termios oldattr, newattr;
-    int ch;
-    tcgetattr(STDIN_FILENO, &oldattr );
-    newattr = oldattr;
-    newattr.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
-    ch = getchar();
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+	struct termios oldattr, newattr;
+	int ch;
+	tcgetattr(STDIN_FILENO, &oldattr );
+	newattr = oldattr;
+	newattr.c_lflag &= ~(ICANON | ECHO);
+	tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
+	ch = getchar();
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
 }
 
 void hexdump(void *pAddressIn, long lSize) {
@@ -74,9 +80,9 @@ void hexdump(void *pAddressIn, long lSize) {
 }
 
 int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
-    int rv = remove(fpath);
-    if (rv) perror(fpath);
-    return rv;
+	int rv = remove(fpath);
+	if (rv) perror(fpath);
+	return rv;
 }
 
 void rmrf(char *path) {
@@ -99,6 +105,20 @@ void constructPath(char *result_path, const char *first, const char *second, con
 	strcat(result_path, G_DIR_SEPARATOR_S);
 	strcat(result_path, second);
 	if(postfix != NULL) strcat(result_path, postfix);
+}
+
+char *remove_ext(char* mystr) {
+    char *retstr;
+    char *lastdot;
+    if (mystr == NULL)
+         return NULL;
+    if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
+        return NULL;
+    strcpy (retstr, mystr);
+    lastdot = strrchr (retstr, '.');
+    if (lastdot != NULL)
+        *lastdot = '\0';
+    return retstr;
 }
 
 int is_nfsb(const char *filename) {
@@ -160,6 +180,24 @@ void unnfsb(char* filename, char* extractedFile) {
 	close(fdin);
 }
 
+int is_jffs2(const char *filename) {
+	FILE *file = fopen(filename, "r");
+	if (file == NULL) {
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	size_t headerSize = 0x2;
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
+	int read = fread(buffer, 1, headerSize, file);
+	int result = 0;
+	if (read == headerSize){
+		if(buffer[0] == (unsigned char)JFFS2_MAGIC_BITMASK || buffer[0] == (unsigned char)JFFS2_OLD_MAGIC_BITMASK) result=1;
+	}
+	fclose(file);
+	free(buffer);
+	return result;
+}
+
 int isSTRfile(const char *filename) {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
@@ -178,8 +216,8 @@ int isSTRfile(const char *filename) {
 
 int isdatetime(char *datetime)
 {
-    // datetime format is YYYYMMDD
-    struct tm   time_val;
+	// datetime format is YYYYMMDD
+	struct tm   time_val;
 	if ((strptime(datetime,"%Y%m%d",&time_val)) == 0)
 		return 0;
 	else
@@ -219,8 +257,10 @@ int detect_model(struct p2_device_info *pid){
 		if(ismtk1 || is1152) retval=1; //partinfo v1
 		else retval=2; //mtdinfo
 	}
-	printf("\nMTD name -> %s\n",pid->name);
-	printf("%s Detected\n\n", model);
+	mtdname=pid->name;
+	modelname=model;
+	/*printf("\nMTD name -> %s\n",mtdname);
+	printf("%s Detected\n\n", modelname);*/
 
 	return retval;
 }
@@ -248,7 +288,7 @@ int isPartPakfile(const char *filename) {
 		printf("Invalid partpak magic 0x%x from %s\n", pi->magic, filename);
 	}
 	
-	ps = detect_model(&(*pi).dev);
+	ps = detect_model(&(pi->dev));
 	if (ps != -1) result = 1;
 	fclose(file);
 	return result;
@@ -331,10 +371,10 @@ static const unsigned int crc_table[256] = {
 };
 
 uint32_t crc32(const unsigned char *data, int len) {
-    uint32_t crc = 0xffffffff;
-    uint32_t i;
-    for (i = 0; i < len; i++) crc = (crc << 8) ^ crc_table[((crc >> 24) ^ *data++) & 0xff];
-    return crc;
+	uint32_t crc = 0xffffffff;
+	uint32_t i;
+	for (i = 0; i < len; i++) crc = (crc << 8) ^ crc_table[((crc >> 24) ^ *data++) & 0xff];
+	return crc;
 }
 
 void convertSTR2TS(char* inFilename, char* outFilename, int notOverwrite) {

@@ -18,6 +18,8 @@ extern int errno;
 
 FILE *destfile;
 int ps;
+char *modelname;
+char *mtdname;
 
 //structs
 struct m_partmap_info m_partinfo;
@@ -210,6 +212,9 @@ unsigned int print_p2info(void){
 }
 
 unsigned int do_partinfo(void){
+	fprintf(destfile, "MTD name -> %s\n",mtdname);
+	fprintf(destfile, "%s Detected\n\n", modelname);
+
 	if(ps==0) print_p2info();
 	else if(ps==1) print_p1info();
 	else if(ps==2) print_minfo();
@@ -217,6 +222,7 @@ unsigned int do_partinfo(void){
 	
 	char buf[256];
 	rewind(destfile);
+	printf("\n");
 	while( fgets(buf,sizeof buf,destfile) ) {
 		printf( "%s", buf );
 	}
