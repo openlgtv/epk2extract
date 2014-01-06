@@ -8,6 +8,7 @@ normal='tput sgr0'
 lred='printf \033[01;31m'
 lgreen='printf \033[01;32m'
 lyellow='printf \033[01;33m'
+lblue='printf \033[01;34m'
 white='printf \033[01;37m'
 
 cwd=$(pwd)
@@ -59,6 +60,14 @@ if [ ! "$1" == "clean" ]; then
 				fi
 			done
 		fi
+		cd ..
+		if [ -d "keys" ]; then
+			keys=($(ls -1 keys/))
+			for key in ${keys[@]}; do
+				$lblue; echo "Installing $key"; $normal
+				cp keys/$key $rel/
+			done
+		fi
 		$lgreen; echo "Build completed!"; $normal
 		exit 0
 	fi
@@ -71,6 +80,10 @@ else
 	find . -type f -name "epk2extract" -delete
 	find . -type f -name "epk2extract.exe" -delete
 	find . -depth -name "CMakeFiles" -exec rm -rf '{}' \;
+	if [ -d "$rel" ]; then
+		$lyellow; echo "Removing build dir"; $normal
+		rm -r "$rel"
+	fi
 	$lgreen; echo "Done!"; $normal
 	exit 0
 fi

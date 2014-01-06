@@ -93,9 +93,15 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
 	} else if(isPartPakfile(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".txt");
+		constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
 		printf("Saving Partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
+		return EXIT_SUCCESS;
+	} else if(is_jffs2(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".unjffs2");
+		printf("jffs2extract %s to folder %s\n", file, dest_file);
+		rmrf(dest_file);
+		jffs2extract(file, dest_file, "1234");
 		return EXIT_SUCCESS;
 	} else if(isSTRfile(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".ts");

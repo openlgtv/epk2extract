@@ -52,41 +52,42 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unlz4");
 		printf("UnLZ4 %s to %s\n", filename, extractedFile);
 		extracted = !decode_file(filename, extractedFile);
-	} else {
-		if (check_lzo_header(filename)) {
-			constructPath(extractedFile, folderExtractTo, PAKname, ".unpacked");
-			printf("LZOunpack %s to %s\n", filename, extractedFile);
-			extracted = !lzo_unpack((const char*) filename, (const char*) extractedFile);
-		} else {
-	    		if (is_cramfs_image(filename)) {
-				constructPath(extractedFile, folderExtractTo, PAKname, NULL);
-				printf("Uncramfs %s to folder %s\n", filename, extractedFile);
-				rmrf(extractedFile);
-				uncramfs(extractedFile, filename);
-				return;
-			} else {
-			    	if (is_kernel(filename)) {
-					constructPath(extractedFile, folderExtractTo, PAKname, ".unpaked");
-					printf("Extracting kernel %s to %s\n", filename, extractedFile);
-					extract_kernel(filename, extractedFile);
-					extracted = 1;
-	    			} else {
-					if (is_nfsb(filename)) {
-						constructPath(extractedFile, folderExtractTo, PAKname, ".unnfsb");
-						printf("Unnfsb %s to %s\n", filename, extractedFile);
-						unnfsb(filename, extractedFile);
-						extracted = 1;
-					} 
-				}
-			}
-		}
-	}
-	if (is_squashfs(filename)) {
+	} else if (check_lzo_header(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, ".unpacked");
+		printf("LZOunpack %s to %s\n", filename, extractedFile);
+		extracted = !lzo_unpack((const char*) filename, (const char*) extractedFile);
+	} else if (is_cramfs_image(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, NULL);
+		printf("Uncramfs %s to folder %s\n", filename, extractedFile);
+		rmrf(extractedFile);
+		uncramfs(extractedFile, filename);
+		return;
+	} else if (is_kernel(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, ".unpaked");
+		printf("Extracting kernel %s to %s\n", filename, extractedFile);
+		extract_kernel(filename, extractedFile);
+		extracted = 1;
+	} else if (is_nfsb(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, ".unnfsb");
+		printf("Unnfsb %s to %s\n", filename, extractedFile);
+		unnfsb(filename, extractedFile);
+		extracted = 1;
+	} else if (is_squashfs(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, NULL);
 		printf("Unsquashfs %s to folder %s\n", filename, extractedFile);
 		rmrf(extractedFile);
 		unsquashfs(filename, extractedFile);
 		return;
+	} else if(isPartPakfile(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, ".txt");
+		printf("Saving Partition info to: %s\n", extractedFile);
+		dump_partinfo(filename, extractedFile);
+		return;
+	} else if(is_jffs2(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, NULL);
+		printf("jffs2extract %s to folder %s\n", filename, extractedFile);
+		rmrf(extractedFile);
+		jffs2extract(filename, extractedFile, "1234");
 	}
 	if (extracted) processExtractedFile(extractedFile, folderExtractTo, PAKname);
 }

@@ -3,7 +3,7 @@ To compile on Linux (Ubuntu, Linux Mint, Mandriva or Mageia):
 
 ## 1. Install build dependencies:
 
-    In Ubuntu, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-
+    In Ubuntu, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
     In Mandriva or Mageia, do: urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 
 ## 2. Get sources
@@ -46,9 +46,9 @@ To change default editor for commits to nano:
 
 Put *.pem and AES.key to epk2extract folder.
 
-Run it via sudo because rootfs extraction needs root:
+You can use fakeroot to avoid rootfs extraction warnings
 
-    sudo ./epk2extract file
+    fakeroot ./epk2extract file
 
 ## To to get IDC from SYM run:
 
@@ -56,7 +56,11 @@ Run it via sudo because rootfs extraction needs root:
     
 ## To to decode part.pak or mtdi.pak do:
 
-    ./epk2extract part.pak    
+    ./epk2extract part.pak
+
+Or use partinfo.py
+
+    python partinfo.py part.pak
 
 ## Known issues:
 Sometimes Uncramfs segfaults or Unsquashfs does "Read on filesystem failed because Bad file descriptor".
