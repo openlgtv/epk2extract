@@ -31,6 +31,5 @@ typedef enum PART_INFO {
 	PART_INFO_FILESIZE
 } PART_INFO_TYPE;
 
-extern int ps;
 
 #endif /* _PART_COMMON_H_ */
