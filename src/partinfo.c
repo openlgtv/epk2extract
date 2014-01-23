@@ -19,7 +19,6 @@ extern int errno;
 FILE *destfile;
 int ps;
 char *modelname;
-char *mtdname;
 
 //structs
 struct m_partmap_info m_partinfo;
@@ -80,9 +79,26 @@ static const char *p2_menu_partition_info[] = {
 };
 
 unsigned int print_minfo(void){
-	struct m_partition_info *bi = NULL;
 	int i=0;
-
+	struct m_partition_info *bi = NULL;
+	
+	struct m_device_info *mtdi = NULL;
+	mtdi = M_GET_DEV_INFO(0);
+	fprintf(destfile,"MTD Name: %s",mtdi->name);
+	unsigned int devsize = mtdi->size;
+	char *devsizeunit;
+	if(devsize/1024/1024/1024 == 0){
+		//Small MTD, use Megabytes
+		devsize = devsize/1024/1024;
+		devsizeunit = "MB";
+	} else {
+		//Gigabytes
+		devsize = devsize/1024/1024/1024;
+		devsizeunit = "GB";
+	}
+	fprintf(destfile,"\tSize: %d",devsize);
+	fprintf(destfile,devsizeunit);println();
+		
 	println(); fprintf(destfile, "%s", m_menu_partition_str[0]);println();println();
 	fprintf(destfile, "magic : %08x", m_partinfo.magic);println();
 	println();
@@ -117,8 +133,25 @@ unsigned int print_minfo(void){
 }
 
 unsigned int print_p1info(void){
-	struct p1_partition_info *p1i = NULL;
 	int i=0;
+	struct p1_partition_info *p1i = NULL;
+	
+	struct p1_device_info *p1di = NULL;
+	p1di = P1_GET_DEV_INFO();
+	fprintf(destfile,"Flash Name: %s",p1di->name);
+	unsigned int devsize = p1di->size;
+	char *devsizeunit;
+	if(devsize/1024/1024/1024 == 0){
+		//Small MTD, use Megabytes
+		devsize = devsize/1024/1024;
+		devsizeunit = "MB";
+	} else {
+		//Gigabytes
+		devsize = devsize/1024/1024/1024;
+		devsizeunit = "GB";
+	}
+	fprintf(destfile,"\tSize: %d",devsize);
+	fprintf(destfile,devsizeunit);println();
 
 	println(); fprintf(destfile, "%s", p_menu_partition_str[0]); println(); println();
 	fprintf(destfile,"magic : %08x", p1_partinfo.magic);println();
@@ -164,8 +197,25 @@ unsigned int print_p1info(void){
 }
 
 unsigned int print_p2info(void){
-	struct p2_partition_info *p2i = NULL;
 	int i=0;
+	struct p2_partition_info *p2i = NULL;
+	
+	struct p2_device_info *p2di = NULL;
+	p2di = P2_GET_DEV_INFO();
+	fprintf(destfile,"Flash Name: %s",p2di->name);
+	unsigned int devsize = p2di->size;
+	char *devsizeunit;
+	if(devsize/1024/1024/1024 == 0){
+		//Small MTD, use Megabytes
+		devsize = devsize/1024/1024;
+		devsizeunit = "MB";
+	} else {
+		//Gigabytes
+		devsize = devsize/1024/1024/1024;
+		devsizeunit = "GB";
+	}
+	fprintf(destfile,"\tSize: %d",devsize);
+	fprintf(destfile,devsizeunit);println();
 
 	println(); fprintf(destfile, "%s", p_menu_partition_str[0]);println();println();
 	fprintf(destfile, "magic : %08x", p2_partinfo.magic); println();
@@ -212,8 +262,8 @@ unsigned int print_p2info(void){
 }
 
 unsigned int do_partinfo(void){
-	fprintf(destfile, "MTD name -> %s\n",mtdname);
-	fprintf(destfile, "%s Detected\n\n", modelname);
+	fprintf(destfile, "%s Detected", modelname);
+	println(); println();
 
 	if(ps==0) print_p2info();
 	else if(ps==1) print_p1info();

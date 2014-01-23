@@ -42,6 +42,7 @@ struct m_partmap_info {
 };
 
 #define M_GET_PART_INFO(x)			((struct m_partition_info *)&(m_partinfo.partition[x]))
+#define M_GET_DEV_INFO(x)			((struct m_device_info *)&(m_partinfo.map[x]))
 
 extern struct m_partmap_info	 m_partinfo;
 #endif /* MTD_INFO_H_ */

@@ -132,6 +132,10 @@ int main(int argc, char *argv[]) {
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
 		printf("Options:\n");
 		printf("  -c : extract to current directory instead of source file directory\n");
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 
