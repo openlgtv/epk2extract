@@ -24,6 +24,7 @@
 
 char exe_dir[1024];
 char *current_dir;
+int endianswap;
 
 struct config_opts_t config_opts;
 
@@ -75,6 +76,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		unsquashfs(file, dest_file);
 		return EXIT_SUCCESS;
 	} else if (is_cramfs_image(file)) {
+	    if(endianswap){ //doesn't work yet
+		constructPath(dest_file, dest_dir, file_name, ".cramle");
+		printf("Cramfsswap file to: %s\n", dest_file);
+		cramswap(dest_file, file);
+	    }
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
 		printf("Uncramfs file to: %s\n", dest_file);
 		rmrf(dest_file);

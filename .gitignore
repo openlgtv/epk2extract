@@ -1,0 +1,29 @@
+### CMake ###
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+### C ###
+# Object files
+*.o
+
+# Libraries
+*.a
+*.la
+
+# Executables
+*.exe
+*.out
+
+
+### Epk2Extract ###
+
+# Keys
+*.key
+*.pem
+
+# build
+build_linux
+build_cygwin
