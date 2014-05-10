@@ -76,11 +76,6 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		unsquashfs(file, dest_file);
 		return EXIT_SUCCESS;
 	} else if (is_cramfs_image(file)) {
-	    if(endianswap){ //doesn't work yet
-		constructPath(dest_file, dest_dir, file_name, ".cramle");
-		printf("Cramfsswap file to: %s\n", dest_file);
-		cramswap(dest_file, file);
-	    }
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
 		printf("Uncramfs file to: %s\n", dest_file);
 		rmrf(dest_file);
@@ -172,7 +167,7 @@ int main(int argc, char *argv[]) {
 
 	#ifdef __CYGWIN__
 		char posix[PATH_MAX];
-		cygwin_conv_path(CCP_WIN_A_TO_POSIX, argv[optind], posix, PATH_MAX);
+		cygwin_conv_path(CCP_WIN_W_TO_POSIX, argv[optind], posix, PATH_MAX);
 		char *input_file = posix;
 	#else
 		char *input_file = argv[optind];

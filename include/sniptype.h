@@ -72,7 +72,7 @@ typedef union {
       VAR32_            v32[2];
       double            d;
 } VAR64_;
-\
+
 #define NUL '\0'
 #define LAST_CHAR(s) (((char *)s)[strlen(s) - 1])
 #define TOBOOL(x) (!(!(x)))
