@@ -40,6 +40,7 @@ struct p2_partmap_info {
 };
 
 #define P2_GET_PART_INFO(x)			((struct p2_partition_info *)&(p2_partinfo.partition[x]))
+#define P2_GET_DEV_INFO(x)			((struct p2_device_info *)&(p2_partinfo.dev))
 
 extern struct p2_partmap_info		p2_partinfo;
 #endif /* _PART_INFO2_H_ */

@@ -24,6 +24,7 @@
 
 char exe_dir[1024];
 char *current_dir;
+int endianswap;
 
 struct config_opts_t config_opts;
 
@@ -132,6 +133,10 @@ int main(int argc, char *argv[]) {
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
 		printf("Options:\n");
 		printf("  -c : extract to current directory instead of source file directory\n");
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 
@@ -162,7 +167,7 @@ int main(int argc, char *argv[]) {
 
 	#ifdef __CYGWIN__
 		char posix[PATH_MAX];
-		cygwin_conv_path(CCP_WIN_A_TO_POSIX, argv[optind], posix, PATH_MAX);
+		cygwin_conv_path(CCP_WIN_W_TO_POSIX, argv[optind], posix, PATH_MAX);
 		char *input_file = posix;
 	#else
 		char *input_file = argv[optind];
