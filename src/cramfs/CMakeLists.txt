@@ -1,1 +1,1 @@
-add_library(cramfs uncramfs.c)
+add_library(cramfs cramfsswap.c uncramfs.c)

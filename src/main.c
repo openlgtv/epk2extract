@@ -61,13 +61,18 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		unsquashfs(file, dest_file);
 		return EXIT_SUCCESS;
 	} else if (is_gzip(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".ungzip");
+		constructPath(dest_file, dest_dir, "", "");
 		printf("Extracting gzip file %s\n", file_name);
-		file_uncompress(file, dest_file);
+		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		return EXIT_SUCCESS;
-	} else if (is_cramfs_image(file)) {
+	} else if(is_cramfs_image(file, "be")) {
+		constructPath(dest_file, dest_dir, file_name, ".cramswap");
+		printf("Swapping cramfs endian for file %s\n",file);
+		cramswap(file, dest_file);
+		return EXIT_SUCCESS;
+	} else if(is_cramfs_image(file, "le")) {
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
-		printf("Uncramfs file to: %s\n", dest_file);
+		printf("Uncramfs %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 		return EXIT_SUCCESS;

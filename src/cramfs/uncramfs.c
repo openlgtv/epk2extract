@@ -22,6 +22,8 @@
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 
+#include <formats.h>
+
 // Application libraries
 #include <zlib.h>
 
@@ -647,7 +649,7 @@ void do_dir_entry(const u8* base, const char* dir, const char* path,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-int is_cramfs_image(char const* imagefile) {
+int is_cramfs_image(char const* imagefile, char *endian) {
 	struct stat st;
 	int fd, result;
 	size_t fslen_ub;
@@ -670,13 +672,15 @@ int is_cramfs_image(char const* imagefile) {
 	}
 
 	sb = (struct cramfs_super const*) (rom_image);
+	int cram_magic=CRAMFS_MAGIC;
+	if(!memcmp(endian, "be", 2))
+	    SWAP(cram_magic);
+	result = 0;
 	// Check cramfs magic number and signature
-	if (CRAMFS_MAGIC != sb->magic || 0 != memcmp(sb->signature,
-			CRAMFS_SIGNATURE, sizeof(sb->signature))) {
-		result = 0;
-	} else {
+	if (cram_magic == sb->magic || memcmp(endian, "be", 2) && 0 == memcmp(sb->signature,
+			CRAMFS_SIGNATURE, sizeof(sb->signature)))
 		result = 1;
-	}
+		
 
 	munmap(rom_image, fslen_ub);
 	close(fd);

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <minigzip.h>
 
 extern int endianswap;
 #define SWAP(x) SwapBytes(&x, sizeof(x));
@@ -23,6 +24,7 @@ extern int endianswap;
             exit (EXIT_FAILURE);                                        \
         }                                                               \
     }
+
 
 #endif	/* FORMATS_H */
 
