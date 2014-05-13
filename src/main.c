@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
 
 	#ifdef __CYGWIN__
 		char posix[PATH_MAX];
-		cygwin_conv_path(CCP_WIN_W_TO_POSIX, argv[optind], posix, PATH_MAX);
+		cygwin_conv_path(CCP_WIN_A_TO_POSIX, argv[optind], posix, PATH_MAX);
 		char *input_file = posix;
 	#else
 		char *input_file = argv[optind];

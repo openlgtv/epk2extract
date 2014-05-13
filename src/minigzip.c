@@ -184,13 +184,13 @@ char* file_uncompress_origname(char *infile, char *path){
     }
     fseek(in, 10, SEEK_SET);
     char c;
-    while(c != '\x00'){ //calculate string length
-	c=getc(in);
-	len++;
-    }
-    char *dest=malloc(sizeof(len)+sizeof(path)); //allocate space for path+name
-    memset(dest, 0x0, sizeof(dest));
-    filename=malloc(sizeof(char)*len); //allocate space for name
+	do{
+		c=getc(in);
+		len++;
+    } while(c != '\x00'); //calculate string length
+    char *dest=malloc(len+strlen(path)); //allocate space for path+name
+    memset(dest, 0x0, strlen(dest));
+    filename=malloc(len); //allocate space for name
     fseek(in, 10, SEEK_SET);
     fread(filename, 1, len, in); //read filename
     printf("Compressed Filename: %s\n", filename);
