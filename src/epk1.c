@@ -109,13 +109,13 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 		char filename[255] = "";
 		constructPath(filename, targetFolder, pakName, ".pak");
 		printf("#%u/%u saving PAK  (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
-		FILE *outfile = fopen(((const char*) filename), "w");
-		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
-		fclose(outfile);
 		if(pakRecord.size == 0 || pakRecord.offset == 0){
 		    printf("Skipping empty/invalid PAK \"%s\"\n", pakHeader->pakName);
 		    continue;
 		}
+		FILE *outfile = fopen(((const char*) filename), "w");
+		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
+		fclose(outfile);
 		processExtractedFile(filename, targetFolder, pakName);
 	    }
 	}else if (pakcount < 21) { // old EPK1 header
