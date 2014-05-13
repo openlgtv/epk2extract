@@ -15,7 +15,4 @@ struct config_opts_t {
 
 #define G_DIR_SEPARATOR_S "/"
 
-extern int endianswap;
-#define SWAP(x) SwapBytes(&x, sizeof(x));
-
 #endif /* CONFIG_H_ */

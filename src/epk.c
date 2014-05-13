@@ -1,6 +1,7 @@
 #include <epk.h>
 #include <u-boot/image.h>
 #include <arpa/inet.h>
+#include <formats.h>
 
 int is_kernel(const char *image_file) {
 	FILE *file = fopen(image_file, "r");
@@ -52,27 +53,34 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unlz4");
 		printf("UnLZ4 %s to %s\n", filename, extractedFile);
 		extracted = !decode_file(filename, extractedFile);
-	} else if (check_lzo_header(filename)) {
+	} else if(check_lzo_header(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unpacked");
 		printf("LZOunpack %s to %s\n", filename, extractedFile);
 		extracted = !lzo_unpack((const char*) filename, (const char*) extractedFile);
-	} else if (is_cramfs_image(filename)) {
+	} else if(is_gzip(filename)) {
+		//constructPath(extractedFile, folderExtractTo, PAKname, ".ungzip");
+		constructPath(extractedFile, folderExtractTo, "", "");
+		printf("Extracting gzip file %s\n", filename);
+		//file_uncompress(filename, extractedFile);
+		strcpy(extractedFile, (const char *)file_uncompress_origname(filename, extractedFile));
+		extracted=1;
+	} else if(is_cramfs_image(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, NULL);
 		printf("Uncramfs %s to folder %s\n", filename, extractedFile);
 		rmrf(extractedFile);
 		uncramfs(extractedFile, filename);
 		return;
-	} else if (is_kernel(filename)) {
+	} else if(is_kernel(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unpaked");
 		printf("Extracting kernel %s to %s\n", filename, extractedFile);
 		extract_kernel(filename, extractedFile);
 		extracted = 1;
-	} else if (is_nfsb(filename)) {
+	} else if(is_nfsb(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unnfsb");
 		printf("Unnfsb %s to %s\n", filename, extractedFile);
 		unnfsb(filename, extractedFile);
 		extracted = 1;
-	} else if (is_squashfs(filename)) {
+	} else if(is_squashfs(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, NULL);
 		printf("Unsquashfs %s to folder %s\n", filename, extractedFile);
 		rmrf(extractedFile);
