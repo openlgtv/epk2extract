@@ -135,7 +135,8 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	current_dir = getcwd(NULL, 0);
+	current_dir = malloc(PATH_MAX);
+	getcwd(current_dir, PATH_MAX);
 	printf("Current directory: %s\n", current_dir);
 	readlink("/proc/self/exe", exe_dir, 1024);
 	config_opts.config_dir = dirname(exe_dir);
