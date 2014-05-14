@@ -12,7 +12,7 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <cramfs/cramfs_fs.h>
-#include <byteswap.h>
+#include <os_byteswap.h>
 #include <zlib.h> /* for crc32 */
 #include <sys/mman.h>
 #include <fcntl.h>

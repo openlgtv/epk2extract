@@ -34,8 +34,8 @@
 #include <endian.h>
 #endif
 
-#include <byteswap.h>
-#include "mini_inflate.h"
+#include <os_byteswap.h>
+#include <mini_inflate.h>
 
 extern unsigned long crc32_no_comp(unsigned long crc, const unsigned char *buf, int len);
 
