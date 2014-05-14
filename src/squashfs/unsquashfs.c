@@ -32,10 +32,17 @@
 
 #ifdef __CYGWIN__
 #include <sys/termios.h>
+#endif
+#if defined(__CYGWIN__) || defined(__APPLE__)
 #define FNM_EXTMATCH  (1 << 5)
 #endif
 
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#else
 #include <sys/sysinfo.h>
+#endif
+
 #include <sys/types.h>
 
 struct cache *fragment_cache, *data_cache;

@@ -314,7 +314,7 @@ void do_symlink(const u8* base, u32 offset, u32 size, const char* path,
 	}
 
 	// Make local copy
-	if (symlink(link_contents, path) == -1) {
+	if (symlink((const char *)link_contents, path) == -1) {
 		perror(path);
 		exit(1);
 	}

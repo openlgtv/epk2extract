@@ -27,7 +27,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#ifdef __APPLE__
+#include <machine/endian.h>
+#else
 #include <endian.h>
+#endif
+
 #include <byteswap.h>
 #include "mini_inflate.h"
 
@@ -35,7 +41,7 @@ extern unsigned long crc32_no_comp(unsigned long crc, const unsigned char *buf, 
 
 #define ES 0x1ff
 
-#include "jffs2.h"
+#include <jffs2/jffs2.h>
 
 int swap_words;
 

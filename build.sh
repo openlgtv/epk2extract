@@ -16,6 +16,7 @@ sourcedir=$(cd `dirname $0`; pwd -P)
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
 elif [ "$OSTYPE" == "linux-gnu" ]; then rel=build_linux
+elif [[ $OSTYPE == darwin* ]]; then rel=build_osx
 else
 	$lred; "Can't build - unknown OS type. Aborting..."; $normal
 	exit 1
@@ -37,9 +38,7 @@ if [ ! "$1" == "clean" ]; then
 		$lred; echo "Build Failed!"; $normal
 		exit 1
 	else
-		if [ "$rel" == "build_linux" ]; then
-			mv epk2extract ../$rel
-		elif [ "$rel" == "build_cygwin" ]; then
+		if [ "$rel" == "build_cygwin" ]; then
 			mv epk2extract.exe ../$rel
 			if [ "$HOSTTYPE" == "i686" ]; then #cygwin32
 				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll" "cygstdc++-6.dll")
@@ -59,7 +58,9 @@ if [ ! "$1" == "clean" ]; then
 					exit 1
 				fi
 			done
-		fi
+		else    
+			mv epk2extract ../$rel
+                fi
 		cd ..
 		if [ -d "keys" ]; then
 			keys=($(ls -1 keys/))

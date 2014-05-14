@@ -335,11 +335,11 @@ int isPartPakfile(const char *filename) {
 	memcpy(&partinfo, pi, sizeof(struct p2_partmap_info));
 	
 	int result = 0;
-	char cmagic[4];
+        char *cmagic=malloc(4);
 	sprintf(cmagic, "%x", pi->magic);
 	
-	if (!isdatetime((char *)cmagic)) {
-		printf("Invalid partpak magic 0x%x from %s\n", pi->magic, filename);
+	if (isdatetime((char *)cmagic)) {
+		printf("Found valid partpak magic 0x%x from %s\n", pi->magic, filename);
 	}
 	
 	ps = detect_model(&(pi->dev));
