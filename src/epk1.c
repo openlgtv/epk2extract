@@ -2,10 +2,11 @@
 #include <fcntl.h>
 #include <epk1.h>
 #include <errno.h>
-#include <config.h>
+#include <formats.h>
 
 
 const char EPK1_MAGIC[] = "epak";
+int endianswap;
 
 int isFileEPK1(const char *epk_file) {
 	FILE *file = fopen(epk_file, "r");
@@ -77,7 +78,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	char verString[1024];
 	char targetFolder[1024]="";
 	int index;
-	int endianswap=0;
+	endianswap=0;
 	uint32_t pakcount = (((struct epk1Header_t*)buffer)->pakCount);
 	if ( (int)pakcount >> 8 != 0 ){
 	    endianswap=1;
@@ -108,13 +109,13 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 		char filename[255] = "";
 		constructPath(filename, targetFolder, pakName, ".pak");
 		printf("#%u/%u saving PAK  (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
-		FILE *outfile = fopen(((const char*) filename), "w");
-		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
-		fclose(outfile);
 		if(pakRecord.size == 0 || pakRecord.offset == 0){
 		    printf("Skipping empty/invalid PAK \"%s\"\n", pakHeader->pakName);
 		    continue;
 		}
+		FILE *outfile = fopen(((const char*) filename), "w");
+		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
+		fclose(outfile);
 		processExtractedFile(filename, targetFolder, pakName);
 	    }
 	}else if (pakcount < 21) { // old EPK1 header

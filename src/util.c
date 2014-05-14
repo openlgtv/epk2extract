@@ -20,6 +20,8 @@
 //jffs2
 #include <jffs2/jffs2.h>
 
+#include <formats.h>
+
 int ps;
 char *modelname;
 char *mtdname;
@@ -134,6 +136,22 @@ char *remove_ext(char* mystr) {
     return retstr;
 }
 
+int is_lz4(const char *lz4file) {
+	FILE *file = fopen(lz4file, "r");
+	if (file == NULL) {
+		printf("Can't open file %s", lz4file);
+		exit(1);
+	}
+	size_t headerSize = 4;
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
+	int read = fread(buffer, 1, headerSize, file);
+	if (read != headerSize) return 0;
+	fclose(file);
+	int result = !memcmp(&buffer[0], "LZ4P", 4); 
+	free(buffer);
+	return result;
+}
+
 int is_nfsb(const char *filename) {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
@@ -193,6 +211,24 @@ void unnfsb(char* filename, char* extractedFile) {
 	close(fdin);
 }
 
+int is_gzip(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+	printf("Can't open file %s\n", filename);
+	exit(1);
+    }
+    size_t headerSize = 0x3;
+    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
+    int read = fread(buffer, 1, headerSize, file);
+    int result = 0;
+    if (read == headerSize){
+	result = !memcmp(&buffer[0x0], "\x1F\x8B\x08", 3);
+    }
+    free(buffer);
+    fclose(file);
+    return result;
+}
+    
 int is_jffs2(const char *filename) {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
@@ -200,11 +236,16 @@ int is_jffs2(const char *filename) {
 		exit(1);
 	}
 	size_t headerSize = 0x2;
+	unsigned short magic = JFFS2_MAGIC_BITMASK;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
 	int read = fread(buffer, 1, headerSize, file);
 	int result = 0;
 	if (read == headerSize){
-		if(buffer[0] == (unsigned char)JFFS2_MAGIC_BITMASK || buffer[0] == (unsigned char)JFFS2_OLD_MAGIC_BITMASK) result=1;
+	    result = !memcmp(&buffer[0x0], &magic, 2);
+	    if(!result){
+		magic=JFFS2_OLD_MAGIC_BITMASK;
+		result = !memcmp(&buffer[0x0], &magic, 2);
+	    }
 	}
 	fclose(file);
 	free(buffer);
@@ -383,7 +424,7 @@ static const unsigned int crc_table[256] = {
    0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
 };
 
-uint32_t crc32(const unsigned char *data, int len) {
+uint32_t str_crc32(const unsigned char *data, int len) {
 	uint32_t crc = 0xffffffff;
 	uint32_t i;
 	for (i = 0; i < len; i++) crc = (crc << 8) ^ crc_table[((crc >> 24) ^ *data++) & 0xff];
@@ -525,7 +566,7 @@ void convertSTR2TS(char* inFilename, char* outFilename, int notOverwrite) {
 			}
 		}
 		// Set CRC32
-		uint32_t crc = crc32(&PMT[5], PMT[7]-1); 
+		uint32_t crc = str_crc32(&PMT[5], PMT[7]-1); 
 		PMT[27] = (crc>>24) & 0xff;
 		PMT[28] = (crc>>16) & 0xff;
 		PMT[29] = (crc>>8)  & 0xff;

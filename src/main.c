@@ -21,28 +21,13 @@
 #include <epk1.h>
 #include <epk2.h>
 #include <symfile.h>
+#include <formats.h>
 
 char exe_dir[1024];
 char *current_dir;
 int endianswap;
 
 struct config_opts_t config_opts;
-
-int is_lz4(const char *lz4file) {
-	FILE *file = fopen(lz4file, "r");
-	if (file == NULL) {
-		printf("Can't open file %s", lz4file);
-		exit(1);
-	}
-	size_t headerSize = 4;
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
-	int read = fread(buffer, 1, headerSize, file);
-	if (read != headerSize) return 0;
-	fclose(file);
-	int result = !memcmp(&buffer[0], "LZ4P", 4); 
-	free(buffer);
-	return result;
-}
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
 	const char *dest_dir = config_opts->dest_dir;
@@ -75,9 +60,19 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
 		return EXIT_SUCCESS;
-	} else if (is_cramfs_image(file)) {
+	} else if (is_gzip(file)) {
+		constructPath(dest_file, dest_dir, "", "");
+		printf("Extracting gzip file %s\n", file_name);
+		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
+		return EXIT_SUCCESS;
+	} else if(is_cramfs_image(file, "be")) {
+		constructPath(dest_file, dest_dir, file_name, ".cramswap");
+		printf("Swapping cramfs endian for file %s\n",file);
+		cramswap(file, dest_file);
+		return EXIT_SUCCESS;
+	} else if(is_cramfs_image(file, "le")) {
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
-		printf("Uncramfs file to: %s\n", dest_file);
+		printf("Uncramfs %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 		return EXIT_SUCCESS;
@@ -167,7 +162,7 @@ int main(int argc, char *argv[]) {
 
 	#ifdef __CYGWIN__
 		char posix[PATH_MAX];
-		cygwin_conv_path(CCP_WIN_W_TO_POSIX, argv[optind], posix, PATH_MAX);
+		cygwin_conv_path(CCP_WIN_A_TO_POSIX, argv[optind], posix, PATH_MAX);
 		char *input_file = posix;
 	#else
 		char *input_file = argv[optind];

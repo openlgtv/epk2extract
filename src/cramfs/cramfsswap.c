@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <sys/stat.h>
-#include <linux/cramfs_fs.h>
+#include <cramfs/cramfs_fs.h>
 #include <byteswap.h>
 #include <zlib.h> /* for crc32 */
 #include <sys/mman.h>
@@ -22,7 +22,6 @@
 #define BUFFERSIZE	16384
 #define MAXFILES	4096
 #define BLKSIZE		4096	/* Should this be a command line option? */
-
 
 int cramswap(char *sinfile, char *soutfile)
 {

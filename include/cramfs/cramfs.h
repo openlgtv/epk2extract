@@ -4,6 +4,11 @@
 #define CRAMFS_MAGIC		0x28cd3d45	/* some random number */
 #define CRAMFS_SIGNATURE	"Compressed ROMFS"
 
+// Needed by cramfs
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+
 /*
  * Reasonably terse representation of the inode data.
  */
