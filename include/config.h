@@ -15,4 +15,8 @@ struct config_opts_t {
 
 #define G_DIR_SEPARATOR_S "/"
 
+#ifndef PATH_MAX
+	#define PATH_MAX        4096	/* # chars in a path name including nul */
+#endif
+
 #endif /* CONFIG_H_ */

@@ -23,8 +23,6 @@
 #include <symfile.h>
 #include <formats.h>
 
-#define PATH_MAX        4096	/* # chars in a path name including nul */
-
 char exe_dir[1024];
 char *current_dir;
 int endianswap;
