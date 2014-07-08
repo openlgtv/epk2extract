@@ -15,8 +15,8 @@ cwd=$(pwd)
 sourcedir=$(cd `dirname $0`; pwd -P)
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
-elif [ "$OSTYPE" == "linux-gnu" ]; then rel=build_linux
-elif [[ $OSTYPE == darwin* ]]; then rel=build_osx
+elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux
+elif [[ "$OSTYPE" =~ "darwin" ]]; then rel=build_osx
 else
 	$lred; "Can't build - unknown OS type. Aborting..."; $normal
 	exit 1
