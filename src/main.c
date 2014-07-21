@@ -76,11 +76,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 		return EXIT_SUCCESS;
-	} else if (isFileEPK3(file)) { 
-		extractEPK3file(file, config_opts);
-		return EXIT_SUCCESS;
-	} else if (isFileEPK2(file)) { 
+	} else if (isFileEPK2(file)) {
 		extractEPK2file(file, config_opts);
+		return EXIT_SUCCESS;
+	} else if (isFileEPK3(file)) {
+		extractEPK3file(file, config_opts);
 		return EXIT_SUCCESS;
 	} else if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);

@@ -166,6 +166,10 @@ int isFileEPK2(const char *epk_file) {
 	FILE *file = fopen(epk_file, "r");
 	if (file == NULL) {
 		printf("Can't open file %s", epk_file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 	size_t headerSize = 0x650+SIGNATURE_SIZE;
@@ -176,7 +180,7 @@ int isFileEPK2(const char *epk_file) {
 	int result = !memcmp(&buffer[0x8C], EPK2_MAGIC, 4); //old EPK2
 	if (!result) result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x638+SIGNATURE_SIZE] == 0x2E &&
 		 buffer[0x63D+SIGNATURE_SIZE] == 0x2E); //new EPK2
-    free(buffer);
+        free(buffer);
 	return result;
 }
 
@@ -196,7 +200,7 @@ int isFileEPK3(const char *epk_file) {
 	if (read != headerSize) return 0;
 	fclose(file);
 	int result = (buffer[0x6B0] == 0 && buffer[0x6B5] == 0x2E && buffer[0x6B7] == 0x2E);
-    free(buffer);
+        free(buffer);
 	return result;
 }
 
