@@ -81,7 +81,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
         SWAP(epakHeader->offset);
         
         uint32_t *fwVer = buffer + epakHeader->offset - 4;
-        printf("\nFirmware otaID: %s\n", buffer + epakHeader->offset + 8);
+        printf("\nFirmware otaID: %s\n", (char*)(buffer + epakHeader->offset + 8));
         printf("Firmware version: %02x.%02x.%02x.%02x\n", (fwVer[0] >> (8*0)) & 0xff, (fwVer[0] >> (8*1)) & 0xff, 
             (fwVer[0] >> (8*2)) & 0xff, (fwVer[0] >> (8*3)) & 0xff);
         printf("PAK count: %d\n", epakHeader->pakCount);
