@@ -376,7 +376,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (size + realSegmentSize > segment.pakSize) 
 			    realSegmentSize = segment.pakSize - size;
 				
-            printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', offset='0x%x', size='%u bytes')\n", index + 1, segment.name,
+            printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', offset='0x%lx', size='%u bytes')\n", index + 1, segment.name,
                 segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], offset + SIGNATURE_SIZE, realSegmentSize);
 				
 			unsigned char* decrypted = malloc(realSegmentSize);
