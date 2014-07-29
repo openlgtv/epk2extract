@@ -175,7 +175,9 @@ int isFileEPK2(const char *epk_file) {
 	int result = !memcmp(&buffer[0x8C], EPK2_MAGIC, 4); //old EPK2
 	if (!result) result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x638+SIGNATURE_SIZE] == 0x2E &&
 		 buffer[0x63D+SIGNATURE_SIZE] == 0x2E); //new EPK2
-	free(buffer);
+	if (!result) result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x635+SIGNATURE_SIZE] == 0x2E &&
+		 buffer[0x637+SIGNATURE_SIZE] == 0x2E); //EPK3
+    free(buffer);
 	return result;
 }
 
