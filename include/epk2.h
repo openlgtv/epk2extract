@@ -35,6 +35,15 @@ struct epk2header_t {
 	uint32_t unknown;
 }; 
 
+struct epk3header_t {
+	unsigned char signature[SIGNATURE_SIZE];
+	unsigned char EPK3magic[4];
+	unsigned char fwVersion[4];
+	unsigned char otaID[32];
+	uint32_t packageInfoSize;
+	uint32_t bChunked;
+}; 
+
 struct pak2header_t {
 	unsigned char name[4];
 	uint32_t version;

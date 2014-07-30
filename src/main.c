@@ -76,6 +76,9 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 		return EXIT_SUCCESS;
+	} else if (isFileEPK3(file)) { 
+		extractEPK3file(file, config_opts);
+		return EXIT_SUCCESS;
 	} else if (isFileEPK2(file)) { 
 		extractEPK2file(file, config_opts);
 		return EXIT_SUCCESS;
@@ -121,10 +124,10 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 }
 
 int main(int argc, char *argv[]) {
-	printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.5 by sirius (http://openlgtv.org.ru)\n\n");
+	printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.6 by sirius (http://openlgtv.org.ru)\n\n");
 
 	if (argc < 2) {
-		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot and all other guys from openlgtv project for their kind assistance.\n\n");
+		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
 		printf("Options:\n");
 		printf("  -c : extract to current directory instead of source file directory\n");

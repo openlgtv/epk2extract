@@ -7,6 +7,7 @@
 EVP_PKEY *_gpPubKey;
 AES_KEY _gdKeyImage, _geKeyImage;
 const char EPK2_MAGIC[] = "EPK2";
+const char EPK3_MAGIC[] = "EPK3";
 int fileLength;
 unsigned char aes_key[16];
 
@@ -175,10 +176,156 @@ int isFileEPK2(const char *epk_file) {
 	int result = !memcmp(&buffer[0x8C], EPK2_MAGIC, 4); //old EPK2
 	if (!result) result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x638+SIGNATURE_SIZE] == 0x2E &&
 		 buffer[0x63D+SIGNATURE_SIZE] == 0x2E); //new EPK2
-	if (!result) result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x635+SIGNATURE_SIZE] == 0x2E &&
-		 buffer[0x637+SIGNATURE_SIZE] == 0x2E); //EPK3
     free(buffer);
 	return result;
+}
+
+int isFileEPK3(const char *epk_file) {
+	FILE *file = fopen(epk_file, "r");
+	if (file == NULL) {
+		printf("Can't open file %s", epk_file);
+		exit(1);
+	}
+	size_t headerSize = 0x650+SIGNATURE_SIZE;
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
+	int read = fread(buffer, 1, headerSize, file);
+	if (read != headerSize) return 0;
+	fclose(file);
+	int result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x635+SIGNATURE_SIZE] == 0x2E &&
+	    buffer[0x637+SIGNATURE_SIZE] == 0x2E); //EPK3
+    free(buffer);
+	return result;
+}
+
+void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
+	int file;
+	if (!(file = open(epk_file, O_RDONLY))) {
+		printf("\nCan't open file %s\n", epk_file);
+		exit(1);
+	}
+
+	struct stat statbuf;
+	if (fstat(file, &statbuf) < 0) {
+		printf("\nfstat error\n"); 
+		exit(1);
+	}
+
+	int fileLength = statbuf.st_size;
+	printf("File size: %d bytes\n", fileLength);
+	void *buffer;
+	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
+		printf("\nCannot mmap input file. Aborting\n"); 
+		exit(1);
+	}
+
+	printf("\nVerifying digital signature of EPK3 firmware header...\n");
+	int verified = 0;
+	DIR* dirFile = opendir(config_opts->config_dir);
+	if (dirFile) {
+		struct dirent* hFile;
+		while ((hFile = readdir(dirFile)) != NULL) {
+			if (!strcmp(hFile->d_name, ".") || !strcmp(hFile->d_name, "..") || hFile->d_name[0] == '.') continue;
+			if (strstr(hFile->d_name, ".pem") || strstr(hFile->d_name, ".PEM")) {
+				printf("Trying RSA key: %s... ", hFile->d_name);
+				SWU_CryptoInit_PEM(config_opts->config_dir, hFile->d_name);
+				int size = SIGNATURE_SIZE+0x634;
+				while (size > SIGNATURE_SIZE) {
+					verified = API_SWU_VerifyImage(buffer, size);
+					if (verified) {
+						printf("Success!\nDigital signature of the firmware is OK. Signed bytes: %d\n\n", size-SIGNATURE_SIZE);
+						break;
+					}
+					size -= 1;
+				}
+				if (!verified) printf("Failed\n");
+			}
+			if (verified) break;
+		}
+		closedir(dirFile);
+   	}
+
+	if (!verified) {
+		printf("Cannot verify firmware's digital signature (maybe you don't have proper PEM file). Aborting.\n\n");
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
+		if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
+		close(file);
+		exit(1);
+	}
+
+	int headerSize = 0x5B4 + SIGNATURE_SIZE;
+	struct epk3header_t *fwInfo = malloc(headerSize);
+	memcpy(fwInfo, buffer, headerSize);
+	if (memcmp(fwInfo->EPK3magic, EPK3_MAGIC, 4)) {
+		printf("Trying to decrypt EPK3 header...\n");
+		int uncrypted = 0;
+		char key_file_name[1024] = "";
+		strcat(key_file_name, config_opts->config_dir);
+		strcat(key_file_name, "/");
+		strcat(key_file_name, "AES.key");
+		FILE *fp = fopen(key_file_name, "r");
+		if (fp == NULL) {
+			printf("\nError: Cannot open AES.key file.\n");
+			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
+			close(file);
+			free(fwInfo);
+			exit(1);
+		}
+		char* line = NULL;
+		size_t len = 0;
+		ssize_t read;
+		size_t count = 0;
+
+		while ((read = getline(&line, &len, fp)) != -1) {
+			char* pos = line;
+			for(count = 0; count < sizeof(aes_key)/sizeof(aes_key[0]); count++) {
+				sscanf(pos, "%2hhx", &aes_key[count]);
+				pos += 2 * sizeof(char);
+			}
+			SWU_CryptoInit_AES(aes_key);
+			printf("Trying AES key (%s) ", strtok(line,"\n\r"));
+			decryptImage(buffer+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE, (unsigned char*)fwInfo+SIGNATURE_SIZE);
+			if (!memcmp(fwInfo->EPK3magic, EPK3_MAGIC, 4)) {
+				printf("Success!\n");
+				//hexdump((unsigned char*)fwInfo+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE);				
+				uncrypted = 1;
+				break;
+			} else {
+				printf("Failed\n");
+			}
+		}
+		fclose(fp);
+		if (line) free(line);
+		if (!uncrypted) {
+			printf("\nFATAL: Cannot decrypt EPK3 header (proper AES key is missing). Aborting now. Sorry.\n\n");
+			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
+			close(file);
+			free(fwInfo);
+			#ifdef __CYGWIN__
+				puts("Press any key to continue...");
+				getch();
+			#endif
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	printf("\nFirmware info\n");
+	printf("-------------\n");
+	printf("Firmware magic: %.*s\n", 4, fwInfo->EPK3magic);
+	printf("Firmware otaID: %s\n", fwInfo->otaID);
+	printf("Firmware version: %02x.%02x.%02x.%02x\n", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0]);
+	printf("packageInfoSize: %d\n", fwInfo->packageInfoSize);
+	printf("bChunked: %d\n\n", fwInfo->bChunked);
+
+	unsigned char *packageInfo = malloc(fwInfo->packageInfoSize);
+    decryptImage(buffer+0x6B4, fwInfo->packageInfoSize, packageInfo);
+	hexdump(packageInfo, fwInfo->packageInfoSize);
+
+	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
+	close(file);
+	free(fwInfo);
 }
 
 void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
@@ -271,9 +418,9 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			SWU_CryptoInit_AES(aes_key);
 			printf("Trying AES key (%s) ", strtok(line,"\n\r"));
 			decryptImage(buffer+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE, (unsigned char*)fwInfo+SIGNATURE_SIZE);
+			//printf("\n"); hexdump((unsigned char*)fwInfo+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE);
 			if (!memcmp(fwInfo->EPK2magic, EPK2_MAGIC, 4)) {
 				printf("Success!\n");
-				//hexdump(decrypted, headerSize);
 				uncrypted = 1;
 				break;
 			} else {
@@ -431,4 +578,3 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	free(fwInfo);
 	free(pakArray);
 }
-
