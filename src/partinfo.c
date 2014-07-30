@@ -87,17 +87,14 @@ unsigned int print_minfo(void){
 	fprintf(destfile,"MTD Name: %s",mtdi->name);
 	unsigned int devsize = mtdi->size;
 	char *devsizeunit;
-	if(devsize/1024/1024/1024 == 0){
-		//Small MTD, use Megabytes
-		devsize = devsize/1024/1024;
-		devsizeunit = "MB";
-	} else {
+	if(devsize%(1024*1024*1024) == 0){
 		//Gigabytes
-		devsize = devsize/1024/1024/1024;
-		devsizeunit = "GB";
+		fprintf(destfile,"\tSize: %dGB",(devsize/1024/1024/1024));
+	} else {
+		//Small MTD, use Megabytes
+		fprintf(destfile,"\tSize: %dMB",(devsize/1024/1024));
 	}
-	fprintf(destfile,"\tSize: %d",devsize);
-	fprintf(destfile,devsizeunit);println();
+	println();
 		
 	println(); fprintf(destfile, "%s", m_menu_partition_str[0]);println();println();
 	fprintf(destfile, "magic : %08x", m_partinfo.magic);println();
@@ -141,17 +138,14 @@ unsigned int print_p1info(void){
 	fprintf(destfile,"Flash Name: %s",p1di->name);
 	unsigned int devsize = p1di->size;
 	char *devsizeunit;
-	if(devsize/1024/1024/1024 == 0){
-		//Small MTD, use Megabytes
-		devsize = devsize/1024/1024;
-		devsizeunit = "MB";
-	} else {
+	if(devsize%(1024*1024*1024) == 0){
 		//Gigabytes
-		devsize = devsize/1024/1024/1024;
-		devsizeunit = "GB";
+		fprintf(destfile,"\tSize: %dGB",(devsize/1024/1024/1024));
+	} else {
+		//Small MTD, use Megabytes
+		fprintf(destfile,"\tSize: %dMB",(devsize/1024/1024));
 	}
-	fprintf(destfile,"\tSize: %d",devsize);
-	fprintf(destfile,devsizeunit);println();
+	println();
 
 	println(); fprintf(destfile, "%s", p_menu_partition_str[0]); println(); println();
 	fprintf(destfile,"magic : %08x", p1_partinfo.magic);println();
@@ -203,19 +197,16 @@ unsigned int print_p2info(void){
 	struct p2_device_info *p2di = NULL;
 	p2di = P2_GET_DEV_INFO();
 	fprintf(destfile,"Flash Name: %s",p2di->name);
-	unsigned int devsize = p2di->size;
+	unsigned long long devsize = p2di->size;
 	char *devsizeunit;
-	if(devsize/1024/1024/1024 == 0){
-		//Small MTD, use Megabytes
-		devsize = devsize/1024/1024;
-		devsizeunit = "MB";
-	} else {
+	if(devsize%(1024*1024*1024) == 0){
 		//Gigabytes
-		devsize = devsize/1024/1024/1024;
-		devsizeunit = "GB";
+		fprintf(destfile,"\tSize: %dGB",(devsize/1024/1024/1024));
+	} else {
+		//Small MTD, use Megabytes
+		fprintf(destfile,"\tSize: %dMB",(devsize/1024/1024));
 	}
-	fprintf(destfile,"\tSize: %d",devsize);
-	fprintf(destfile,devsizeunit);println();
+	println();
 
 	println(); fprintf(destfile, "%s", p_menu_partition_str[0]);println();println();
 	fprintf(destfile, "magic : %08x", p2_partinfo.magic); println();

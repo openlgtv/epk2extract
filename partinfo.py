@@ -1,22 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import os, struct, sys, binascii, datetime, fnmatch
 def allzero(string):
-	for x in string:
-		if ord(x):
-			return False
-	return True
+        for x in string:
+                if ord(x):
+                        return False
+        return True
 
 def allFF(string):
-	for x in string:
+        for x in string:
 		if ord(x) != 0xFF:
 			return False
 	return True
 
 def validate(date_text):
-    try:
-        datetime.datetime.strptime(date_text, '%Y-%m-%d')
-    except ValueError:
-        #raise ValueError("Invalid Partition Table File")
+	try:
+		datetime.datetime.strptime(date_text, '%Y-%m-%d')
+	except ValueError:
+		#raise ValueError("Invalid Partition Table File")
 		sys.exit("Invalid Partition Table File")
 
 def fancyprint(str, pad):
@@ -61,8 +61,8 @@ with open(sys.argv[1], "rb") as partpak:
 	ismtkm2 = fnmatch.fnmatchcase(devname, "mtk5398-emmc") #match mtk2013
 	is1152 = fnmatch.fnmatchcase(devname, "l9_emmc") #match 1152
 	is1154 = fnmatch.fnmatchcase(devname, "h13_emmc") #match 1154
-	isbcm1  = fnmatch.fnmatchcase(devname, "bcm35xx_map0") #match broadcom
-	isbcm2  = fnmatch.fnmatchcase(devname, "bcm35230_map0") #match broadcom
+	isbcm1	= fnmatch.fnmatchcase(devname, "bcm35xx_map0") #match broadcom
+	isbcm2	= fnmatch.fnmatchcase(devname, "bcm35230_map0") #match broadcom
 	ismstar= fnmatch.fnmatchcase(devname, "mstar_map0") #match mstar
 	if ismtk1 or ismtkm1:
 		model="Mtk 2012 - MTK5369"
@@ -115,17 +115,16 @@ with open(sys.argv[1], "rb") as partpak:
 			partpak.read(struct.calcsize(device_struct)*3)
 	
 	devname = devname.replace("\x00","") #remove empty chars from string
-	if devsize/1024/1024/1024 == 0:
-		#Small MTD, use Megabytes
-		devsize = float(devsize/1024/1024)
-		devsizeunit = "MB"
-	else:
-		#Gigabytes
-		devsize = float(devsize/1024/1024/1024)
+	devsize = float(devsize)
+	if devsize%(1024*1024*1024) == 0:
+                #Gigabytes
+		devsize = devsize/1024/1024/1024
 		devsizeunit = "GB"
+	else:
+		#Small MTD, use Megabytes
+		devsize = devsize/1024/1024
+		devsizeunit = "MB"
 		
-	#float --> string
-	devsize = str(devsize)
 	
 	#swap magic byte array
 	magic = list(magic)[::-1]
@@ -167,17 +166,61 @@ with open(sys.argv[1], "rb") as partpak:
 	if not npartition == 1 and not npartition == 0:
 		print "Partition Count: %d" % npartition
 		
-	print "MTD Name: %s, size %s%s" % (devname, devsize, devsizeunit)
+	print "MTD Name: %s, size %d %s" % (devname, devsize, devsizeunit)
 	print "Partition Table:"
 	print "-------------------------------"
 		
 	for part in range(npartition):
 		(partname, partoff, partsize, partfn, partfs, partsw, partIsUsed, partIsValid, partflags) = struct.unpack(part_struct, partpak.read(struct.calcsize(part_struct)))
-		for i in range(20): #make partname 20 chars smaller (32 is really long)
-			partname = partname[:-1]
-		if part < 10:
-			sys.stdout.write('[ ')
-		else:
-			sys.stdout.write('[')
-			
-		print "%d] - %s --> %s" % (part, partname, partfn)
+		partname = partname.strip()
+		fancyprint("Partition "+str(part), 5)
+                print "Name: \t\t\t %s"%partname
+                if partsize%(1024*1024) == 0:
+                        partsize = partsize/1024/1024
+                        partsizeunit = "MB"
+                elif partsize%1024 == 0:
+                        partsize = partsize/1024
+                        partsizeunit = "KB"
+                else:
+                        partsizeunit = "bytes"
+                print "Partition Size: \t %d %s"%(partsize, partsizeunit)
+                print "Filename: \t\t %s"%partfn
+                partfs = float(partfs)
+                if partfs%(1024*1024) == 0:
+                        partfs = partfs/1024/1024
+                        fsunit = "MB"
+                elif partfs%1024 == 0:
+                        partfs = partfs/1024
+                        fsunit = "KB"
+                else:
+                        fsunit = "bytes"
+                print "Filename Size: \t\t %d %s"%(partfs, fsunit)
+                partsw="%08x"%partsw
+                partsw=".".join(["".join(partsw[i:i+2]) for i in xrange(0, len(partsw), 2)])
+                partflags = '{0:08b}'.format(partflags)
+                partflags=int(partflags)
+                isFixed = bool(partflags & 1)
+                isMaster = bool(partflags & 2)
+                isKey = bool(partflags & 4)
+                isCache = bool(partflags & 8)
+                isData = bool(partflags & 16)
+                isSecure = bool(partflags & 32)
+                isErase = bool(partflags & 64)
+                partflags = list()
+                if isFixed:
+                        partflags.append("FIXED")
+                if isMaster:
+                        partflags.append("MASTER")
+                if isKey:
+                        partflags.append("IDKEY")
+                if isCache:
+                        partflags.append("CACHE")
+                if isData:
+                        partflags.append("DATA")
+                if isSecure:
+                        partflags.append("SECURED")
+                if isErase:
+                        partflags.append("ERASE")
+                print "File Version: \t\t %s"%partsw
+                print "Partition in use: \t %s"%bool(partIsUsed)
+                print "Partition Flags: \t %s" %",".join(partflags)
