@@ -320,9 +320,30 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	printf("bChunked: %d\n\n", fwInfo->bChunked);
 
 	unsigned char *packageInfo = malloc(fwInfo->packageInfoSize);
-    decryptImage(buffer+0x6B4, fwInfo->packageInfoSize, packageInfo);
-	hexdump(packageInfo, fwInfo->packageInfoSize);
+    decryptImage(buffer+0x754, fwInfo->packageInfoSize, packageInfo);
+	//hexdump(packageInfo, fwInfo->packageInfoSize);
+	
+	FILE *outfile = fopen("tzfw", "w");
+	unsigned char* decrypted = malloc(224656);
+	decryptImage(buffer+0x7D4+fwInfo->packageInfoSize, 224656, decrypted);
+	fwrite(decrypted, 1, 224656, outfile);
+	free(decrypted);
+	fclose(outfile);
 
+	outfile = fopen("rootfs", "w");
+	decrypted = malloc(377495824);
+	decryptImage(buffer+0x754+fwInfo->packageInfoSize+224656+0x100, 377495824, decrypted);
+	fwrite(decrypted, 1, 377495824, outfile);
+	free(decrypted);
+	fclose(outfile);
+
+	outfile = fopen("kernel", "w");
+	decrypted = malloc(10112608);
+	decryptImage(buffer+0x754+fwInfo->packageInfoSize+224656+0x100+377495824+0x1E80, 10112608, decrypted);
+	fwrite(decrypted, 1, 10112608, outfile);
+	free(decrypted);
+	fclose(outfile);
+	
 	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 	close(file);
 	free(fwInfo);
