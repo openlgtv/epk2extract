@@ -367,12 +367,13 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 		int index = 0, realSegmentSize;
 		
 		for (index = 0; index < segment.totalSegments; index++) {
-			printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', size='%u bytes')\n",	index + 1, segment.name,
-				segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], segment.segmentSize);
-
 			realSegmentSize = segment.segmentSize;	
 			if (size + realSegmentSize > segment.pakSize) 
 			    realSegmentSize = segment.pakSize - size;
+				
+			printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', size='%u bytes')\n",	index + 1, segment.name,
+				segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], realSegmentSize);
+				
 			unsigned char* decrypted = malloc(realSegmentSize);
 			decryptImage(buffer+offset+SIGNATURE_SIZE, realSegmentSize, decrypted);
 			fwrite(decrypted, 1, realSegmentSize, outfile);
