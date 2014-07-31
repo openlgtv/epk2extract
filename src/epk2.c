@@ -184,15 +184,18 @@ int isFileEPK3(const char *epk_file) {
 	FILE *file = fopen(epk_file, "r");
 	if (file == NULL) {
 		printf("Can't open file %s", epk_file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
-	size_t headerSize = 0x650+SIGNATURE_SIZE;
+	size_t headerSize = 0x6B4;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
 	int read = fread(buffer, 1, headerSize, file);
 	if (read != headerSize) return 0;
 	fclose(file);
-	int result = (buffer[0x630+SIGNATURE_SIZE] == 0 && buffer[0x635+SIGNATURE_SIZE] == 0x2E &&
-	    buffer[0x637+SIGNATURE_SIZE] == 0x2E); //EPK3
+	int result = (buffer[0x6B0] == 0 && buffer[0x6B5] == 0x2E && buffer[0x6B7] == 0x2E);
     free(buffer);
 	return result;
 }
@@ -201,12 +204,21 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	int file;
 	if (!(file = open(epk_file, O_RDONLY))) {
 		printf("\nCan't open file %s\n", epk_file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 
 	struct stat statbuf;
 	if (fstat(file, &statbuf) < 0) {
 		printf("\nfstat error\n"); 
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
+
 		exit(1);
 	}
 
@@ -215,6 +227,10 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	void *buffer;
 	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
 		printf("\nCannot mmap input file. Aborting\n"); 
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 
@@ -228,7 +244,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (strstr(hFile->d_name, ".pem") || strstr(hFile->d_name, ".PEM")) {
 				printf("Trying RSA key: %s... ", hFile->d_name);
 				SWU_CryptoInit_PEM(config_opts->config_dir, hFile->d_name);
-				int size = SIGNATURE_SIZE+0x634;
+				int size = 0x6B4;
 				while (size > SIGNATURE_SIZE) {
 					verified = API_SWU_VerifyImage(buffer, size);
 					if (verified) {
@@ -255,7 +271,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 		exit(1);
 	}
 
-	int headerSize = 0x5B4 + SIGNATURE_SIZE;
+	int headerSize = 0x6B4;
 	struct epk3header_t *fwInfo = malloc(headerSize);
 	memcpy(fwInfo, buffer, headerSize);
 	if (memcmp(fwInfo->EPK3magic, EPK3_MAGIC, 4)) {
@@ -289,7 +305,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			decryptImage(buffer+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE, (unsigned char*)fwInfo+SIGNATURE_SIZE);
 			if (!memcmp(fwInfo->EPK3magic, EPK3_MAGIC, 4)) {
 				printf("Success!\n");
-				//hexdump((unsigned char*)fwInfo+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE);				
+				//hexdump((unsigned char*)fwInfo+SIGNATURE_SIZE, headerSize-SIGNATURE_SIZE);
 				uncrypted = 1;
 				break;
 			} else {
@@ -318,31 +334,56 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	printf("Firmware version: %02x.%02x.%02x.%02x\n", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0]);
 	printf("packageInfoSize: %d\n", fwInfo->packageInfoSize);
 	printf("bChunked: %d\n\n", fwInfo->bChunked);
+    
+	// Decrypting packageInfo
+	struct pak3_t *packageInfo = malloc(fwInfo->packageInfoSize);
+    decryptImage(buffer+SIGNATURE_SIZE+0x654+SIGNATURE_SIZE, fwInfo->packageInfoSize, (unsigned char*) packageInfo);
+    
+	int i;
+	FILE *outfile;
+	struct pak3segmentHeader_t segment;
+	const char *pak_type_name;
+	char name[4];
 
-	unsigned char *packageInfo = malloc(fwInfo->packageInfoSize);
-    decryptImage(buffer+0x754, fwInfo->packageInfoSize, packageInfo);
-	//hexdump(packageInfo, fwInfo->packageInfoSize);
+	char fwVersion[1024];
+	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
 	
-	FILE *outfile = fopen("tzfw", "w");
-	unsigned char* decrypted = malloc(224656);
-	decryptImage(buffer+0x7D4+fwInfo->packageInfoSize, 224656, decrypted);
-	fwrite(decrypted, 1, 224656, outfile);
-	free(decrypted);
-	fclose(outfile);
+	char targetFolder[1024]="";
+	constructPath(targetFolder, config_opts->dest_dir, fwVersion, NULL);
+	createFolder(targetFolder);
 
-	outfile = fopen("rootfs", "w");
-	decrypted = malloc(377495824);
-	decryptImage(buffer+0x754+fwInfo->packageInfoSize+224656+0x100, 377495824, decrypted);
-	fwrite(decrypted, 1, 377495824, outfile);
-	free(decrypted);
-	fclose(outfile);
+	long unsigned int offset = SIGNATURE_SIZE+0x654+SIGNATURE_SIZE+fwInfo->packageInfoSize;
+	for(i = 0; i < packageInfo->numOfSegments; i++) {
+	    long unsigned int size = 0;
+	    memcpy(&segment, (unsigned char *) &packageInfo->segment + sizeof(segment)*i, sizeof(segment));
+		printf("\nPAK '%s' contains %d segment(s), size %d bytes:\n", segment.name, segment.totalSegments, segment.pakSize);
+		
+		char filename[1024] = "";
+		sprintf(name, "%s", segment.name);
+		constructPath(filename, targetFolder, name, ".pak");
+		printf("Saving partition (%s) to file %s\n", name, filename);
+		outfile = fopen(filename, "w");
+		
+		int index = 0, realSegmentSize;
+		
+		for (index = 0; index < segment.totalSegments; index++) {
+			printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', size='%u bytes')\n",	index + 1, segment.name,
+				segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], segment.segmentSize);
 
-	outfile = fopen("kernel", "w");
-	decrypted = malloc(10112608);
-	decryptImage(buffer+0x754+fwInfo->packageInfoSize+224656+0x100+377495824+0x1E80, 10112608, decrypted);
-	fwrite(decrypted, 1, 10112608, outfile);
-	free(decrypted);
-	fclose(outfile);
+			realSegmentSize = segment.segmentSize;	
+			if (size + realSegmentSize > segment.pakSize) 
+			    realSegmentSize = segment.pakSize - size;
+			unsigned char* decrypted = malloc(realSegmentSize);
+			decryptImage(buffer+offset+SIGNATURE_SIZE, realSegmentSize, decrypted);
+			fwrite(decrypted, 1, realSegmentSize, outfile);
+			size += realSegmentSize;
+			offset += realSegmentSize + SIGNATURE_SIZE;
+			free(decrypted);
+		}
+		fclose(outfile);
+		processExtractedFile(filename, targetFolder, name);
+		i+=index-1;
+	}
 	
 	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 	close(file);

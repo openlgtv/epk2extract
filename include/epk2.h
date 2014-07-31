@@ -44,24 +44,25 @@ struct epk3header_t {
 	uint32_t bChunked;
 }; 
 
-struct epk3packageInfoHeader_t {
-	uint32_t packageInfoSize;
-	uint32_t numOfRecords;
-}; 
-
-struct epk3packageInfoRecord_t {
+struct pak3segmentHeader_t {
 	unsigned char unknown1[4]; // 0x01 00 00 00
-	uint32_t recordSize; // 0x144
+	uint32_t infoRecordSize; // 0x144
 	unsigned char name[128];
 	unsigned char address1[128];
-	unsigned char address2[128];
-	uint32_t fileSize;
+	unsigned char address2[32];
+	uint32_t pakSize;
 	uint32_t unknown2; // 0x00 00 00 00
 	uint32_t unknown3; // 0x01 00 00 00
-	uint32_t recordNumber;
-	uint32_t totalFileRecords;
-	uint32_t blockSize;
+	uint32_t segmentNumber;
+	uint32_t totalSegments;
+	uint32_t segmentSize;
 	uint32_t unknown4; // 0x00 00 00 00
+}; 
+
+struct pak3_t {
+	uint32_t packageInfoSize;
+	uint32_t numOfSegments;
+	struct pak3segmentHeader_t segment;
 }; 
 
 struct pak2header_t {
