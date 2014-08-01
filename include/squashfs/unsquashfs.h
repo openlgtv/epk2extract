@@ -80,7 +80,7 @@
 		} while(0)
 
 #define EXIT_UNSQUASH(s, args...) \
-		do { \
+		fprintf(stderr, "FATAL ERROR aborting: "s, ## args); //do { \
 			pthread_mutex_lock(&screen_mutex); \
 			fprintf(stderr, "FATAL ERROR aborting: "s, ## args); \
 			pthread_mutex_unlock(&screen_mutex);\
