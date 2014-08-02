@@ -84,10 +84,11 @@ void printPAKinfo(struct pak2_t* pak) {
 		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
 		//hexdump(decrypted, headerSize);
 		struct pak2segmentHeader_t* decryptedSegmentHeader = (struct pak2segmentHeader_t*) decrypted;
-		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', size='%u bytes')\n",
+		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x' ,size='%u bytes')\n",
 			index + 1, pak->header->name, decryptedSegmentHeader->version[3],
 			decryptedSegmentHeader->version[2], decryptedSegmentHeader->version[1],
-			decryptedSegmentHeader->version[0], decryptedSegmentHeader->platform, PAKsegment->content_len);
+			decryptedSegmentHeader->version[0], decryptedSegmentHeader->platform, 
+            PAKsegment->content_file_offset, PAKsegment->content_len);
 		free(decrypted);
 	}
 }
@@ -337,7 +338,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	printf("Firmware otaID: %s\n", fwInfo->otaID);
 	printf("Firmware version: %02x.%02x.%02x.%02x\n", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0]);
 	printf("packageInfoSize: %d\n", fwInfo->packageInfoSize);
-	printf("bChunked: %d\n\n", fwInfo->bChunked);
+	printf("bChunked: %d\n", fwInfo->bChunked);
     
 	// Decrypting packageInfo
 	struct pak3_t *packageInfo = malloc(fwInfo->packageInfoSize);
@@ -375,8 +376,8 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (size + realSegmentSize > segment.pakSize) 
 			    realSegmentSize = segment.pakSize - size;
 				
-			printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', size='%u bytes')\n",	index + 1, segment.name,
-				segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], realSegmentSize);
+            printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', offset='0x%x', size='%u bytes')\n", index + 1, segment.name,
+                segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], offset + SIGNATURE_SIZE, realSegmentSize);
 				
 			unsigned char* decrypted = malloc(realSegmentSize);
 			decryptImage(buffer+offset+SIGNATURE_SIZE, realSegmentSize, decrypted);

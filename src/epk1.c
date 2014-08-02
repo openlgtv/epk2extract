@@ -79,7 +79,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	char targetFolder[1024]="";
 	int index;
 	endianswap=0;
-	uint32_t pakcount = (((struct epk1Header_t*)buffer)->pakCount);
+	uint32_t pakcount = ((struct epk1Header_t*)buffer)->pakCount;
 	if (pakcount >> 8 != 0) {
 	    endianswap = 1;
 	    SWAP(pakcount);
@@ -121,6 +121,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
             lastWrittenByte = pakRecord.offset + pakRecord.size;
             offset = pakRecord.offset + pakRecord.size;
             size = fileLength - offset;
+            free(pheader);            
         }
         if (lastWrittenByte < epakHeader->fileSize) {
             unsigned char *pheader = malloc(sizeof(struct pakHeader_t));
@@ -138,7 +139,9 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
             fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, size - 132, outfile);
             fclose(outfile);
             processExtractedFile(filename, targetFolder, pakName);
+            free(pheader);
         }
+        free(header);
     } else if (pakcount < 21) { // old EPK1 header
 	    printf("\nFirmware type is EPK1...\n");
 	    struct epk1Header_t *epakHeader = (struct epk1Header_t*)buffer;
@@ -186,4 +189,3 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 	close(file);
 }
-
