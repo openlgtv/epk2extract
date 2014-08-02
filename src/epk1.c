@@ -80,8 +80,8 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	int index;
 	endianswap=0;
 	uint32_t pakcount = (((struct epk1Header_t*)buffer)->pakCount);
-	if ( (int)pakcount >> 8 != 0 ){
-	    endianswap=1;
+	if (pakcount >> 8 != 0) {
+	    endianswap = 1;
 	    SWAP(pakcount);
 	    printf("\nFirmware type is EPK1 Big Endian...\n");
 	    unsigned char *header = malloc(sizeof(struct epk1BEHeader_t)); //allocate space for header
@@ -94,31 +94,52 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	    constructBEVerString(verString, epakHeader);
 	    constructPath(targetFolder, config_opts->dest_dir, verString, NULL);
 	    createFolder(targetFolder);
-	    for (index = 0; index < epakHeader->pakCount; index++) {
-		struct pakRec_t pakRecord = epakHeader->pakRecs[index];
-		struct pakHeader_t *pakHeader;
-		SWAP(pakRecord.offset);
-		SWAP(pakRecord.size);
-		unsigned char *pheader = malloc(sizeof(struct pakHeader_t));
-		memcpy(pheader, (buffer+pakRecord.offset), sizeof(struct pakHeader_t));
-		pakHeader = (struct pakHeader_t*)pheader;
-		SWAP(pakHeader->pakSize);
-		pakHeader = (struct pakHeader_t *)(buffer + pakRecord.offset);
-		char pakName[5] = "";
-		sprintf(pakName, "%.*s", 4, pakHeader->pakName);
-		char filename[255] = "";
-		constructPath(filename, targetFolder, pakName, ".pak");
-		printf("#%u/%u saving PAK  (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
-		if(pakRecord.size == 0 || pakRecord.offset == 0){
-		    printf("Skipping empty/invalid PAK \"%s\"\n", pakHeader->pakName);
-		    continue;
-		}
-		FILE *outfile = fopen(((const char*) filename), "w");
-		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
-		fclose(outfile);
-		processExtractedFile(filename, targetFolder, pakName);
-	    }
-	}else if (pakcount < 21) { // old EPK1 header
+        unsigned long int lastWrittenByte, offset, size;
+        for (index = 0; index < epakHeader->pakCount; index++) {
+            struct pakRec_t pakRecord = epakHeader->pakRecs[index];
+            SWAP(pakRecord.offset);
+            SWAP(pakRecord.size);
+            unsigned char *pheader = malloc(sizeof(struct pakHeader_t));
+            memcpy(pheader, (buffer+pakRecord.offset), sizeof(struct pakHeader_t));
+            struct pakHeader_t *pakHeader = (struct pakHeader_t*)pheader;
+            SWAP(pakHeader->pakSize);
+            pakHeader = (struct pakHeader_t *)(buffer + pakRecord.offset);
+            char pakName[5] = "";
+            sprintf(pakName, "%.*s", 4, pakHeader->pakName);
+            char filename[255] = "";
+            constructPath(filename, targetFolder, pakName, ".pak");
+            if (pakRecord.size == 0 || pakRecord.offset == 0){
+                printf("#%u/%u skipping PAK (offset and size are zeroes)\n", index + 1, epakHeader->pakCount);
+                continue;
+            }
+            printf("#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+            pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
+            FILE *outfile = fopen(((const char*) filename), "w");
+            fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
+            fclose(outfile);
+            processExtractedFile(filename, targetFolder, pakName);
+            lastWrittenByte = pakRecord.offset + pakRecord.size;
+            offset = pakRecord.offset + pakRecord.size;
+            size = fileLength - offset;
+        }
+        if (lastWrittenByte < epakHeader->fileSize) {
+            unsigned char *pheader = malloc(sizeof(struct pakHeader_t));
+            memcpy(pheader, (buffer + offset), sizeof(struct pakHeader_t));
+            struct pakHeader_t *pakHeader = (struct pakHeader_t*)pheader;
+            SWAP(pakHeader->pakSize);
+            pakHeader = (struct pakHeader_t *)(buffer + offset);
+            char pakName[5] = "";
+            sprintf(pakName, "%.*s", 4, pakHeader->pakName);
+            char filename[255] = "";
+            constructPath(filename, targetFolder, pakName, ".pak");
+            printf("#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, 
+                index + 1, pakName, pakHeader->platform, offset, size, filename);
+            FILE *outfile = fopen(((const char*) filename), "w");
+            fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, size - 132, outfile);
+            fclose(outfile);
+            processExtractedFile(filename, targetFolder, pakName);
+        }
+    } else if (pakcount < 21) { // old EPK1 header
 	    printf("\nFirmware type is EPK1...\n");
 	    struct epk1Header_t *epakHeader = (struct epk1Header_t*)buffer;
 	    printHeaderInfo(epakHeader);
@@ -133,7 +154,8 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 		sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 		char filename[255] = "";
 		constructPath(filename, targetFolder, pakName, ".pak");
-		printf("#%u/%u saving PAK  (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
+		printf("#%u/%u saving PAK (name='%s', platform='%s', size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+		    pakHeader->platform, pakHeader->pakSize, filename);
 		FILE *outfile = fopen(((const char*) filename), "w");
 		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
 		fclose(outfile);
@@ -153,7 +175,8 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 			char filename[255] = "";
 			constructPath(filename, targetFolder, pakName, ".pak");
-			printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, epakHeader->pakCount, pakName, filename);
+		    printf("#%u/%u saving PAK (name='%s', platform='%s', size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+		        pakHeader->platform, pakHeader->pakSize, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakHeader->pakSize + 4, outfile);
 			fclose(outfile);
