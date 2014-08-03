@@ -59,7 +59,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		extracted = !lzo_unpack((const char*) filename, (const char*) extractedFile);
 	} else if(is_gzip(filename)) {
 		constructPath(extractedFile, folderExtractTo, "", "");
-		printf("Extracting gzip file %s\n", filename);
+		printf("Ungzip file %s\n", filename);
 		strcpy(extractedFile, file_uncompress_origname(filename, extractedFile));
 		extracted=1;
 	} else if(is_cramfs_image(filename, "be")) {

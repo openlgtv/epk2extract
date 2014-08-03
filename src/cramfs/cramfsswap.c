@@ -110,8 +110,7 @@ int cramswap(char *sinfile, char *soutfile)
   superblock_out[14] =          superblock_in[14] ;     /* Name 3/4 */
   superblock_out[15] =          superblock_in[15] ;     /* Name 4/4 */
   write(outfile, &superblock_out, sizeof(superblock_out));
-
-
+  
   /* Check Flags */
   if ( is_hostorder)
     flags = superblock_in[2];
@@ -264,6 +263,18 @@ int cramswap(char *sinfile, char *soutfile)
 
   }
 
+  // Here we deal with LE XIP image stuffed into BE cramfs image.
+  // We just convert superblock and inodes endianess while leaving the content of the rest as is...
+  if (superblock_out[10] == 0) {
+    do {
+        readbytes = read(infile, &buffer, BUFFERSIZE);
+        write(outfile, &buffer, readbytes);
+    } while ( readbytes>0 );
+
+    close(infile);
+    close(outfile);
+    return 0;
+  }
 
   /* Now process the individual files data. Because cramfs will share the compressed
      data for two identical input files, we do this by starting at the begin of the
