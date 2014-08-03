@@ -28,14 +28,14 @@ void printHeaderInfo(struct epk1Header_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
 	printf("Firmware version: %02x.%02x.%02x.%02x\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
-	printf("PAKs total size: %d\n\n", epakHeader->fileSize);
+	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
 void printNewHeaderInfo(struct epk1NewHeader_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
 	printf("Firmware version: %02x.%02x.%02x.%02x\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
-	printf("PAKs total size: %d\n\n", epakHeader->fileSize);
+	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
 void constructVerString(char *fw_version, struct epk1Header_t *epakHeader) {
@@ -85,7 +85,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
         printf("Firmware version: %02x.%02x.%02x.%02x\n", (fwVer[0] >> (8*0)) & 0xff, (fwVer[0] >> (8*1)) & 0xff, 
             (fwVer[0] >> (8*2)) & 0xff, (fwVer[0] >> (8*3)) & 0xff);
         printf("PAK count: %d\n", epakHeader->pakCount);
-        printf("PAKs total size: %d\n\n", epakHeader->fileSize);
+        printf("PAKs total size: %d\n", epakHeader->fileSize);
 
         sprintf(verString, "%02x.%02x.%02x", (fwVer[0] >> (8*1)) & 0xff, (fwVer[0] >> (8*2)) & 0xff, (fwVer[0] >> (8*3)) & 0xff);
 	    constructPath(targetFolder, config_opts->dest_dir, verString, NULL);
@@ -113,7 +113,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
             sprintf(pakName, "%.*s", 4, pakHeader->pakName);
             char filename[255] = "";
             constructPath(filename, targetFolder, pakName, ".pak");
-            printf("#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+            printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
                 pakHeader->platform, pakRecord->offset, pakRecord->size, filename);
             FILE *outfile = fopen(((const char*) filename), "w");
             fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord->size - 132, outfile);
@@ -139,7 +139,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 		sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 		char filename[255] = "";
 		constructPath(filename, targetFolder, pakName, ".pak");
-        printf("#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+        printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
             pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
 		FILE *outfile = fopen(((const char*) filename), "w");
 		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
@@ -160,7 +160,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 			char filename[255] = "";
 			constructPath(filename, targetFolder, pakName, ".pak");
-            printf("#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+            printf("#\n%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
                 pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakHeader->pakSize + 4, outfile);
