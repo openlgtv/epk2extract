@@ -24,8 +24,8 @@ struct epk1BEHeader_t {
     unsigned char epakMagic[4];
     uint32_t fileSize;
     uint32_t pakCount;
-    struct pakRec_t pakRecs[10];
-    unsigned char fwVer[4];
+	uint32_t offset;
+	uint32_t size;
 };
 
 struct epk1Header_t {
