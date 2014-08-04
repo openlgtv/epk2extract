@@ -160,7 +160,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
 			char filename[255] = "";
 			constructPath(filename, targetFolder, pakName, ".pak");
-            printf("#\n%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
+            printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
                 pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
 			FILE *outfile = fopen(((const char*) filename), "w");
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakHeader->pakSize + 4, outfile);
