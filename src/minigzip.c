@@ -193,7 +193,7 @@ char* file_uncompress_origname(char *infile, char *path){
     filename=malloc(len); //allocate space for name
     fseek(in, 10, SEEK_SET);
     fread(filename, 1, len, in); //read filename
-    printf("Compressed Filename: %s\n", filename);
+    printf("Ungzipping file: %s\n", filename);
     fclose(in);
     
     strcat(dest,path);

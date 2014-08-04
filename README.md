@@ -26,6 +26,7 @@ To compile on Cygwin:
     Libs-> liblzo2-devel, zlib-devel
     Net-> openssl-devel
     Utils-> ncurses
+    Editors-> nano
 
 ## 2. Run Cygwin Terminal and get sources
 

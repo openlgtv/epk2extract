@@ -339,7 +339,7 @@ int isPartPakfile(const char *filename) {
 	sprintf(cmagic, "%x", pi->magic);
 	
 	if (isdatetime((char *)cmagic)) {
-		printf("Found valid partpak magic 0x%x from %s\n", pi->magic, filename);
+		printf("Found valid partpak magic 0x%x in %s\n", pi->magic, filename);
 	}
 	
 	ps = detect_model(&(pi->dev));

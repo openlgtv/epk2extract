@@ -58,8 +58,8 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		printf("LZOunpack %s to %s\n", filename, extractedFile);
 		extracted = !lzo_unpack((const char*) filename, (const char*) extractedFile);
 	} else if(is_gzip(filename)) {
-		constructPath(extractedFile, folderExtractTo, "", "");
-		printf("Ungzip file %s\n", filename);
+	    constructPath(extractedFile, folderExtractTo, "", "");
+		printf("Ungzip %s to folder %s\n", filename, extractedFile);
 		strcpy(extractedFile, file_uncompress_origname(filename, extractedFile));
 		extracted=1;
 	} else if(is_cramfs_image(filename, "be")) {
@@ -71,7 +71,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 	    constructPath(extractedFile, folderExtractTo, PAKname, NULL);
 	    printf("Uncramfs %s to folder %s\n", filename, extractedFile);
 	    rmrf(extractedFile);
-            uncramfs(extractedFile, filename);
+		uncramfs(extractedFile, filename);
 	    return;
 	} else if(is_kernel(filename)) {
 		constructPath(extractedFile, folderExtractTo, PAKname, ".unpaked");
