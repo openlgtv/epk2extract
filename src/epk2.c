@@ -84,7 +84,7 @@ void printPAKinfo(struct pak2_t* pak) {
 		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
 		//hexdump(decrypted, headerSize);
 		struct pak2segmentHeader_t* decryptedSegmentHeader = (struct pak2segmentHeader_t*) decrypted;
-		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x' ,size='%u bytes')\n",
+		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x', size='%u bytes')\n",
 			index + 1, pak->header->name, decryptedSegmentHeader->version[3],
 			decryptedSegmentHeader->version[2], decryptedSegmentHeader->version[1],
 			decryptedSegmentHeader->version[0], decryptedSegmentHeader->platform, 
