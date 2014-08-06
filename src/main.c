@@ -148,41 +148,29 @@ void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int e
 }
 
 void unlzss(FILE *infile, FILE *outfile) {
-#define N         1000000  /* size of ring buffer - must be power of 2 */
-#define F         34    /* upper limit for match_length */
-#define THRESHOLD 2     /* encode string into position and length
-                           if match_length is greater than this */
-unsigned char text_buf[N + F - 1]; /* ring buffer of size N, with extra F-1 bytes to facilitate string comparison */
-	int  i, j, k, l, r, c;
-	unsigned int flags;
-	//r = N - F;  
-	r=0;
-	flags = 0;
-	for ( ; ; ) {
+    unsigned char text_buf[1000000]; 
+	int i, j, k, m, r = 0, c;
+	unsigned int flags = 0;
+	while(1) {
 		if (((flags >>= 1) & 256) == 0) {
 			if ((c = getc(infile)) == EOF) break;
-			flags = c | 0xff00;		/* uses higher byte cleverly to count eight */
+			flags = c | 0xff00;
 		}					
 		if (flags & 1) {
 			if ((c = getc(infile)) == EOF) break;
 			putc(c, outfile);  
 			text_buf[r++] = c;
-			//r &= (N - 1);
 		} else {
             if ((j = getc(infile)) == EOF) break;
 		    if ((i = getc(infile)) == EOF) break;
-			if ((l = getc(infile)) == EOF) break;
-			i =  (i << 8) + l;
-			j += THRESHOLD;
-            int startpos = r - i;
-			for (k = 0; k <= j; k++) {
-				//c = text_buf[(i + k) & (N - 1)];
-                c = text_buf[startpos + k];
+			if ((m = getc(infile)) == EOF) break;
+			i = (i << 8) + m;
+			for (k = 0; k <= j + 2; k++) {
+                c = text_buf[r - i];
 				putc(c, outfile);  
 				text_buf[r++] = c;  
-				//r &= (N - 1);
 			}
-		}
+        }
 	}
 }
 
@@ -240,7 +228,7 @@ void test(void) {
 }
 
 int main(int argc, char *argv[]) {
-	//test();
+	test();
     printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.9 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
