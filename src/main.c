@@ -180,53 +180,27 @@ void unlzss(FILE *infile, FILE *outfile) {
 #include <fcntl.h>
 
 void test(void) {
-	int file;
-	if (!(file = open("conv", O_RDONLY))) {
-		//printf("\nCan't open file %s\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
-	}
-
-	struct stat statbuf;
-	if (fstat(file, &statbuf) < 0) {
-		printf("\nfstat error\n"); 
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-
-		exit(1);
-	}
-
-	int fileLength = statbuf.st_size;
-	printf("File size: %d bytes\n", fileLength);
-	
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
-	read(file, buffer, fileLength);
-	close(file);
-	ARMThumb_Convert(buffer, fileLength, 0, 0);
-	FILE *outfile = fopen("u-boot.tmp", "wb");
-	fwrite(buffer, 1, fileLength, outfile);
-	fclose(outfile);
-
-	unsigned char c, checksum = 1;
-	FILE* in = fopen("u-boot.tmp", "rb");
-	while (!feof(in)) {
-	    c = fgetc(in);
-		checksum += c;
-	}
-	fclose(in);
-	printf("Checksum: %1x\n", checksum);
-    free(buffer);
-	
-	in = fopen("tmp.lzs", "rb");
-	FILE* out = fopen("conv2", "wb");
+	FILE *in = fopen("tmp.lzs", "rb");
+	FILE* out = fopen("conv2", "r+b");
 	unlzss(in, out);
-	fclose(in);
+	fclose(in);	
+	int fileSize = ftell(out);
+	printf("File size: %d bytes\n", fileSize);
+
+    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileSize);
+	rewind(out);
+	size_t result = fread(buffer, 1, fileSize, out);
 	fclose(out);
+	
+	ARMThumb_Convert(buffer, fileSize, 0, 0);
+	out = fopen("u-boot.tmp", "wb");
+	fwrite(buffer, 1, fileSize, out);
+	fclose(out);
+	
+	unsigned char checksum = 0;	int i;
+	for (i = 0; i < fileSize; ++i) checksum += buffer[i];
+	printf("Checksum = %02X\n", checksum);	
+    free(buffer);
 	exit(0);
 }
 
