@@ -148,7 +148,8 @@ void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int e
 }
 
 void unlzss(FILE *infile, FILE *outfile) {
-    unsigned char text_buf[1000000]; 
+    const N = 4096;
+    unsigned char text_buf[N]; 
 	int i, j, k, m, r = 0, c;
 	unsigned int flags = 0;
 	while(1) {
@@ -160,15 +161,17 @@ void unlzss(FILE *infile, FILE *outfile) {
 			if ((c = getc(infile)) == EOF) break;
 			putc(c, outfile);  
 			text_buf[r++] = c;
+			r &= (N - 1);
 		} else {
             if ((j = getc(infile)) == EOF) break;
 		    if ((i = getc(infile)) == EOF) break;
 			if ((m = getc(infile)) == EOF) break;
 			i = (i << 8) + m;
 			for (k = 0; k <= j + 2; k++) {
-                c = text_buf[r - i];
+                c = text_buf[(r - i) & (N - 1)];
 				putc(c, outfile);  
-				text_buf[r++] = c;  
+				text_buf[r++] = c;
+				r &= (N - 1);
 			}
         }
 	}
@@ -228,7 +231,7 @@ void test(void) {
 }
 
 int main(int argc, char *argv[]) {
-	test();
+	//test();
     printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.9 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
