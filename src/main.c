@@ -275,23 +275,18 @@ void DeleteNode(int p) {
 	dad[p] = NIL;
 }
 
-uint32_t charcode[20 * 288];
-uint32_t poscode[20 * 32];
+int charcode[20000], poscode[10000];
 
 void lzss(FILE* infile, FILE* outfile) {
     int charno = 0, posno = 0;
 	int c, i, len, r, s, last_match_length, code_buf_ptr;
 	unsigned char code_buf[32], mask;
-    for ( i = 0; i < 288; ++i ) {
-        charcode[20 * i] = 0;
-        charcode[20 * i + 16] = 0;
-        charcode[20 * i + 12] = 0;
-    }
-    for ( i = 0; i < 32; ++i ) {
-        poscode[20 * i] = 0;
-        poscode[20 * i + 16] = 0;
-        charcode[20 * i + 12] = 0;
-    }
+
+    for (i = 0; i < 288; ++i) 
+        charcode[5 * i] = charcode[5 * i + 3] = charcode[5 * i + 4] = 0;
+    for (i = 0; i < 32; ++i) 
+        poscode[5 * i] = poscode[5 * i + 4] = 0;
+
 	InitTree(); 
 	code_buf[0] = 0; 
 	code_buf_ptr = mask = 1;
@@ -308,13 +303,13 @@ void lzss(FILE* infile, FILE* outfile) {
 			match_length = 1;  
 			code_buf[0] |= mask; 
 			code_buf[code_buf_ptr++] = text_buf[r]; 
-            ++charcode[20 * text_buf[r]];
+            ++charcode[5 * text_buf[r]];
 		} else {
             code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
             code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
             code_buf[code_buf_ptr++] = match_position;        
-            ++charcode[20 * match_length + 5060];
-            ++poscode[20 * (match_position >> 7)];
+            ++charcode[5 * match_length + 1265];
+            ++poscode[5 * (match_position >> 7)];
 		}
 		if ((mask <<= 1) == 0) { 
 			for (i = 0; i < code_buf_ptr; i++)
@@ -349,12 +344,12 @@ void lzss(FILE* infile, FILE* outfile) {
 	printf("Out: %ld bytes\n", codesize);
 	printf("Out/In: %.3f\n", (double)codesize / textsize);
     for ( i = 0; i < 288; ++i ) {
-      if (charcode[20 * i]) ++charno;
-      else charcode[20 * i] = -1;
+      if (charcode[5 * i]) ++charno;
+      else charcode[5 * i] = -1;
     }
     for ( i = 0; i < 32; ++i ) {
-      if (poscode[20 * i]) ++posno;
-      else poscode[20 * i] = -1;
+      if (poscode[5 * i]) ++posno;
+      else poscode[5 * i] = -1;
     }
 }
 
@@ -550,95 +545,67 @@ uint8_t arhuffcode_pos[256] = {
 	0x3E, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00
 };
 
-uint32_t preno = 0, tmpcode, precode;
+unsigned preno = 0, tmpcode, precode = 0;
 
-void writehuff(uint32_t code, uint32_t len, FILE* out) {
-  codesize += len;
-  if ( preno + len > 7 ) {
+void writehuff(int code, int no, FILE* out) {
+  codesize += no;
+  if ( preno + no > 7 ) {
     do {
-      len -= 8 - preno;
-      tmpcode = code >> len;
-      putc((code >> len) | (precode << (8 - preno)), out);
-      code -= tmpcode << len;
-      preno = 0;
-      precode = 0;
-    } while ( len > 7 );
-    preno = len;
+      no -= 8 - preno;
+      tmpcode = code >> no;
+      putc((code >> no) | (precode << (8 - preno)), out);
+      code -= tmpcode << no;
+      preno = precode = 0;
+    } while ( no > 7 );
+    preno = no;
     precode = code;
   } else {
-    preno += len;
-    precode = code | (precode << len);
+    preno += no;
+    precode = code | (precode << no);
   }
 }
 
 void huff(FILE* in, FILE* out) {
-  codesize = 0;
   fseek(in, 0, 2);
   int lzssize = ftell(in);  
   rewind(in);
   
-  unsigned v1, v2, v3, flags, r, l, v10, v11;
-  unsigned char c, v12, v13, v14, v15;
-  int i, j, k; 
-
-  v1 = 0;
+  int c, i, j, k, m;
+  unsigned flags = 0;
+  
   for ( i = 0; i < 288; ++i ) {
-    memcpy(&charcode[20 * i + 12], &arhuffcode_char[j * 8], 4);
-    memcpy(&charcode[20 * i + 16], &arhuffcode_char[j * 8 + 4], 4);
+    charcode[5 * i + 3], *((uint32_t*)&arhuffcode_char[8 * i]);
+    charcode[5 * i + 4], *((uint32_t*)&arhuffcode_char[8 * i + 4]);
   }
   for ( j = 0; j < 32; ++j ) {
-    memcpy(&poscode[20 * j + 12], &arhuffcode_pos[j * 8], 4);
-    memcpy(&poscode[20 * j + 16], &arhuffcode_pos[j * 8 + 4], 4);
+    poscode[j * 5 + 3] = *((uint32_t*)&arhuffcode_pos[8 * j]);
+    poscode[j * 5 + 4] = *((uint32_t*)&arhuffcode_pos[8 * j + 4]);
   }
-  for ( k = 0; k < N - F; ++k ) text_buf[k] = 32;
-  r = N - F;
-  flags = 0;
+  //hexdump(poscode, 1000);  
 
   while ( 1 ) {
-    while ( 1 ) {
-      if ( !(flags >>= 1 & 0x100) ) {
-        v15 = getc(in);
-        if ( ++v1 >= lzssize ) goto stop;
-        flags = v15 | 0xFF00;
+      if (((flags >>= 1) & 256) ) {
+        if ((c = getc(in)) == EOF) break;
+        flags = c | 0xFF00;
       }
-      if ( !(flags & 1) ) break;
-      c = getc(in);
-      if ( ++v1 > lzssize ) goto stop;
-      writehuff(charcode[20 * c + 12], charcode[20 * c + 16], out);
-      text_buf[r] = c;
-      r &= (N - 1);
-    }
-    v12 = getc(in);
-    v2 = v1 + 1;
-    if ( v2 > lzssize ) break;
-    v14 = getc(in);
-    v3 = v2 + 1;
-    if ( v3 > lzssize ) {
-      printf("(len,pos) sync error");
-      break;
-    }
-    v13 = fgetc(in);
-    v1 = v3 + 1;
-    if ( v1 > lzssize ) {
-      printf("(len,pos) sync error");
-      break;
-    }
-    v10 = v13 | (v14 << 8);
-    writehuff(charcode[20 * v12 + 5132], charcode[20 * v12 + 5136], out);
-    v11 = v10 >> 7;
-    if ( v10 >> 7 > 62 ) printf("error\n");
-    writehuff(poscode[20 * v11 + 12], poscode[20 * v11 + 16], out);
-    writehuff(v10 - (v11 << 7), 7, out);
-    for ( l = 0; l <= v12; ++l ) {
-      text_buf[r] = text_buf[(l + v10) % 4096];
-      r = (r + 1) % 4096;
-    }
+      if (flags & 1) {
+            if ((c = getc(in)) == EOF) break;
+            writehuff(charcode[5 * (uint8_t)c + 3], charcode[5 * (uint8_t)c + 4], out);
+        } else {
+            if ((j = getc(in)) == EOF) break;
+            if ((i = getc(in)) == EOF) break;
+            if ((m = getc(in)) == EOF) break;
+            writehuff(charcode[5 * j + 1283], charcode[5 * j + 1284], out);
+            j = m | (i << 8);
+            i = j >> 7;
+            writehuff(poscode[5 * i + 3], poscode[5 * i + 4], out);
+            writehuff(j - (i << 7), 7, out);
+        }
   }
-stop:
+
   putc(precode << (8 - preno), out);
   codesize += preno;
   codesize = (unsigned int)codesize >> 3;
-  printf("\nCode size: %d text size: %d\n", codesize, textsize);
   printf("LZHS Out/In: %.4f\n", (long double)(unsigned int)codesize / (long double)(unsigned int)textsize);
 }
 
