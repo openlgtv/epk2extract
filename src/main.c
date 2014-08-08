@@ -147,49 +147,278 @@ void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int e
 	}
 }
 
-void unlzss(FILE *infile, FILE *outfile) {
-    const N = 4096;
-    unsigned char text_buf[N]; 
-	int i, j, k, m, r = 0, c;
-	unsigned int flags = 0;
-	while(1) {
-		if (((flags >>= 1) & 256) == 0) {
-			if ((c = getc(infile)) == EOF) break;
-			flags = c | 0xff00;
-		}					
-		if (flags & 1) {
-			if ((c = getc(infile)) == EOF) break;
-			putc(c, outfile);  
-			text_buf[r++] = c;
-			r &= (N - 1);
-		} else {
-            if ((j = getc(infile)) == EOF) break;
-		    if ((i = getc(infile)) == EOF) break;
-			if ((m = getc(infile)) == EOF) break;
-			i = (i << 8) + m;
-			for (k = 0; k <= j + 2; k++) {
-                c = text_buf[(r - i) & (N - 1)];
-				putc(c, outfile);  
-				text_buf[r++] = c;
-				r &= (N - 1);
-			}
+#define N		 4096
+#define F		   34
+#define THRESHOLD	2
+#define NIL			N
+
+unsigned long int textsize = 0, codesize = 0, printcount = 0;
+unsigned char text_buf[N + F - 1];
+int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
+
+void InitTree(void) { 
+	int  i;
+	for (i = N + 1; i <= N + 256; i++) rson[i] = NIL;
+	for (i = 0; i < N; i++) dad[i] = NIL;
+}
+
+void lazy_match(int r) {
+	unsigned char *key;
+	unsigned i, p, tmp;
+    int cmp;
+  
+  if ( match_length < F - 1 ) {
+    cmp = 1;
+    key = &text_buf[r + 1];
+    p = key[0] + N + 1;
+    tmp = 0;
+    while ( 1 ) {
+      if ( cmp < 0 ) {
+        if ( lson[p] == N ) break;
+        p = lson[p];
+      } else {
+        if ( rson[p] == N ) break;
+        p = rson[p];
+      }
+      for ( i = 1; ; ++i ) {
+        if ( i < F ) {
+          cmp = key[i] - text_buf[p + i];
+          if ( key[i] == text_buf[p + i] ) continue;
         }
+        break;
+      }
+      if ( i > tmp ) {
+        tmp = i;
+        if ( i > F - 1 ) break;
+      }
+    }
+  }
+  if ( tmp > match_length ) match_length = 0;
+}
+
+void InsertNode(int r) {
+  unsigned char *key;
+  unsigned tmp, p, i; 
+  int cmp = 1;
+
+  key = &text_buf[r];
+  p = text_buf[r] + N + 1;
+  lson[r] = rson[r] = N;
+
+  match_length = 0;
+  while ( 1 ) {
+    if ( cmp < 0 ) {
+      if ( lson[p] == N ) {
+        lson[p] = r;
+        dad[r] = p;
+        return lazy_match(r);
+      }
+      p = lson[p];
+    } else {
+      if ( rson[p] == N ) {
+        rson[p] = r;
+        dad[r] = p;
+        return lazy_match(r);
+      }
+      p = rson[p];
+    }
+    for ( i = 1; ; ++i ) {
+      if ( i < F ) {
+        cmp = key[i] - text_buf[p + i];
+        if ( key[i] == text_buf[p + i] ) continue;
+      }
+      break;
+    }
+    if ( i >= match_length ) {
+      if ( r < p )
+        tmp = r - p + N;
+      else
+        tmp = r - p;
+    }
+    if ( i >= match_length ) {
+      if ( i == match_length ) {
+        if ( tmp < match_position )
+           match_position = tmp;
+      } else 
+        match_position = tmp;
+      match_length = i;
+      if ( i > F - 1 ) break;
+    }
+  }
+  dad[r] = dad[p];
+  lson[r] = lson[p];
+  rson[r] = rson[p];
+  dad[lson[p]] = dad[rson[p]] = r;
+  if ( rson[dad[p]] == p )
+    rson[dad[p]] = r;
+  else
+    lson[dad[p]] = r;
+  dad[p] = N;
+}
+
+void DeleteNode(int p) {
+	int q;
+	if (dad[p] == NIL) return; 
+	if (rson[p] == NIL) q = lson[p];
+	else if (lson[p] == NIL) q = rson[p];
+	else {
+		q = lson[p];
+		if (rson[q] != NIL) {
+			do {  q = rson[q];  } while (rson[q] != NIL);
+			rson[dad[q]] = lson[q];  dad[lson[q]] = dad[q];
+			lson[q] = lson[p];  dad[lson[p]] = q;
+		}
+		rson[q] = rson[p];  dad[rson[p]] = q;
 	}
+	dad[q] = dad[p];
+	if (rson[dad[p]] == p) rson[dad[p]] = q;  else lson[dad[p]] = q;
+	dad[p] = NIL;
+}
+
+uint32_t charcode[20 * 288];
+uint32_t poscode[20 * 32];
+
+void lzss(FILE* infile, FILE* outfile) {
+    int charno = 0, posno = 0;
+	int c, i, len, r, s, last_match_length, code_buf_ptr;
+	unsigned char code_buf[32], mask;
+    for ( i = 0; i < 288; ++i ) {
+        charcode[20 * i] = 0;
+        charcode[20 * i + 16] = 0;
+        charcode[20 * i + 12] = 0;
+    }
+    for ( i = 0; i < 32; ++i ) {
+        poscode[20 * i] = 0;
+        poscode[20 * i + 16] = 0;
+        charcode[20 * i + 12] = 0;
+    }
+	InitTree(); 
+	code_buf[0] = 0; 
+	code_buf_ptr = mask = 1;
+	s = 0;  r = N - F;
+
+	for (len = 0; len < F && (c = getc(infile)) != EOF; len++)
+		text_buf[r + len] = c;  
+	if ((textsize = len) == 0) return; 
+
+	InsertNode(r);  
+	do {
+		if (match_length > len) match_length = len; 
+        if (match_length <= THRESHOLD) {
+			match_length = 1;  
+			code_buf[0] |= mask; 
+			code_buf[code_buf_ptr++] = text_buf[r]; 
+            ++charcode[20 * text_buf[r]];
+		} else {
+            code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
+            code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
+            code_buf[code_buf_ptr++] = match_position;        
+            ++charcode[20 * match_length + 5060];
+            ++poscode[20 * (match_position >> 7)];
+		}
+		if ((mask <<= 1) == 0) { 
+			for (i = 0; i < code_buf_ptr; i++)
+				putc(code_buf[i], outfile); 
+			codesize += code_buf_ptr;
+			code_buf[0] = 0;  
+            code_buf_ptr = mask = 1;
+		}
+		last_match_length = match_length;
+		for (i = 0; i < last_match_length && (c = getc(infile)) != EOF; i++) {
+			DeleteNode(s);
+			text_buf[s] = c;
+			if (s < F - 1) text_buf[s + N] = c; 
+			s = (s + 1) & (N - 1);  
+            r = (r + 1) & (N - 1);
+			InsertNode(r);
+		}
+		textsize += i;
+		while (i++ < last_match_length) {	
+			DeleteNode(s);					
+			s = (s + 1) & (N - 1);  
+            r = (r + 1) & (N - 1);
+			if (--len) InsertNode(r);		
+		}
+	} while (len > 0);	
+	if (code_buf_ptr > 1) {
+		for (i = 0; i < code_buf_ptr; i++) 
+            putc(code_buf[i], outfile);
+		codesize += code_buf_ptr;
+	}
+	printf("In : %ld bytes\n", textsize);
+	printf("Out: %ld bytes\n", codesize);
+	printf("Out/In: %.3f\n", (double)codesize / textsize);
+    for ( i = 0; i < 288; ++i ) {
+      if (charcode[20 * i]) ++charno;
+      else charcode[20 * i] = -1;
+    }
+    for ( i = 0; i < 32; ++i ) {
+      if (poscode[20 * i]) ++posno;
+      else poscode[20 * i] = -1;
+    }
+}
+
+void unlzss(FILE *in, FILE *out) {
+    unsigned char text_buf[N];
+    int c, i, j, k, m, r = 0;
+    unsigned int flags = 0;
+    while (1) {
+        if (((flags >>= 1) & 256) == 0) {
+            if ((c = getc(in)) == EOF) break;
+            flags = c | 0xff00;
+        }
+        if (flags & 1) {
+            if ((c = getc(in)) == EOF) break;
+            putc(text_buf[r++] = c, out);  
+            r &= (N - 1);
+        } else {
+            if ((j = getc(in)) == EOF) break;
+            if ((i = getc(in)) == EOF) break;
+            if ((m = getc(in)) == EOF) break;
+            i = (i << 8) + m;
+            for (k = 0; k <= j + 2; k++) {
+                putc(text_buf[r++] = text_buf[(r - 1 - i) & (N - 1)], out);
+                r &= (N - 1);
+            }
+        }
+    }
 }
 
 #include <fcntl.h>
 
 void test(void) {
-	FILE *in = fopen("tmp.lzs", "rb");
-	FILE* out = fopen("conv2", "r+b");
+	FILE *in = fopen("u-boot.lzhs", "rb");
+	FILE* out = fopen("tmp2.lzs", "r+b");
+	struct header_t {
+		uint32_t uncompressedSize;
+		uint32_t compressedSize;
+		uint8_t checksum;
+        uint8_t spare[7];
+	} header;
+	fread(&header, 1, sizeof(header), in);
+	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
+    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header.compressedSize);
+    fread(buffer, 1, header.compressedSize, in);
+	fclose(in);	
+	fclose(out);	
+
+	in = fopen("conv", "rb");
+	out = fopen("tmp2.lzs", "wb");
+	lzss(in, out);
+
+	fclose(in);	
+	fclose(out);	
+
+	//return;
+	in = fopen("tmp.lzs", "rb");
+	out = fopen("conv2", "r+b");
 	unlzss(in, out);
 	fclose(in);	
 	int fileSize = ftell(out);
-	printf("File size: %d bytes\n", fileSize);
 
-    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileSize);
+    buffer = (unsigned char*) malloc(sizeof(char) * fileSize);
 	rewind(out);
-	size_t result = fread(buffer, 1, fileSize, out);
+	fread(buffer, 1, fileSize, out);
 	fclose(out);
 	
 	ARMThumb_Convert(buffer, fileSize, 0, 0);
@@ -199,7 +428,7 @@ void test(void) {
 	
 	unsigned char checksum = 0;	int i;
 	for (i = 0; i < fileSize; ++i) checksum += buffer[i];
-	printf("Checksum = %02X\n", checksum);	
+	printf("Unlzss file size: %d bytes, checksum: %02X\n", fileSize, checksum);
     free(buffer);
 	exit(0);
 }
