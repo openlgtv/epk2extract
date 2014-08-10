@@ -152,7 +152,7 @@ void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int e
 #define THRESHOLD	2
 #define NIL			N
 
-unsigned long int textsize = 0, codesize = 0, printcount = 0;
+unsigned long int textsize = 0, codesize = 0;
 unsigned char text_buf[N + F - 1];
 int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 
@@ -275,17 +275,10 @@ void DeleteNode(int p) {
 	dad[p] = NIL;
 }
 
-int charcode[20000], poscode[10000];
-
 void lzss(FILE* infile, FILE* outfile) {
     int charno = 0, posno = 0;
 	int c, i, len, r, s, last_match_length, code_buf_ptr;
 	unsigned char code_buf[32], mask;
-
-    for (i = 0; i < 288; ++i) 
-        charcode[5 * i] = charcode[5 * i + 3] = charcode[5 * i + 4] = 0;
-    for (i = 0; i < 32; ++i) 
-        poscode[5 * i] = poscode[5 * i + 4] = 0;
 
 	InitTree(); 
 	code_buf[0] = 0; 
@@ -303,13 +296,10 @@ void lzss(FILE* infile, FILE* outfile) {
 			match_length = 1;  
 			code_buf[0] |= mask; 
 			code_buf[code_buf_ptr++] = text_buf[r]; 
-            ++charcode[5 * text_buf[r]];
 		} else {
             code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
             code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
             code_buf[code_buf_ptr++] = match_position;        
-            ++charcode[5 * match_length + 1265];
-            ++poscode[5 * (match_position >> 7)];
 		}
 		if ((mask <<= 1) == 0) { 
 			for (i = 0; i < code_buf_ptr; i++)
@@ -340,23 +330,12 @@ void lzss(FILE* infile, FILE* outfile) {
             putc(code_buf[i], outfile);
 		codesize += code_buf_ptr;
 	}
-	printf("In : %ld bytes\n", textsize);
-	printf("Out: %ld bytes\n", codesize);
-	printf("Out/In: %.3f\n", (double)codesize / textsize);
-    for ( i = 0; i < 288; ++i ) {
-      if (charcode[5 * i]) ++charno;
-      else charcode[5 * i] = -1;
-    }
-    for ( i = 0; i < 32; ++i ) {
-      if (poscode[5 * i]) ++posno;
-      else poscode[5 * i] = -1;
-    }
+	printf("LZSS Out(%ld)/In(%ld): %.3f\n", codesize, textsize, (double)codesize / textsize);
 }
 
 void unlzss(FILE *in, FILE *out) {
-    unsigned char text_buf[N];
     int c, i, j, k, m, r = 0;
-    unsigned int flags = 0;
+    unsigned flags = 0;
     while (1) {
         if (((flags >>= 1) & 256) == 0) {
             if ((c = getc(in)) == EOF) break;
@@ -367,10 +346,10 @@ void unlzss(FILE *in, FILE *out) {
             putc(text_buf[r++] = c, out);  
             r &= (N - 1);
         } else {
-            if ((j = getc(in)) == EOF) break;
-            if ((i = getc(in)) == EOF) break;
-            if ((m = getc(in)) == EOF) break;
-            i = (i << 8) + m;
+            if ((j = getc(in)) == EOF) break; // match length
+            if ((i = getc(in)) == EOF) break; // byte1 of match position
+            if ((m = getc(in)) == EOF) break; // byte0 of match position
+            i = (i << 8) | m;
             for (k = 0; k <= j + 2; k++) {
                 putc(text_buf[r++] = text_buf[(r - 1 - i) & (N - 1)], out);
                 r &= (N - 1);
@@ -545,108 +524,100 @@ uint8_t arhuffcode_pos[256] = {
 	0x3E, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00
 };
 
-unsigned preno = 0, tmpcode, precode = 0;
+uint32_t preno = 0, precode = 0;
 
-void writehuff(int code, int no, FILE* out) {
-  codesize += no;
-  if ( preno + no > 7 ) {
-    do {
-      no -= 8 - preno;
-      tmpcode = code >> no;
-      putc((code >> no) | (precode << (8 - preno)), out);
-      code -= tmpcode << no;
-      preno = precode = 0;
-    } while ( no > 7 );
-    preno = no;
-    precode = code;
-  } else {
-    preno += no;
-    precode = code | (precode << no);
-  }
+void writehuff(uint32_t code, uint32_t len, FILE *out){
+	uint32_t tmpno, tmpcode;
+	codesize += len;
+	if ( preno + len > 7 ){
+		do {
+			tmpno = 8 - preno;
+			len -= tmpno;
+			tmpcode = code >> len;
+			fputc(tmpcode | (precode << tmpno), out);
+			code -= tmpcode << len;
+			preno = precode = 0;
+		} while ( len > 7 );
+		preno = len;
+		precode = code;	
+	} else {
+		preno += len;
+		precode = code | (precode << len);
+	}
 }
 
 void huff(FILE* in, FILE* out) {
-  fseek(in, 0, 2);
-  int lzssize = ftell(in);  
-  rewind(in);
+    textsize = codesize;
+    codesize = 0;
+    int c, i, j, k, m, flags = 0;
+   
+    struct code_char_table { 
+		int count, code, frequency;
+    } table_code[288];
+    
+    struct pos_table {
+		int code, frequency;
+    } table_pos[32];
   
-  int c, i, j, k, m;
-  unsigned flags = 0;
+    for ( i = 0; i < 288; ++i ) {
+        table_code[i].code = *(uint32_t*)&arhuffcode_char[8 * i];
+        table_code[i].frequency = *(uint32_t*)&arhuffcode_char[8 * i + 4];
+    }
   
-  for ( i = 0; i < 288; ++i ) {
-    charcode[5 * i + 3], *((uint32_t*)&arhuffcode_char[8 * i]);
-    charcode[5 * i + 4], *((uint32_t*)&arhuffcode_char[8 * i + 4]);
-  }
-  for ( j = 0; j < 32; ++j ) {
-    poscode[j * 5 + 3] = *((uint32_t*)&arhuffcode_pos[8 * j]);
-    poscode[j * 5 + 4] = *((uint32_t*)&arhuffcode_pos[8 * j + 4]);
-  }
-  //hexdump(poscode, 1000);  
-
-  while ( 1 ) {
-      if (((flags >>= 1) & 256) ) {
-        if ((c = getc(in)) == EOF) break;
-        flags = c | 0xFF00;
-      }
-      if (flags & 1) {
+    for ( j = 0; j < 32; ++j ) {  
+        table_pos[j].code = *(uint32_t*)&arhuffcode_pos[8 * j];
+        table_pos[j].frequency = *(uint32_t*)&arhuffcode_pos[8 * j + 4];
+    }
+  
+    while ( 1 ) {
+        if (((flags >>= 1) & 256) == 0) {
             if ((c = getc(in)) == EOF) break;
-            writehuff(charcode[5 * (uint8_t)c + 3], charcode[5 * (uint8_t)c + 4], out);
+            flags = c | 0xFF00;
+        }
+        if (flags & 1) {
+            if ((c = getc(in)) == EOF) break;
+            writehuff(table_code[(unsigned char)c].code, table_code[(unsigned char)c].frequency,	out);
         } else {
             if ((j = getc(in)) == EOF) break;
             if ((i = getc(in)) == EOF) break;
             if ((m = getc(in)) == EOF) break;
-            writehuff(charcode[5 * j + 1283], charcode[5 * j + 1284], out);
-            j = m | (i << 8);
-            i = j >> 7;
-            writehuff(poscode[5 * i + 3], poscode[5 * i + 4], out);
-            writehuff(j - (i << 7), 7, out);
+            i = m | (i << 8); //recreate match pos, by merging MSB and LSB
+            ++table_code[j+253].count;
+            writehuff(table_code[j+256].code, table_code[j+256].frequency, out);
+            k = i >> 7;
+            writehuff(table_pos[k].code, table_pos[k].frequency, out);
+            writehuff(i - (k << 7), 7, out);
         }
   }
 
   putc(precode << (8 - preno), out);
   codesize += preno;
   codesize = (unsigned int)codesize >> 3;
-  printf("LZHS Out/In: %.4f\n", (long double)(unsigned int)codesize / (long double)(unsigned int)textsize);
+  printf("LZHS Out(%d)/In(%d): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
+
+struct header_t {
+    uint32_t uncompressedSize, compressedSize;
+	uint8_t checksum, spare[7];
+} header;
+
 
 #include <fcntl.h>
 
 void test(void) {
-	FILE *in = fopen("u-boot.lzhs", "rb");
-	FILE* out = fopen("tmp2.lzs", "r+b");
-	struct header_t {
-		uint32_t uncompressedSize;
-		uint32_t compressedSize;
-		uint8_t checksum;
-        uint8_t spare[7];
-	} header;
-	fread(&header, 1, sizeof(header), in);
-	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
-    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header.compressedSize);
-    fread(buffer, 1, header.compressedSize, in);
-	fclose(in);	
-	fclose(out);	
-    
-	in = fopen("conv", "rb");
-	out = fopen("tmp2.lzs", "wb");
+	FILE* in = fopen("conv", "rb");
+	FILE* out = fopen("tmp2.lzs", "wb");
 	lzss(in, out);
 	fclose(in);	
 	fclose(out);	
 
-	in = fopen("tmp2.lzs", "rb");
-	out = fopen("tmp2.lzhs", "wb");
-	huff(in, out);
-	fclose(in);	
-	fclose(out);	
-    
-	//return;
 	in = fopen("tmp.lzs", "rb");
 	out = fopen("conv2", "r+b");
 	unlzss(in, out);
 	fclose(in);	
 	int fileSize = ftell(out);
 
-    buffer = (unsigned char*) malloc(sizeof(char) * fileSize);
+    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileSize);
 	rewind(out);
 	fread(buffer, 1, fileSize, out);
 	fclose(out);
@@ -656,10 +627,28 @@ void test(void) {
 	fwrite(buffer, 1, fileSize, out);
 	fclose(out);
 	
-	unsigned char checksum = 0;	int i;
-	for (i = 0; i < fileSize; ++i) checksum += buffer[i];
-	printf("Unlzss file size: %d bytes, checksum: %02X\n", fileSize, checksum);
+	header.checksum = 0; int i;
+	for (i = 0; i < fileSize; ++i) header.checksum += buffer[i];
+	printf("Unlzss file size: %d bytes, checksum: %02X\n", fileSize, header.checksum);
     free(buffer);
+
+	in = fopen("u-boot.lzhs", "rb");
+	out = fopen("tmp2.lzs", "r+b");
+	fread(&header, 1, sizeof(header), in);
+	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
+    buffer = (unsigned char*) malloc(sizeof(char) * header.compressedSize);
+    fread(buffer, 1, header.compressedSize, in);
+	free(buffer);
+    fclose(in);	
+	fclose(out);	
+    
+	in = fopen("tmp2.lzs", "rb");
+	out = fopen("tmp2.lzhs", "wb");
+    fwrite(&header, 1, sizeof(header), out);
+	huff(in, out);
+	fclose(in);	
+	fclose(out);	
+    
 	exit(0);
 }
 
