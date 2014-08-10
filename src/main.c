@@ -349,7 +349,7 @@ void unlzss(FILE *in, FILE *out) {
             if ((i = getc(in)) == EOF) break; // byte1 of match position
             if ((m = getc(in)) == EOF) break; // byte0 of match position
             i = (i << 8) | m;
-            for (k = 0; k <= j + 2; k++) {
+            for (k = 0; k <= j + THRESHOLD; k++) {
                 putc(text_buf[r++] = text_buf[(r - 1 - i) & (N - 1)], out);
                 r &= (N - 1);
             }
@@ -523,33 +523,28 @@ uint8_t arhuffcode_pos[256] = {
 	0x3E, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00
 };
 
-uint32_t preno = 0, precode = 0;
-
-void writehuff(uint32_t code, uint32_t no, FILE *out){
-	uint32_t tmpno, tmpcode;
-	codesize += no;
-	if ( preno + no > 7 ){
-		do {
-			tmpno = 8 - preno;
-			no -= tmpno;
-			tmpcode = code >> no;
-			fputc(tmpcode | (precode << tmpno), out);
-			code -= tmpcode << no;
-			preno = precode = 0;
-		} while ( no > 7 );
-		preno = no;
-		precode = code;	
-	} else {
-		preno += no;
-		precode = code | (precode << no);
-	}
-}
-
 void huff(FILE* in, FILE* out) {
-    textsize = codesize;
-    codesize = 0;
+    uint32_t preno = 0, precode = 0;
+    void writehuff(uint32_t code, uint32_t no, FILE *out){
+        uint32_t tmpno, tmpcode;
+        codesize += no;
+        if ( preno + no > 7 ){
+            do {
+                no -= tmpno = 8 - preno;
+                tmpcode = code >> no;
+                fputc(tmpcode | (precode << tmpno), out);
+                code -= tmpcode << no;
+                preno = precode = 0;
+            } while ( no > 7 );
+            preno = no;
+            precode = code;	
+        } else {
+            preno += no;
+            precode = code | (precode << no);
+        }
+    }
+    textsize = codesize; codesize = 0;
     int c, i, j, k, m, flags = 0;
-   
     while ( 1 ) {
         if (((flags >>= 1) & 256) == 0) {
             if ((c = getc(in)) == EOF) break;
@@ -563,17 +558,23 @@ void huff(FILE* in, FILE* out) {
             if ((i = getc(in)) == EOF) break; // byte1 of match position
             if ((m = getc(in)) == EOF) break; // byte0 of match position
             i = m | (i << 8);
-            writehuff(*(uint32_t*)&arhuffcode_char[8 * (j + 256)], *(uint32_t*)&arhuffcode_char[8 * (j+256) + 4], out);
+            writehuff(*(uint32_t*)&arhuffcode_char[8 * (j + 256)], *(uint32_t*)&arhuffcode_char[8 * (j + 256) + 4], out);
             k = i >> 7;
             writehuff(*(uint32_t*)&arhuffcode_pos[8 * k], *(uint32_t*)&arhuffcode_pos[8 * k + 4], out);
             writehuff(i - (k << 7), 7, out);
         }
-  }
+    }
+    putc(precode << (8 - preno), out);
+    codesize += preno;
+    codesize = (unsigned int)codesize >> 3;
+    printf("LZHS Out(%d)/In(%d): %.4f\n", codesize, textsize, (double)codesize / textsize);
+}
 
-  putc(precode << (8 - preno), out);
-  codesize += preno;
-  codesize = (unsigned int)codesize >> 3;
-  printf("LZHS Out(%d)/In(%d): %.4f\n", codesize, textsize, (double)codesize / textsize);
+void unhuff(FILE* in, FILE* out) {
+    int c;
+    while ( 1 ) {
+        if ((c = getc(in)) == EOF) break;
+    }
 }
 
 struct header_t {
@@ -618,8 +619,9 @@ void test(void) {
 	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
     buffer = (unsigned char*) malloc(sizeof(char) * header.compressedSize);
     fread(buffer, 1, header.compressedSize, in);
-	free(buffer);
-    fclose(in);	
+    free(buffer);
+    unhuff(in, out);
+	fclose(in);	
 	fclose(out);	
     
 	in = fopen("tmp2.lzs", "rb");
