@@ -334,8 +334,7 @@ void lzss(FILE* infile, FILE* outfile) {
 }
 
 void unlzss(FILE *in, FILE *out) {
-    int c, i, j, k, m, r = 0;
-    unsigned flags = 0;
+    int c, i, j, k, m, r = 0, flags = 0;
     while (1) {
         if (((flags >>= 1) & 256) == 0) {
             if ((c = getc(in)) == EOF) break;
@@ -526,23 +525,23 @@ uint8_t arhuffcode_pos[256] = {
 
 uint32_t preno = 0, precode = 0;
 
-void writehuff(uint32_t code, uint32_t len, FILE *out){
+void writehuff(uint32_t code, uint32_t no, FILE *out){
 	uint32_t tmpno, tmpcode;
-	codesize += len;
-	if ( preno + len > 7 ){
+	codesize += no;
+	if ( preno + no > 7 ){
 		do {
 			tmpno = 8 - preno;
-			len -= tmpno;
-			tmpcode = code >> len;
+			no -= tmpno;
+			tmpcode = code >> no;
 			fputc(tmpcode | (precode << tmpno), out);
-			code -= tmpcode << len;
+			code -= tmpcode << no;
 			preno = precode = 0;
-		} while ( len > 7 );
-		preno = len;
+		} while ( no > 7 );
+		preno = no;
 		precode = code;	
 	} else {
-		preno += len;
-		precode = code | (precode << len);
+		preno += no;
+		precode = code | (precode << no);
 	}
 }
 
@@ -551,24 +550,6 @@ void huff(FILE* in, FILE* out) {
     codesize = 0;
     int c, i, j, k, m, flags = 0;
    
-    struct code_char_table { 
-		int count, code, frequency;
-    } table_code[288];
-    
-    struct pos_table {
-		int code, frequency;
-    } table_pos[32];
-  
-    for ( i = 0; i < 288; ++i ) {
-        table_code[i].code = *(uint32_t*)&arhuffcode_char[8 * i];
-        table_code[i].frequency = *(uint32_t*)&arhuffcode_char[8 * i + 4];
-    }
-  
-    for ( j = 0; j < 32; ++j ) {  
-        table_pos[j].code = *(uint32_t*)&arhuffcode_pos[8 * j];
-        table_pos[j].frequency = *(uint32_t*)&arhuffcode_pos[8 * j + 4];
-    }
-  
     while ( 1 ) {
         if (((flags >>= 1) & 256) == 0) {
             if ((c = getc(in)) == EOF) break;
@@ -576,16 +557,15 @@ void huff(FILE* in, FILE* out) {
         }
         if (flags & 1) {
             if ((c = getc(in)) == EOF) break;
-            writehuff(table_code[(unsigned char)c].code, table_code[(unsigned char)c].frequency,	out);
+            writehuff(*(uint32_t*)&arhuffcode_char[8 * (unsigned char)c], *(uint32_t*)&arhuffcode_char[8 * (unsigned char)c + 4], out);
         } else {
-            if ((j = getc(in)) == EOF) break;
-            if ((i = getc(in)) == EOF) break;
-            if ((m = getc(in)) == EOF) break;
-            i = m | (i << 8); //recreate match pos, by merging MSB and LSB
-            ++table_code[j+253].count;
-            writehuff(table_code[j+256].code, table_code[j+256].frequency, out);
+            if ((j = getc(in)) == EOF) break; // match length
+            if ((i = getc(in)) == EOF) break; // byte1 of match position
+            if ((m = getc(in)) == EOF) break; // byte0 of match position
+            i = m | (i << 8);
+            writehuff(*(uint32_t*)&arhuffcode_char[8 * (j + 256)], *(uint32_t*)&arhuffcode_char[8 * (j+256) + 4], out);
             k = i >> 7;
-            writehuff(table_pos[k].code, table_pos[k].frequency, out);
+            writehuff(*(uint32_t*)&arhuffcode_pos[8 * k], *(uint32_t*)&arhuffcode_pos[8 * k + 4], out);
             writehuff(i - (k << 7), 7, out);
         }
   }
