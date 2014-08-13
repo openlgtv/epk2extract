@@ -574,31 +574,35 @@ struct header_t {
 	uint8_t checksum, spare[7];
 } header;
 
-int DecodeChar(void) {
-}
-
-int DecodePosition(void) {
+int getBits(int x, int msb, int lsb) {
+    int result = (x >> lsb) & ~(~0 << (msb-lsb+1));
 }
 
 void unhuff(FILE* in, FILE* out) {
-    int r = N - F, count, c, i, j, k;
-    for (count = 0; count < header.compressedSize; ) {
-        c = DecodeChar();
-        if (c < 256) {
-            if (putc(c, out) == EOF) break;
-            text_buf[r++] = (unsigned char)c;
-            r &= (N - 1);
-            count++;
-        } else {
-            i = (r - DecodePosition() - 1) & (N - 1);
-            j = c - 255 + THRESHOLD;
-            for (k = 0; k < j; k++) {
-                c = text_buf[(i + k) & (N - 1)];
-                if (putc(c, out) == EOF) break;
-                text_buf[r++] = (unsigned char)c;
-                r &= (N - 1);
-                count++;
+    int i, tmpcode = 0, code, precode = 0, len, prelen = 0;
+    putc(0xFF, out); // always start from the char flags
+    while (1) {
+        if ((tmpcode = getc(in)) == EOF) break;
+        int notFound = 1;
+        len = 5; // min huffcode len is 5
+        while (len <= 0xD && notFound) { // max huffcode len is 0xD
+            code = getBits(precode, prelen, 0) << prelen | getBits(tmpcode, 7, 8 - len);
+            for (i = 0; i < 288; i++) {
+                if ( *(uint32_t*)&char_len_table[8 * i + 4] == len && 
+                    *(uint32_t*)&char_len_table[8 * i] == code) {
+                    putc(i, out);
+                    printf("code:%x %x %x len:%d\n", i, tmpcode, getBits(code, 7, 8 - len), len);
+                    if (i > 255) {
+                        printf("here you should process bits as pos type stream!!!\n");
+                        return;
+                    }
+                    prelen = 8 - len; 
+                    precode = code;
+                    notFound = 0;
+                    break;
+                }
             }
+            len++;
         }
     }
 }
@@ -634,7 +638,7 @@ void test(void) {
     free(buffer);
 
 	in = fopen("u-boot.lzhs", "rb");
-	out = fopen("tmp2.lzs", "r+b");
+	out = fopen("tmp3.lzs", "wb");
 	fread(&header, 1, sizeof(header), in);
 	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
     unhuff(in, out);
