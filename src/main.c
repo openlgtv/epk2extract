@@ -289,7 +289,7 @@ void lzss(FILE* infile, FILE* outfile) {
 		text_buf[r + len] = c;  
 	if ((textsize = len) == 0) return; 
 
-	InsertNode(r);  
+	InsertNode(r);
 	do {
 		if (match_length > len) match_length = len; 
         if (match_length <= THRESHOLD) {
@@ -300,7 +300,7 @@ void lzss(FILE* infile, FILE* outfile) {
             code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
             code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
             code_buf[code_buf_ptr++] = match_position;        
-		}
+            }
 		if ((mask <<= 1) == 0) { 
 			for (i = 0; i < code_buf_ptr; i++)
 				putc(code_buf[i], outfile); 
@@ -357,7 +357,7 @@ void unlzss(FILE *in, FILE *out) {
     }
 }
 
-uint8_t arhuffcode_char[2304] = {
+uint8_t char_len_table[2304] = { // 288 records
 	0x02, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 
 	0x0A, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 
 	0x29, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 
@@ -485,7 +485,7 @@ uint8_t arhuffcode_char[2304] = {
 	0xBA, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0xD1, 0x01, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 
 	0xD2, 0x01, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0xD3, 0x01, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 
 	0xD4, 0x01, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0xD5, 0x01, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 
-	0xBB, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x43, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 
+	0xBB, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x43, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 
 	0x11, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 
 	0x13, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x44, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 
@@ -504,7 +504,7 @@ uint8_t arhuffcode_char[2304] = {
 	0xFF, 0x1F, 0x00, 0x00, 0x0D, 0x00, 0x00, 0x00, 0xBF, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00
 };
 
-uint8_t arhuffcode_pos[256] = {
+uint8_t pos_table[256] = { // 32 records
 	0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 
 	0x06, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 
 	0x0F, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 
@@ -525,17 +525,17 @@ uint8_t arhuffcode_pos[256] = {
 
 void huff(FILE* in, FILE* out) {
     uint32_t preno = 0, precode = 0;
-    void writehuff(uint32_t code, uint32_t no, FILE *out){
+    void putChar(uint32_t code, uint32_t no) {
         uint32_t tmpno, tmpcode;
         codesize += no;
-        if ( preno + no > 7 ){
+        if (preno + no > 7){
             do {
                 no -= tmpno = 8 - preno;
                 tmpcode = code >> no;
                 fputc(tmpcode | (precode << tmpno), out);
                 code -= tmpcode << no;
                 preno = precode = 0;
-            } while ( no > 7 );
+            } while (no > 7);
             preno = no;
             precode = code;	
         } else {
@@ -552,16 +552,15 @@ void huff(FILE* in, FILE* out) {
         }
         if (flags & 1) {
             if ((c = getc(in)) == EOF) break;
-            writehuff(*(uint32_t*)&arhuffcode_char[8 * (unsigned char)c], *(uint32_t*)&arhuffcode_char[8 * (unsigned char)c + 4], out);
+            putChar(*(uint32_t*)&char_len_table[8 * (unsigned char)c], *(uint32_t*)&char_len_table[8 * (unsigned char)c + 4]); // lookup in char table
         } else {
             if ((j = getc(in)) == EOF) break; // match length
             if ((i = getc(in)) == EOF) break; // byte1 of match position
             if ((m = getc(in)) == EOF) break; // byte0 of match position
-            i = m | (i << 8);
-            writehuff(*(uint32_t*)&arhuffcode_char[8 * (j + 256)], *(uint32_t*)&arhuffcode_char[8 * (j + 256) + 4], out);
-            k = i >> 7;
-            writehuff(*(uint32_t*)&arhuffcode_pos[8 * k], *(uint32_t*)&arhuffcode_pos[8 * k + 4], out);
-            writehuff(i - (k << 7), 7, out);
+            putChar(*(uint32_t*)&char_len_table[8 * (j + 256)], *(uint32_t*)&char_len_table[8 * (j + 256) + 4]); // lookup in len table
+            i = m | (i << 8);            
+            putChar(*(uint32_t*)&pos_table[8 * (int)(i >> 7)], *(uint32_t*)&pos_table[8 * (int)(i >> 7) + 4]); // lookup in pos table
+            putChar(i - (i >> 7 << 7), 7);
         }
     }
     putc(precode << (8 - preno), out);
@@ -570,18 +569,39 @@ void huff(FILE* in, FILE* out) {
     printf("LZHS Out(%d)/In(%d): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
 
-void unhuff(FILE* in, FILE* out) {
-    int c;
-    while ( 1 ) {
-        if ((c = getc(in)) == EOF) break;
-    }
-}
-
 struct header_t {
     uint32_t uncompressedSize, compressedSize;
 	uint8_t checksum, spare[7];
 } header;
 
+int DecodeChar(void) {
+}
+
+int DecodePosition(void) {
+}
+
+void unhuff(FILE* in, FILE* out) {
+    int r = N - F, count, c, i, j, k;
+    for (count = 0; count < header.compressedSize; ) {
+        c = DecodeChar();
+        if (c < 256) {
+            if (putc(c, out) == EOF) break;
+            text_buf[r++] = (unsigned char)c;
+            r &= (N - 1);
+            count++;
+        } else {
+            i = (r - DecodePosition() - 1) & (N - 1);
+            j = c - 255 + THRESHOLD;
+            for (k = 0; k < j; k++) {
+                c = text_buf[(i + k) & (N - 1)];
+                if (putc(c, out) == EOF) break;
+                text_buf[r++] = (unsigned char)c;
+                r &= (N - 1);
+                count++;
+            }
+        }
+    }
+}
 
 #include <fcntl.h>
 
@@ -617,9 +637,6 @@ void test(void) {
 	out = fopen("tmp2.lzs", "r+b");
 	fread(&header, 1, sizeof(header), in);
 	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
-    buffer = (unsigned char*) malloc(sizeof(char) * header.compressedSize);
-    fread(buffer, 1, header.compressedSize, in);
-    free(buffer);
     unhuff(in, out);
 	fclose(in);	
 	fclose(out);	
