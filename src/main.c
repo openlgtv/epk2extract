@@ -586,14 +586,13 @@ void unhuff(FILE* in, FILE* out) {
                 return 0;        
             }
         }
+        code = (code << 1) | (c >> 7 - index++) & 1; // get bit msb - index
+        len++;
         return 1;
     }
   
     while (1) {
         if (!getData()) return;
-        code = (code << 1) | (c >> 7 - index) & 1; // get bit msb - index
-        index++;
-        len++;
         for (i = 0; i < 288; i++) {
             if ( *(uint32_t*)&char_len_table[8 * i + 4] == len && *(uint32_t*)&char_len_table[8 * i] == code) {
                 if (i > 255) {
@@ -601,9 +600,6 @@ void unhuff(FILE* in, FILE* out) {
                     code = len = 0;
                     while (1) {
                         if (!getData()) return;
-                        code = (code << 1) | (c >> 7 - index) & 1;
-                        index++;
-                        len++;                        
                         for (j = 0; j < 32; j++) {
                             if ( *(uint32_t*)&pos_table[8 * j + 4] == len && *(uint32_t*)&pos_table[8 * j] == code) {
                                 code_buf[code_buf_ptr++] = j >> 1;
@@ -614,12 +610,9 @@ void unhuff(FILE* in, FILE* out) {
                         if (k == -1) break;
                     }
                     code = 0;
-                    for (k = 0; k < 7; k++) {
+                    for (k = 0; k < 7; k++) 
                         if (!getData()) return;
-                        code = (code << 1) | (c >> 7 - index) & 1;
-                        index++;
-                    }
-                    code_buf[code_buf_ptr++] = code | (uint8_t)(j << 7);
+                    code_buf[code_buf_ptr++] = code | (j << 7);
                     code = len = 0;
                 } else {
             		code_buf[0] |= mask; 

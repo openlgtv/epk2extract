@@ -12,7 +12,7 @@ extern int endianswap;
 #define SWAP(x) SwapBytes(&x, sizeof(x));
 
 struct lzhs_header {
-    uint32_t compressedSize, uncompressedSize;
+    uint32_t uncompressedSize, compressedSize;
 	uint8_t checksum, spare[7];
 };
 
