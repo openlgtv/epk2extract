@@ -3,12 +3,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <errno.h>
 #include <string.h>
 #include <minigzip.h>
 
 extern int endianswap;
 #define SWAP(x) SwapBytes(&x, sizeof(x));
+
+struct lzhs_header {
+    uint32_t compressedSize, uncompressedSize;
+	uint8_t checksum, spare[7];
+};
 
 #define GZIP_CHUNK 0x4000
 #define windowBits 15

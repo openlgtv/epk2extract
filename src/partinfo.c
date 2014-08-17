@@ -197,7 +197,7 @@ unsigned int print_p2info(void){
 	struct p2_device_info *p2di = NULL;
 	p2di = P2_GET_DEV_INFO();
 	fprintf(destfile,"Flash Name: %s",p2di->name);
-	unsigned long long devsize = p2di->size;
+	unsigned int devsize = p2di->size;
 	char *devsizeunit;
 	if(devsize%(1024*1024*1024) == 0){
 		//Gigabytes

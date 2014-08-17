@@ -570,11 +570,6 @@ void huff(FILE* in, FILE* out) {
     printf("LZHS Out(%d)/In(%d): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
 
-struct header_t {
-    uint32_t uncompressedSize, compressedSize;
-	uint8_t checksum, spare[7];
-} header;
-
 void unhuff(FILE* in, FILE* out) {
     uint32_t i, j, k, c, code = 0, index = 8, len = 0, code_buf_ptr;
 	unsigned char code_buf[32], mask;
@@ -668,6 +663,8 @@ void test(void) {
 	fwrite(buffer, 1, fileSize, out);
 	fclose(out);
 	
+	struct lzhs_header header;
+
 	header.checksum = 0; int i;
 	for (i = 0; i < fileSize; ++i) header.checksum += buffer[i];
 	printf("Unlzss file size: %d bytes, checksum: %02X\n", fileSize, header.checksum);
