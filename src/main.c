@@ -692,7 +692,7 @@ void test(void) {
 }
 
 int main(int argc, char *argv[]) {
-	test();
+	//test();
     printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.9 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
