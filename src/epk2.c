@@ -195,7 +195,7 @@ int isFileEPK3(const char *epk_file) {
 		#endif
 		exit(1);
 	}
-	size_t headerSize = 0x6B4;
+	size_t headerSize = 0x6B7;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
 	int read = fread(buffer, 1, headerSize, file);
 	if (read != headerSize) return 0;
