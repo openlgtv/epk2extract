@@ -300,11 +300,11 @@ void lzss(FILE* infile, FILE* outfile) {
             code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
             code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
             code_buf[code_buf_ptr++] = match_position;        
-            }
+        }
 		if ((mask <<= 1) == 0) { 
 			for (i = 0; i < code_buf_ptr; i++)
 				putc(code_buf[i], outfile); 
-			codesize += code_buf_ptr;
+                codesize += code_buf_ptr;
 			code_buf[0] = 0;  
             code_buf_ptr = mask = 1;
 		}
@@ -552,7 +552,8 @@ void huff(FILE* in, FILE* out) {
         }
         if (flags & 1) {
             if ((c = getc(in)) == EOF) break;
-            putChar(*(uint32_t*)&char_len_table[8 * (unsigned char)c], *(uint32_t*)&char_len_table[8 * (unsigned char)c + 4]); // lookup in char table
+            putChar(*(uint32_t*)&char_len_table[8 * (unsigned char)c], 
+                *(uint32_t*)&char_len_table[8 * (unsigned char)c + 4]); // lookup in char table
         } else {
             if ((j = getc(in)) == EOF) break; // match length
             if ((i = getc(in)) == EOF) break; // byte1 of match position
@@ -574,35 +575,70 @@ struct header_t {
 	uint8_t checksum, spare[7];
 } header;
 
-int getBits(int x, int msb, int lsb) {
-    int result = (x >> lsb) & ~(~0 << (msb-lsb+1));
-}
-
 void unhuff(FILE* in, FILE* out) {
-    int i, tmpcode = 0, code, precode = 0, len, prelen = 0;
-    putc(0xFF, out); // always start from the char flags
-    while (1) {
-        if ((tmpcode = getc(in)) == EOF) break;
-        int notFound = 1;
-        len = 5; // min huffcode len is 5
-        while (len <= 0xD && notFound) { // max huffcode len is 0xD
-            code = getBits(precode, prelen, 0) << prelen | getBits(tmpcode, 7, 8 - len);
-            for (i = 0; i < 288; i++) {
-                if ( *(uint32_t*)&char_len_table[8 * i + 4] == len && 
-                    *(uint32_t*)&char_len_table[8 * i] == code) {
-                    putc(i, out);
-                    printf("code:%x %x %x len:%d\n", i, tmpcode, getBits(code, 7, 8 - len), len);
-                    if (i > 255) {
-                        printf("here you should process bits as pos type stream!!!\n");
-                        return;
-                    }
-                    prelen = 8 - len; 
-                    precode = code;
-                    notFound = 0;
-                    break;
-                }
+    uint32_t i, j, k, c, code = 0, index = 8, len = 0, code_buf_ptr;
+	unsigned char code_buf[32], mask;
+	code_buf[0] = 0; 
+	code_buf_ptr = mask = 1;
+
+    int getData() {
+        if (index > 7) {
+            index = 0;
+            if ((c = getc(in)) == EOF) {
+                if (code_buf_ptr > 1) // flushing buffer
+                    for (i = 0; i < code_buf_ptr; i++) 
+                        putc(code_buf[i], out);    
+                return 0;        
             }
-            len++;
+        }
+        return 1;
+    }
+  
+    while (1) {
+        if (!getData()) return;
+        code = (code << 1) | (c >> 7 - index) & 1; // get bit msb - index
+        index++;
+        len++;
+        for (i = 0; i < 288; i++) {
+            if ( *(uint32_t*)&char_len_table[8 * i + 4] == len && *(uint32_t*)&char_len_table[8 * i] == code) {
+                if (i > 255) {
+                    code_buf[code_buf_ptr++] = i - 256;
+                    code = len = 0;
+                    while (1) {
+                        if (!getData()) return;
+                        code = (code << 1) | (c >> 7 - index) & 1;
+                        index++;
+                        len++;                        
+                        for (j = 0; j < 32; j++) {
+                            if ( *(uint32_t*)&pos_table[8 * j + 4] == len && *(uint32_t*)&pos_table[8 * j] == code) {
+                                code_buf[code_buf_ptr++] = j >> 1;
+                                k = -1;
+                                break;
+                            }
+                        }
+                        if (k == -1) break;
+                    }
+                    code = 0;
+                    for (k = 0; k < 7; k++) {
+                        if (!getData()) return;
+                        code = (code << 1) | (c >> 7 - index) & 1;
+                        index++;
+                    }
+                    code_buf[code_buf_ptr++] = code | (uint8_t)(j << 7);
+                    code = len = 0;
+                } else {
+            		code_buf[0] |= mask; 
+                    code_buf[code_buf_ptr++] = i; 
+                    code = len = 0;
+                }
+                if ((mask <<= 1) == 0) { 
+                    for (j = 0; j < code_buf_ptr; j++)
+                        putc(code_buf[j], out); 
+                    code_buf[0] = 0;  
+                    code_buf_ptr = mask = 1;
+                }
+                break;
+            }
         }
     }
 }
@@ -656,7 +692,7 @@ void test(void) {
 }
 
 int main(int argc, char *argv[]) {
-	//test();
+	test();
     printf("\nLG Electronics digital TV firmware package (EPK) extractor 3.9 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
