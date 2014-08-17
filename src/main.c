@@ -150,7 +150,6 @@ void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int e
 #define N		 4096
 #define F		   34
 #define THRESHOLD	2
-#define NIL			N
 
 unsigned long int textsize = 0, codesize = 0;
 unsigned char text_buf[N + F - 1];
@@ -158,121 +157,124 @@ int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 
 void InitTree(void) { 
 	int  i;
-	for (i = N + 1; i <= N + 256; i++) rson[i] = NIL;
-	for (i = 0; i < N; i++) dad[i] = NIL;
+	for (i = N + 1; i <= N + 256; i++) rson[i] = N;
+	for (i = 0; i < N; i++) dad[i] = N;
 }
 
 void lazy_match(int r) {
 	unsigned char *key;
-	unsigned i, p, tmp;
-    int cmp;
+    int i, p, tmp, cmp = 1;
   
-  if ( match_length < F - 1 ) {
-    cmp = 1;
-    key = &text_buf[r + 1];
-    p = key[0] + N + 1;
-    tmp = 0;
-    while ( 1 ) {
-      if ( cmp < 0 ) {
-        if ( lson[p] == N ) break;
-        p = lson[p];
-      } else {
-        if ( rson[p] == N ) break;
-        p = rson[p];
-      }
-      for ( i = 1; ; ++i ) {
-        if ( i < F ) {
-          cmp = key[i] - text_buf[p + i];
-          if ( key[i] == text_buf[p + i] ) continue;
+    if (match_length < F - 1) {
+        key = &text_buf[r + 1];
+        p = key[0] + N + 1;
+        tmp = 0;
+        while (1) {
+            if (cmp < 0) {
+                if (lson[p] == N) break;
+                p = lson[p];
+            } else {
+                if (rson[p] == N) break;
+                p = rson[p];
+            }
+            for (i = 1; ; ++i) {
+                if (i < F) {
+                    cmp = key[i] - text_buf[p + i];
+                    if (key[i] == text_buf[p + i]) continue;
+                }
+                break;
+            }
+            if (i > tmp)
+                if ((tmp = i) > F - 1) break;
         }
-        break;
-      }
-      if ( i > tmp ) {
-        tmp = i;
-        if ( i > F - 1 ) break;
-      }
     }
-  }
-  if ( tmp > match_length ) match_length = 0;
+    if (tmp > match_length) match_length = 0;
 }
 
 void InsertNode(int r) {
-  unsigned char *key;
-  unsigned tmp, p, i; 
-  int cmp = 1;
+    unsigned char *key = &text_buf[r];
+    int tmp, p, i, cmp = 1;
 
-  key = &text_buf[r];
-  p = text_buf[r] + N + 1;
-  lson[r] = rson[r] = N;
+    p = text_buf[r] + N + 1;
+    lson[r] = rson[r] = N;
 
-  match_length = 0;
-  while ( 1 ) {
-    if ( cmp < 0 ) {
-      if ( lson[p] == N ) {
-        lson[p] = r;
-        dad[r] = p;
-        return lazy_match(r);
-      }
-      p = lson[p];
-    } else {
-      if ( rson[p] == N ) {
-        rson[p] = r;
-        dad[r] = p;
-        return lazy_match(r);
-      }
-      p = rson[p];
+    match_length = 0;
+    while (1) {
+        if (cmp < 0) {
+            if (lson[p] == N) {
+                lson[p] = r;
+                dad[r] = p;
+                return lazy_match(r);
+            }
+            p = lson[p];
+        } else {
+            if (rson[p] == N) {
+                rson[p] = r;
+                dad[r] = p;
+                return lazy_match(r);
+            }
+            p = rson[p];
+        }
+        for (i = 1; ; ++i) {
+            if (i < F) {
+                cmp = key[i] - text_buf[p + i];
+                if (key[i] == text_buf[p + i]) continue;
+            }
+            break;
+        }
+        if (i >= match_length) {
+            if ( r < p )
+                tmp = r - p + N;
+            else
+                tmp = r - p;
+        }
+        if (i >= match_length) {
+            if (i == match_length) {
+                if (tmp < match_position)
+                    match_position = tmp;
+            } else 
+                match_position = tmp;
+                if ((match_length = i) > F - 1) break;
+            }
     }
-    for ( i = 1; ; ++i ) {
-      if ( i < F ) {
-        cmp = key[i] - text_buf[p + i];
-        if ( key[i] == text_buf[p + i] ) continue;
-      }
-      break;
-    }
-    if ( i >= match_length ) {
-      if ( r < p )
-        tmp = r - p + N;
-      else
-        tmp = r - p;
-    }
-    if ( i >= match_length ) {
-      if ( i == match_length ) {
-        if ( tmp < match_position )
-           match_position = tmp;
-      } else 
-        match_position = tmp;
-      match_length = i;
-      if ( i > F - 1 ) break;
-    }
-  }
-  dad[r] = dad[p];
-  lson[r] = lson[p];
-  rson[r] = rson[p];
-  dad[lson[p]] = dad[rson[p]] = r;
-  if ( rson[dad[p]] == p )
-    rson[dad[p]] = r;
-  else
-    lson[dad[p]] = r;
-  dad[p] = N;
+    dad[r] = dad[p];
+    lson[r] = lson[p];
+    rson[r] = rson[p];
+    dad[lson[p]] = dad[rson[p]] = r;
+    if ( rson[dad[p]] == p )
+        rson[dad[p]] = r;
+    else
+        lson[dad[p]] = r;
+    dad[p] = N;
 }
 
 void DeleteNode(int p) {
 	int q;
-	if (dad[p] == NIL) return; 
-	if (rson[p] == NIL) q = lson[p];
-	else if (lson[p] == NIL) q = rson[p];
-	else {
-		q = lson[p];
-		if (rson[q] != NIL) {
-			do {  q = rson[q];  } while (rson[q] != NIL);
-			rson[dad[q]] = lson[q];  dad[lson[q]] = dad[q];
-			lson[q] = lson[p];  dad[lson[p]] = q;
-		}
-		rson[q] = rson[p];  dad[rson[p]] = q;
-	}
+	if (dad[p] == N) return; 
+	if (rson[p] == N)
+        q = lson[p];
+	else 
+        if (lson[p] == N) 
+            q = rson[p];
+        else {
+            q = lson[p];
+            if (rson[q] != N) {
+                do {  
+                    q = rson[q];
+                } while (rson[q] != N);
+                rson[dad[q]] = lson[q];  
+                dad[lson[q]] = dad[q];
+                lson[q] = lson[p];
+                dad[lson[p]] = q;
+            }
+            rson[q] = rson[p];  dad[rson[p]] = q;
+        }
 	dad[q] = dad[p];
-	if (rson[dad[p]] == p) rson[dad[p]] = q;  else lson[dad[p]] = q;
-	dad[p] = NIL;
+	if (rson[dad[p]] == p)
+        rson[dad[p]] = q;
+    else 
+        lson[dad[p]] = q;
+	dad[p] = N;
 }
 
 void lzss(FILE* infile, FILE* outfile) {
@@ -283,7 +285,7 @@ void lzss(FILE* infile, FILE* outfile) {
 	InitTree(); 
 	code_buf[0] = 0; 
 	code_buf_ptr = mask = 1;
-	s = 0;  r = N - F;
+	s = 0; r = N - F;
 
 	for (len = 0; len < F && (c = getc(infile)) != EOF; len++)
 		text_buf[r + len] = c;  
@@ -528,7 +530,7 @@ void huff(FILE* in, FILE* out) {
     void putChar(uint32_t code, uint32_t no) {
         uint32_t tmpno, tmpcode;
         codesize += no;
-        if (preno + no > 7){
+        if (preno + no > 7) {
             do {
                 no -= tmpno = 8 - preno;
                 tmpcode = code >> no;
@@ -545,22 +547,22 @@ void huff(FILE* in, FILE* out) {
     }
     textsize = codesize; codesize = 0;
     int c, i, j, k, m, flags = 0;
-    while ( 1 ) {
+    while (1) {
         if (((flags >>= 1) & 256) == 0) {
             if ((c = getc(in)) == EOF) break;
             flags = c | 0xFF00;
         }
         if (flags & 1) {
             if ((c = getc(in)) == EOF) break;
-            putChar(*(uint32_t*)&char_len_table[8 * (unsigned char)c], 
-                *(uint32_t*)&char_len_table[8 * (unsigned char)c + 4]); // lookup in char table
+            putChar(*(uint32_t*)&char_len_table[8 * c], 
+                *(uint32_t*)&char_len_table[8 * c + 4]); // lookup in char table
         } else {
             if ((j = getc(in)) == EOF) break; // match length
             if ((i = getc(in)) == EOF) break; // byte1 of match position
             if ((m = getc(in)) == EOF) break; // byte0 of match position
             putChar(*(uint32_t*)&char_len_table[8 * (j + 256)], *(uint32_t*)&char_len_table[8 * (j + 256) + 4]); // lookup in len table
             i = m | (i << 8);            
-            putChar(*(uint32_t*)&pos_table[8 * (int)(i >> 7)], *(uint32_t*)&pos_table[8 * (int)(i >> 7) + 4]); // lookup in pos table
+            putChar(*(uint32_t*)&pos_table[8 * (i >> 7)], *(uint32_t*)&pos_table[8 * (i >> 7) + 4]); // lookup in pos table
             putChar(i - (i >> 7 << 7), 7);
         }
     }
