@@ -67,10 +67,12 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		if (dest_file) 
 		    handle_file(dest_file, config_opts);
 		return EXIT_SUCCESS;
-	} else if (is_lzhs(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unlzhs");
-		printf("Unlzhs %s to %s\n", file, dest_file);
-		lzhs_decode(file, dest_file);
+	} else if (is_mtk_boot(file)) {
+		constructPath(dest_file, dest_dir, "mtk_pbl.bin", "");		
+		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
+		extract_mtk_boot(file, dest_file);
+		printf("Scanning for LZHS files...\n");
+		scan_lzhs(file, 1);
 		return EXIT_SUCCESS;
 	} else if(is_cramfs_image(file, "be")) {
 		constructPath(dest_file, dest_dir, file_name, ".cramswap");
@@ -126,6 +128,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		constructPath(dest_file, dest_dir, file_name, ".idc");
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
+		return EXIT_SUCCESS;
+	} else if (is_lzhs(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".unlzhs");
+		printf("Unlzhs %s to %s\n", file, dest_file);
+		lzhs_decode(file, dest_file);
 		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;

@@ -11,11 +11,6 @@
 extern int endianswap;
 #define SWAP(x) SwapBytes(&x, sizeof(x));
 
-struct lzhs_header {
-    uint32_t uncompressedSize, compressedSize;
-	uint8_t checksum, spare[7];
-};
-
 #define GZIP_CHUNK 0x4000
 #define windowBits 15
 #define ENABLE_ZLIB_GZIP 32

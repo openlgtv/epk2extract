@@ -2,16 +2,15 @@
 #define _LZHS_H
 
 #include <stdint.h>
-#include <lzhs/tables.h>
 
-struct lzhs_header {
+typedef struct lzhs_header {
     uint32_t uncompressedSize, compressedSize;
 	uint8_t checksum, spare[7];
-};
+} lzhs_header_t;
 
 /* for LZSS */
 #define N		 4096
-#define F		   32
+#define F		   34
 #define THRESHOLD	2
 #define NIL			N
 
@@ -23,10 +22,6 @@ struct huff_entry2 {
 	int code;
 	int len;
 };
-
-unsigned long int textsize = 0, codesize = 0;
-unsigned char text_buf[N + F - 1];
-int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 
 struct huff_entry {
 	int code;

@@ -62,11 +62,13 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		printf("Ungzip %s to folder %s\n", filename, extractedFile);
 		strcpy(extractedFile, file_uncompress_origname(filename, extractedFile));
 		extracted=1;
-	} else if (is_lzhs(filename)) {
-		constructPath(extractedFile, folderExtractTo, PAKname, ".unlzhs");
-		printf("Unlzhs %s to %s\n", filename, extractedFile);
-		lzhs_decode(filename, extractedFile);
-		extracted = 1;
+	} else if (is_mtk_boot(filename)) {
+		constructPath(extractedFile, folderExtractTo, "mtk_pbl.bin", "");		
+		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
+		extract_mtk_boot(filename, extractedFile);
+		printf("Scanning for LZHS files...\n");
+		scan_lzhs(filename, 1);
+		extracted=1;
 	} else if(is_cramfs_image(filename, "be")) {
 	    constructPath(extractedFile, folderExtractTo, PAKname, ".cramswap");
 	    printf("Swapping cramfs endian for file %s\n",filename);
@@ -104,6 +106,11 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		printf("jffs2extract %s to folder %s\n", filename, extractedFile);
 		rmrf(extractedFile);
 		jffs2extract(filename, extractedFile, "1234");
+	} else if (is_lzhs(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, ".unlzhs");
+		printf("Unlzhs %s to %s\n", filename, extractedFile);
+		lzhs_decode(filename, extractedFile);
+		extracted = 1;
 	}
 	if (extracted) processExtractedFile(extractedFile, folderExtractTo, PAKname);
 }

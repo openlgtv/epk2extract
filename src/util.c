@@ -20,6 +20,9 @@
 //jffs2
 #include <jffs2/jffs2.h>
 
+//lzhs
+#include <lzhs/lzhs.h>
+
 #include <formats.h>
 
 int ps;
@@ -209,6 +212,73 @@ void unnfsb(char* filename, char* extractedFile) {
 	/* Un-mmaping doesn't close the file, so we still need to do that. */
 	close(fdout);
 	close(fdin);
+}	
+
+size_t mtk_pbl_size = 0x9FFF;
+
+void extract_mtk_boot(const char *filename, const char *outname){
+	char *buf = malloc(mtk_pbl_size);
+	int n;
+
+	FILE *in = fopen(filename, "rb");
+	if(in == NULL){
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	FILE *out = fopen(outname, "wb");
+	if(in == NULL){
+		printf("Can't open file %s for writing\n", outname);
+		exit(1);
+	}
+	n = fread(buf, 1, mtk_pbl_size, in);
+	if(n != mtk_pbl_size){
+		printf("Error!\n");
+		fclose(in);
+		exit(1);
+	}
+	fclose(in);
+	fwrite(buf, 1, mtk_pbl_size, out);
+	fclose(out);
+}
+
+int is_mtk_boot(const char *filename){
+	FILE *in = fopen(filename, "rb");
+	char *magic;
+	int mlen=0, result=0, fsize=0, len=0;
+
+	if(in == NULL){
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	fseek(in, 0, SEEK_END);
+	fsize = ftell(in);
+	if(fsize < mtk_pbl_size){
+		fclose(in);
+		return result;
+	}
+
+	fseek(in, 0x100, SEEK_SET);
+ 	char c;
+	do{
+		c=getc(in);
+		len++;
+    } while(c != '\x00'); //calculate string length
+    magic = malloc(len);
+
+	fseek(in, 0x100, SEEK_SET);
+	fread(magic, 1, len, in);
+	printf("PBL Magic %s\n", magic);
+	if(	strstr(magic, "MTK") != NULL &&
+		strstr(magic, "DTV") != NULL &&
+		strstr(magic, "ROMCODE") != NULL &&
+		strstr(magic, "MSDCBOOT") != NULL){
+			printf("Found valid PBL Magic %s\n", magic);
+			result=1;
+		}
+
+	fclose(in);
+	return result;
+		
 }
 
 int is_lzhs(const char *filename) {
@@ -218,13 +288,11 @@ int is_lzhs(const char *filename) {
 		exit(1);
 	}
 	size_t headerSize = sizeof(struct lzhs_header);
-	unsigned char *buffer = (unsigned char *)malloc(headerSize);
+	unsigned char *buffer = malloc(headerSize);
 	int read  = fread(buffer, 1, headerSize, file);
 	int result = 0;
 	if (read == headerSize){
 		struct lzhs_header *header = (struct lzhs_header *)buffer;
-		printf("%d\t%d\t0x%1x\n", header->compressedSize, header->uncompressedSize, header->checksum);
-		
 		if ((header->compressedSize <= header->uncompressedSize) && !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) result=1;
 	}
 	free(buffer);

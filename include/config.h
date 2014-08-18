@@ -15,6 +15,12 @@ struct config_opts_t {
 
 #define G_DIR_SEPARATOR_S "/"
 
+#ifdef __APPLE__
+#include <sys/syslimits.h>
+#else
+#include <linux/limits.h>
+#endif
+
 #ifndef PATH_MAX
 	#define PATH_MAX        4096	/* # chars in a path name including nul */
 #endif

@@ -14,6 +14,8 @@ white='printf \033[01;37m'
 cwd=$(pwd)
 sourcedir=$(cd `dirname $0`; pwd -P)
 
+exe=("epk2extract" "lzhs/lzhsenc" "lzhs/lzhs_scanner")
+
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
 elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux
 elif [[ "$OSTYPE" =~ "darwin" ]]; then rel=build_osx
@@ -39,8 +41,9 @@ if [ ! "$1" == "clean" ]; then
 		exit 1
 	else
 		if [ "$rel" == "build_cygwin" ]; then
-			mv epk2extract.exe ../$rel
-			mv lzhs/lzhsenc.exe ../$rel
+			for exe in ${exe[@]}; do
+				mv $exe.exe ../$rel
+			done
 			if [ "$HOSTTYPE" == "i686" ]; then #cygwin32
 				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll" "cygstdc++-6.dll")
 			elif [ "$HOSTTYPE" == "x86_64" ]; then #cygwin64
@@ -60,9 +63,11 @@ if [ ! "$1" == "clean" ]; then
 				fi
 			done
 		else    
-			mv epk2extract ../$rel
-			mv lzhs/lzhsenc ../$rel
-                fi
+			for exe in ${exe[@]}; do
+				mv $exe ../$rel
+			done
+		fi
+
 		cd ..
 		if [ -d "keys" ]; then
 			keys=($(ls -1 keys/))
