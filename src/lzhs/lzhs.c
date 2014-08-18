@@ -519,8 +519,7 @@ void lzhs_encode(const char *infile, const char *outfile){
 	if(!in){ printf("Cannot open file %s\n", infile); exit(1); }
 
 	strcpy(outtmp, infile);
-	outtmp = dirname(outtmp);
-	strcpy(filedir, outtmp);
+	strcpy(filedir, dirname(outtmp));
 
 	strcpy(outtmp, filedir);
 	strcat(outtmp, "/conv");

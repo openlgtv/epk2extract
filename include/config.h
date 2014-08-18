@@ -15,8 +15,10 @@ struct config_opts_t {
 
 #define G_DIR_SEPARATOR_S "/"
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #include <sys/syslimits.h>
+#elif defined(__CYGWIN__)
+#include <limits.h>
 #else
 #include <linux/limits.h>
 #endif
