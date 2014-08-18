@@ -495,12 +495,11 @@ int PreprocessInputFile(const char *filename, const char *outfilename){
   return result;
 }
 
-int is_lzhs_mem(unsigned char *buf){
-	int result = 0;
-	struct lzhs_header *header = (struct lzhs_header *)buf;
-	if (!header->compressedSize || !header->uncompressedSize) return result;
-	if ((header->compressedSize <= header->uncompressedSize) && !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) result=1;
-	return result;
+int is_lzhs_mem(struct lzhs_header *header){
+	if (!header->compressedSize || !header->uncompressedSize) return 0;
+	if ((header->compressedSize <= header->uncompressedSize) && 
+        !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) return 1;
+	return 0;
 }
 
 void lzhs_encode(const char *infile, const char *outfile){
@@ -631,9 +630,8 @@ void lzhs_decode(const char *infile, const char *outfile){
 
 void scan_lzhs(const char *filename, int extract){
 	int fsize, i, n, pos;
-	unsigned char hdata[16];
 	int count=0;
-	lzhs_header_t *header = malloc(sizeof(lzhs_header_t));
+	struct lzhs_header header;
 	char *outname, *outdecode;
 	unsigned char *buf;
 
@@ -650,12 +648,11 @@ void scan_lzhs(const char *filename, int extract){
 	}
 
 	for(i=0; ;i+=16){
-		n = fread(hdata, 1, 16, file);
+		n = fread(&header, 1, sizeof(header), file);
 		if(n<16) break;
-		if(is_lzhs_mem(hdata)){
+		if(is_lzhs_mem(&header)){
 			count++;
 			pos = ftell(file)-16;
-			header = (lzhs_header_t *)hdata;
 			printf("\nFound LZHS Header at 0x%x\n", pos);
 			if(extract){
 				sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
@@ -667,9 +664,9 @@ void scan_lzhs(const char *filename, int extract){
 					exit(1);
 				}
 				fseek(file, pos, SEEK_SET);
-				buf = malloc(header->compressedSize);
-				fread(buf, 1, header->compressedSize, file);
-				fwrite(buf, 1, header->compressedSize, out);
+				buf = malloc(header.compressedSize);
+				fread(buf, 1, header.compressedSize, file);
+				fwrite(buf, 1, header.compressedSize, out);
 				fclose(out);
 				free(buf);
 

@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 
-typedef struct lzhs_header {
+struct lzhs_header {
     uint32_t uncompressedSize, compressedSize;
 	uint8_t checksum, spare[7];
-} lzhs_header_t;
+};
 
 /* for LZSS */
 #define N		 4096

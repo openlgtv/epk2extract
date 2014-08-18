@@ -138,14 +138,10 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	return EXIT_FAILURE;
 }
 
-#define N		 4096
-#define F		   34
-#define THRESHOLD	2
-
-#include <fcntl.h>
-
-#if 0
 void test(void) {
+#include <fcntl.h>
+#include <lzhs/lzhs.h>
+
 	FILE* in = fopen("conv", "rb");
 	FILE* out = fopen("tmp2.lzs", "wb");
 	lzss(in, out);
@@ -192,7 +188,6 @@ void test(void) {
     
 	exit(0);
 }
-#endif
 
 int main(int argc, char *argv[]) {
 	//test();
