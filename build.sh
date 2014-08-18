@@ -40,6 +40,7 @@ if [ ! "$1" == "clean" ]; then
 	else
 		if [ "$rel" == "build_cygwin" ]; then
 			mv epk2extract.exe ../$rel
+			mv lzhs/lzhsenc.exe ../$rel
 			if [ "$HOSTTYPE" == "i686" ]; then #cygwin32
 				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll" "cygstdc++-6.dll")
 			elif [ "$HOSTTYPE" == "x86_64" ]; then #cygwin64
@@ -60,6 +61,7 @@ if [ ! "$1" == "clean" ]; then
 			done
 		else    
 			mv epk2extract ../$rel
+			mv lzhs/lzhsenc ../$rel
                 fi
 		cd ..
 		if [ -d "keys" ]; then

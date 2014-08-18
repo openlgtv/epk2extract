@@ -62,6 +62,11 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		printf("Ungzip %s to folder %s\n", filename, extractedFile);
 		strcpy(extractedFile, file_uncompress_origname(filename, extractedFile));
 		extracted=1;
+	} else if (is_lzhs(filename)) {
+		constructPath(extractedFile, folderExtractTo, PAKname, ".unlzhs");
+		printf("Unlzhs %s to %s\n", filename, extractedFile);
+		lzhs_decode(filename, extractedFile);
+		extracted = 1;
 	} else if(is_cramfs_image(filename, "be")) {
 	    constructPath(extractedFile, folderExtractTo, PAKname, ".cramswap");
 	    printf("Swapping cramfs endian for file %s\n",filename);

@@ -5,7 +5,8 @@ add_subdirectory(cramfs)
 add_subdirectory(squashfs)
 add_subdirectory(lz4)
 add_subdirectory(jffs2)
+add_subdirectory(lzhs)
 
 add_executable(epk2extract main.c crc32.c epk.c epk1.c epk2.c log.c symfile.c util.c partinfo.c minigzip.c lzo-lg.c)
 
-target_link_libraries(epk2extract cramfs squashfs lz4 jffs2 ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${LZO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})
+target_link_libraries(epk2extract cramfs squashfs lz4 jffs2 lzhs ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${LZO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})
