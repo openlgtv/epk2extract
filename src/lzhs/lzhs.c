@@ -10,279 +10,187 @@
 //globals
 unsigned long int textsize = 0, codesize = 0;
 unsigned char text_buf[N + F - 1];
-int	match_len, match_pos, lson[N + 1], rson[N + 257], dad[N + 1];
+int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 
 
-void init_tree(void) { 
-		unsigned i;
-	/* For i = 0 to N - 1, g_right_child[i] and g_left_child[i] will be the right and
-	   left children of node i.  These nodes need not be initialized.
-	   Also, g_parent[i] is the parent of node i.  These are initialized to
-	   NIL (= N), which stands for 'not used.'
-	   For i = 0 to 255, g_right_child[N + i + 1] is the root of the tree
-	   for strings that begin with character i.  These are initialized
-	   to NIL.  Note there are 256 trees. */
-	for(i = N + 1; i <= N + 256; i++)
-		rson[i] = NIL;
-	for(i = 0; i < N; i++)
-		dad[i] = NIL;
+void InitTree(void) { 
+	int  i;
+	for (i = N + 1; i <= N + 256; i++) rson[i] = N;
+	for (i = 0; i < N; i++) dad[i] = N;
 }
 
-void lazy_match(int r)
-{
+void lazy_match(int r) {
 	unsigned char *key;
-	int i, p;
-	int cmp;
-	unsigned tmp;
-	
-	tmp=0;
-	if(match_len <= F-THRESHOLD ){
-		cmp = 1;
-		key = &text_buf[r+1];
-		p = key[0] + N + 1;
-		tmp=0;
-		while(1)
-		{
-			if(cmp >= 0)
-			{
-				if(rson[p] != NIL)
-					p = rson[p];
-				else break;
-			}
-			else
-			{
-				if(lson[p] != NIL)
-					p = lson[p];
-				else break;
-			}
-			for(i = 1; i <= F-1; i++)
-			{
-				cmp = key[i] - text_buf[p + i];
-				if(key[i] != text_buf[p + i])
-					break;
-			}
-			if(i > tmp)
-			{
-				tmp = i;
-				if(i > F-1)
-					break;
-			}
-		}
-	}
-	if (tmp > match_len) match_len = 0;
+    int i, p, tmp, cmp = 1;
+  
+    if (match_length < F - 1) {
+        key = &text_buf[r + 1];
+        p = key[0] + N + 1;
+        tmp = 0;
+        while (1) {
+            if (cmp < 0) {
+                if (lson[p] == N) break;
+                p = lson[p];
+            } else {
+                if (rson[p] == N) break;
+                p = rson[p];
+            }
+            for (i = 1; ; ++i) {
+                if (i < F) {
+                    cmp = key[i] - text_buf[p + i];
+                    if (key[i] == text_buf[p + i]) continue;
+                }
+                break;
+            }
+            if (i > tmp)
+                if ((tmp = i) > F - 1) break;
+        }
+    }
+    if (tmp > match_length) match_length = 0;
 }
 
-void insert_node(int r)
-{
-	unsigned char *key;
-	unsigned i, p;
-	int cmp;
-	unsigned tmp;
+void InsertNode(int r) {
+    unsigned char *key = &text_buf[r];
+    int tmp, p, i, cmp = 1;
 
-	cmp = 1;
-	key = &text_buf[r];
-	p = N + 1 + key[0];
-	rson[r] = lson[r] = NIL;
-	match_len = 0;
-	while(1)
-	{
-		if(cmp >= 0)
-		{
-			if(rson[p] != NIL)
-				p = rson[p];
-			else
-			{
-				rson[p] = r;
-				dad[r] = p;
-				lazy_match(r);
-				return;
-			}
-		}
-		else
-		{
-			if(lson[p] != NIL)
-				p = lson[p];
-			else
-			{
-				lson[p] = r;
-				dad[r] = p;
-				lazy_match(r);
-				return;
-			}
-		}
-		for(i = 1; i < F; i++)
-		{
-			cmp = key[i] - text_buf[p + i];
-			if(cmp != 0)
-				break;
-		}
-		if(i >= match_len){
-			if(r<p) tmp=r-p+N;
-			else tmp=r-p;
-			if(i==match_len){
-				if(tmp<match_pos) match_pos=tmp;
-			} else {
-				match_pos=tmp;
-			}
-			match_len=i;
-			if(i>F-1) break;
-		}
+    p = text_buf[r] + N + 1;
+    lson[r] = rson[r] = N;
 
-	}
-	dad[r] = dad[p];
-	lson[r] = lson[p];
-	rson[r] = rson[p];
-	dad[lson[p]] = r;
-	dad[rson[p]] = r;
-	if(rson[dad[p]] == p)
-		rson[dad[p]] = r;
-	else
-		lson[dad[p]] = r;
-	dad[p] = NIL;  /* remove p */
+    match_length = 0;
+    while (1) {
+        if (cmp < 0) {
+            if (lson[p] == N) {
+                lson[p] = r;
+                dad[r] = p;
+                return lazy_match(r);
+            }
+            p = lson[p];
+        } else {
+            if (rson[p] == N) {
+                rson[p] = r;
+                dad[r] = p;
+                return lazy_match(r);
+            }
+            p = rson[p];
+        }
+        for (i = 1; ; ++i) {
+            if (i < F) {
+                cmp = key[i] - text_buf[p + i];
+                if (key[i] == text_buf[p + i]) continue;
+            }
+            break;
+        }
+        if (i >= match_length) {
+            if ( r < p )
+                tmp = r - p + N;
+            else
+                tmp = r - p;
+        }
+        if (i >= match_length) {
+            if (i == match_length) {
+                if (tmp < match_position)
+                    match_position = tmp;
+            } else 
+                match_position = tmp;
+                if ((match_length = i) > F - 1) break;
+            }
+    }
+    dad[r] = dad[p];
+    lson[r] = lson[p];
+    rson[r] = rson[p];
+    dad[lson[p]] = dad[rson[p]] = r;
+    if ( rson[dad[p]] == p )
+        rson[dad[p]] = r;
+    else
+        lson[dad[p]] = r;
+    dad[p] = N;
 }
 
-void delete_node(unsigned p) {
-	unsigned q;
-
-	if(dad[p] == NIL)
-		return; /* not in tree */
-	if(rson[p] == NIL)
-		q = lson[p];
-	else if(lson[p] == NIL)
-		q = rson[p];
-	else
-	{
-		q = lson[p];
-		if(rson[q] != NIL)
-		{
-			do q = rson[q];
-			while(rson[q] != NIL);
-			rson[dad[q]] = lson[q];
-			dad[lson[q]] = dad[q];
-			lson[q] = lson[p];
-			dad[lson[p]] = q;
-		}
-		rson[q] = rson[p];
-		dad[rson[p]] = q;
-	}
+void DeleteNode(int p) {
+	int q;
+	if (dad[p] == N) return; 
+	if (rson[p] == N)
+        q = lson[p];
+	else 
+        if (lson[p] == N) 
+            q = rson[p];
+        else {
+            q = lson[p];
+            if (rson[q] != N) {
+                do {  
+                    q = rson[q];
+                } while (rson[q] != N);
+                rson[dad[q]] = lson[q];  
+                dad[lson[q]] = dad[q];
+                lson[q] = lson[p];
+                dad[lson[p]] = q;
+            }
+            rson[q] = rson[p];  dad[rson[p]] = q;
+        }
 	dad[q] = dad[p];
-	if(rson[dad[p]] == p)
-		rson[dad[p]] = q;
-	else
-		lson[dad[p]] = q;
-	dad[p] = NIL;
+	if (rson[dad[p]] == p)
+        rson[dad[p]] = q;
+    else 
+        lson[dad[p]] = q;
+	dad[p] = N;
 }
 
-void lzss(FILE *infile, FILE *outfile)
-{
-	unsigned i, len, r, s, last_match_length, code_buf_ptr;
+void lzss(FILE* infile, FILE* outfile) {
+    int charno = 0, posno = 0;
+	int c, i, len, r, s, last_match_length, code_buf_ptr;
 	unsigned char code_buf[32], mask;
-	int c;
 
-	init_tree();  /* initialize trees */
-	/* code_buf[1..16] saves eight units of code, and code_buf[0] works as
-	eight flags, "1" representing that the unit is an unencoded letter (1 byte),
-	"0" a position-and-length pair (3 bytes). Thus, eight units require at most
-	16 bytes of code. */
-	code_buf[0] = 0;
+	InitTree(); 
+	code_buf[0] = 0; 
 	code_buf_ptr = mask = 1;
-	s = 0;
-	r = N - F;
-	/* Clear the buffer with any character that will appear often. */
-	memset(text_buf + s, ' ', r - s);
-	/* Read F bytes into the last F bytes of the buffer */
-	for(len = 0; len < F; len++)
-	{
-		c = getc(infile);
-		if(c == EOF)
-			break;
-		text_buf[r + len] = c;
-	}
-	textsize = len;
-	if(textsize == 0) /* text of size zero */
-		return;
-	/* Insert the whole string just read. The global variables
-	match_len and match_pos are set. */
-	insert_node(r);
-	do
-	{
-	/* match_len may be spuriously long near the end of text. */
-		if(match_len > len)
-			match_len = len;
-	/* Not long enough match.  Send one byte. */
-		if(match_len <= THRESHOLD)
-		{
-			match_len = 1;
-			code_buf[0] |= mask;  /* 'send one byte' flag */
-			code_buf[code_buf_ptr++] = text_buf[r];  /* Send uncoded. */
-	/* Send position and length pair. Note match_len > THRESHOLD. */
+	s = 0; r = N - F;
+
+	for (len = 0; len < F && (c = getc(infile)) != EOF; len++)
+		text_buf[r + len] = c;  
+	if ((textsize = len) == 0) return; 
+
+	InsertNode(r);
+	do {
+		if (match_length > len) match_length = len; 
+        if (match_length <= THRESHOLD) {
+			match_length = 1;  
+			code_buf[0] |= mask; 
+			code_buf[code_buf_ptr++] = text_buf[r]; 
+		} else {
+            code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
+            code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
+            code_buf[code_buf_ptr++] = match_position;        
+        }
+		if ((mask <<= 1) == 0) { 
+			for (i = 0; i < code_buf_ptr; i++)
+				putc(code_buf[i], outfile); 
+                codesize += code_buf_ptr;
+			code_buf[0] = 0;  
+            code_buf_ptr = mask = 1;
 		}
-		else
-		{
-			code_buf[code_buf_ptr++] = (unsigned char)match_len - (THRESHOLD + 1); //store length
-			code_buf[code_buf_ptr++] = match_pos >> 8;
-			code_buf[code_buf_ptr++] = (unsigned char)match_pos;
-		}
-		/* Shift mask left one bit. */
-		mask <<= 1;
-		if(mask == 0)
-		{
-			/* Send at most 8 units of code together */
-			for(i = 0; i < code_buf_ptr; i++)
-				putc(code_buf[i], outfile);
-			codesize += code_buf_ptr;
-			code_buf[0] = 0;
-			code_buf_ptr = mask = 1;
-		}
-		last_match_length = match_len;
-		for(i = 0; i < last_match_length; i++)
-		{
-			c = getc(infile);
-			if(c == EOF)
-				break;
-			/* Delete old strings and read new bytes */
-			delete_node(s);
+		last_match_length = match_length;
+		for (i = 0; i < last_match_length && (c = getc(infile)) != EOF; i++) {
+			DeleteNode(s);
 			text_buf[s] = c;
-		/* If the position is near the end of buffer, extend the buffer
-		to make string comparison easier. */
-			if(s < F - 1)
-				text_buf[s + N] = c;
-		/* Since this is a ring buffer, increment the position modulo N. */
-			s = (s + 1) & (N - 1);
-			r = (r + 1) & (N - 1);
-		/* Register the string in text_buf[r..r+F-1] */
-			insert_node(r);
+			if (s < F - 1) text_buf[s + N] = c; 
+			s = (s + 1) & (N - 1);  
+            r = (r + 1) & (N - 1);
+			InsertNode(r);
 		}
-		/* Reports progress each time the textsize exceeds multiples of 1024. */
 		textsize += i;
-		/*if(textsize > g_print_count)
-		{
-			printf("%12ld\r", textsize);
-			g_print_count += 1024;
-		}*/
-		while(i++ < last_match_length)/* After the end of text, */
-		{
-			delete_node(s);		/* no need to read, but */
-			s = (s + 1) & (N - 1);
-			r = (r + 1) & (N - 1);
-			len--;
-			if(len)
-				insert_node(r);/* buffer may not be empty. */
+		while (i++ < last_match_length) {	
+			DeleteNode(s);					
+			s = (s + 1) & (N - 1);  
+            r = (r + 1) & (N - 1);
+			if (--len) InsertNode(r);		
 		}
-	} while(len > 0); /* until length of string to be processed is zero */
-	/* Send remaining code. */
-	if(code_buf_ptr > 1)
-	{
-		for(i = 0; i < code_buf_ptr; i++)
-			putc(code_buf[i], outfile);
+	} while (len > 0);	
+	if (code_buf_ptr > 1) {
+		for (i = 0; i < code_buf_ptr; i++) 
+            putc(code_buf[i], outfile);
 		codesize += code_buf_ptr;
 	}
-	/* Encoding is done. */
-	printf("LZSS In : %ld bytes\n", textsize);
-	printf("LZSS Out: %ld bytes\n", codesize);
-	/* xxx - floating-point math: */
-	printf("LZSS Out/In: %.3f\n", (double)codesize / textsize);
-
+	printf("LZSS Out(%ld)/In(%ld): %.3f\n", codesize, textsize, (double)codesize / textsize);
 }
 
 void unlzss(FILE *in, FILE *out) {
