@@ -12,6 +12,7 @@
 #include <openssl/aes.h>
 #include <inttypes.h>
 #include <time.h>
+#include <libgen.h>
 
 //partinfo
 #include <fnmatch.h>
@@ -22,6 +23,8 @@
 
 //lzhs
 #include <lzhs/lzhs.h>
+
+#include <elf.h>
 
 #include <formats.h>
 
@@ -267,7 +270,6 @@ int is_mtk_boot(const char *filename){
 
 	fseek(in, 0x100, SEEK_SET);
 	fread(magic, 1, len, in);
-	printf("PBL Magic %s\n", magic);
 	if(	strstr(magic, "MTK") != NULL &&
 		strstr(magic, "DTV") != NULL &&
 		strstr(magic, "ROMCODE") != NULL &&
@@ -279,6 +281,25 @@ int is_mtk_boot(const char *filename){
 	fclose(in);
 	return result;
 		
+}
+
+int is_elf(const char *filename){
+	FILE *file = fopen(filename, "rb");
+	if(file == NULL){
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	size_t headerSize = sizeof(Elf32_Ehdr);
+	unsigned char *buffer = malloc(headerSize);
+	int read = fread(buffer, 1, headerSize, file);
+	int result = 0;
+	if(read == headerSize){
+		Elf32_Ehdr *header = (Elf32_Ehdr *)buffer;
+		if(!memcmp(&header->e_ident, buffer, sizeof(header->e_ident))){
+			result = 1;
+		}
+	}
+	return result;
 }
 
 int is_lzhs(const char *filename) {

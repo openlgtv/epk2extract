@@ -134,6 +134,9 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("Unlzhs %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
 		return EXIT_SUCCESS;
+	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
+		//split tzfw.bin, env.o and tz.bin
+		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;
 }

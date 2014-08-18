@@ -111,6 +111,9 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		printf("Unlzhs %s to %s\n", filename, extractedFile);
 		lzhs_decode(filename, extractedFile);
 		extracted = 1;
+	} else if (!strcmp(PAKname, "tzfw") && is_elf(filename)) {
+		//split tzfw.bin, env.o and tz.bin
+		extracted = 1;
 	}
 	if (extracted) processExtractedFile(extractedFile, folderExtractTo, PAKname);
 }
