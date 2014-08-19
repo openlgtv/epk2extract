@@ -402,6 +402,12 @@ int PreprocessInputFile(const char *filename, const char *outfilename){
   return result;
 }
 
+unsigned char lzhs_calc_checksum(unsigned char *buf){
+	unsigned char checksum = 0; int i;
+ 	for (i = 0; i < sizeof(buf); ++i) checksum += buf[i];
+	return checksum;
+}
+
 void lzhs_encode(const char *infile, const char *outfile){
     struct lzhs_header header;
 	FILE *in, *out;
@@ -411,7 +417,7 @@ void lzhs_encode(const char *infile, const char *outfile){
 	char *filedir = malloc(strlen(infile));
 	char *outtmp = malloc(strlen(infile)+5);
 
-	printf("\nStep1: Padding...\n");
+	printf("\n[LZHS] Padding...\n");
 	sprintf(outtmp, "%s.tmp", infile);
 	PreprocessInputFile(infile, outtmp);
 
@@ -434,12 +440,11 @@ void lzhs_encode(const char *infile, const char *outfile){
 	rewind(in);
 	fread(buf, 1, fsize, in);
 
-	printf("Step 2: Calculating Checksum...\n");
-	unsigned char checksum = 0; int i;
- 	for (i = 0; i < fsize; ++i) checksum += buf[i];
+	printf("[LZHS] Calculating Checksum...\n");
+	unsigned char checksum = lzhs_calc_checksum(buf);
 	printf("Checksum = %x\n", checksum); 
 
-	printf("Step 3: Converting ARM => Thumb...\n");
+	printf("[LZHS] Converting ARM => Thumb...\n");
 	ARMThumb_Convert(buf, fsize, 0, 1);
 	fwrite(buf, 1, fsize, out);
 	free(buf);
@@ -452,7 +457,7 @@ void lzhs_encode(const char *infile, const char *outfile){
 
 	freopen(outtmp, "wb", out);
 
-	printf("Step 4: Encoding with LZSS...\n");
+	printf("[LZHS] Encoding with LZSS...\n");
 	lzss(in, out);
 	if(!out){ printf("Cannot open tmp.lzs\n"); exit(1); }
 
@@ -461,7 +466,7 @@ void lzhs_encode(const char *infile, const char *outfile){
 	freopen(outfile, "wb", out);
 	if(!out){ printf("Cannot open file %s\n", outfile); exit(1); }
 
-	printf("Step 5: Encoding with Huffman...\n");
+	printf("[LZHS] Encoding with Huffman...\n");
 	
     header.uncompressedSize = textsize;
     header.checksum = checksum;
@@ -469,10 +474,10 @@ void lzhs_encode(const char *infile, const char *outfile){
 
 	huff(in, out);
     header.compressedSize = codesize;
-	printf("Writing Header...\n");
+	printf("[LZHS] Writing Header...\n");
 	rewind(out);
     fwrite(&header, 1, sizeof(header), out);
-	printf("Done!\n");
+	printf("[LZHS] Done!\n");
 
 	fclose(in);
 	fclose(out);
@@ -496,14 +501,14 @@ void lzhs_decode(const char *infile, const char *outfile){
 	printf("Uncompressed:\t%d\n", header->uncompressedSize);
 	printf("Checksum:\t0x%x\n\n", header->checksum);
 
-	printf("Step 1: Decoding Huffman...\n");
+	printf("[LZHS] Decoding Huffman...\n");
 	unhuff(in, out);
 
 	freopen("tmp.lzs", "rb", in);
 	if(!in){ printf("Cannot open %s\n", infile); exit(1); }
 	freopen("conv", "wb", out);
 	if(!out){ printf("Cannot open %s\n", outfile); exit(1); }
-	printf("Step 2: Decoding LZSS...\n");
+	printf("[LZHS] Decoding LZSS...\n");
 	unlzss(in, out);
 	fsize = ftell(out);
 
@@ -514,9 +519,14 @@ void lzhs_decode(const char *infile, const char *outfile){
 
 	buf = malloc(fsize);
 	fread(buf, 1, fsize, in);
-	printf("Step 3: Converting Thumb => ARM...\n");
+	printf("[LZHS] Converting Thumb => ARM...\n");
 	ARMThumb_Convert(buf, fsize, 0, 0);
 	fwrite(buf, 1, fsize, out);
+	unsigned char checksum = lzhs_calc_checksum(buf);
+	if(checksum != header->checksum){
+		printf("[LZHS] WARNING: Checksum Mismatch!!\n");
+	}
+
 	free(buf);
 
 	fclose(in);
