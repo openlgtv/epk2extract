@@ -10,45 +10,41 @@
 //globals
 unsigned long int textsize = 0, codesize = 0;
 unsigned char text_buf[N + F - 1];
-int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
+int match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 t_code (*huff_char)[1] = (void *)&char_table;
 t_code (*huff_len)[1]  = (void *)&len_table;
 t_code (*huff_pos)[1]  = (void *)&pos_table;
 
 void InitTree(void) { 
-	int  i;
-	for (i = N + 1; i <= N + 256; i++) rson[i] = N;
-	for (i = 0; i < N; i++) dad[i] = N;
+    int  i;
+    for (i = N + 1; i <= N + 256; i++) rson[i] = N;
+    for (i = 0; i < N; i++) dad[i] = N;
 }
 
 static void lazy_match(int r) {
-	unsigned char *key;
-	int i, p, cmp = 1, tmp = 0;
+    unsigned char *key;
+    int i, p, cmp = 1, tmp = 0;
 	
-	if (match_length <= F - THRESHOLD ){
-		key = &text_buf[r + 1];
-		p = key[0] + N + 1;
-		while(1) {
-			if (cmp >= 0) {
-				if(rson[p] != N)
-					p = rson[p];
-				else break;
-			} else {
-				if(lson[p] != N)
-                    p = lson[p];
-				else break;
-			}
-			for (i = 1; i <= F - 1; i++) {
-				cmp = key[i] - text_buf[p + i];
-				if(key[i] != text_buf[p + i]) break;
-			}
-			if (i > tmp) {
-				tmp = i;
-				if (i > F - 1) break;
-			}
-		}
-	}
-	if (tmp > match_length) match_length = 0;
+    if (match_length <= F - THRESHOLD ) {
+       key = &text_buf[r + 1];
+       p = key[0] + N + 1;
+       while(1) {
+           if (cmp >= 0) {
+               if (rson[p] != N) p = rson[p];
+               else break;
+           } else {
+               if (lson[p] != N) p = lson[p];
+               else break;
+           }
+           for (i = 1; i <= F - 1; i++) {
+               cmp = key[i] - text_buf[p + i];
+               if (key[i] != text_buf[p + i]) break;
+           }
+           if (i > tmp)
+               if ((tmp = i) > F - 1) break;
+       }
+    }
+    if (tmp > match_length) match_length = 0;
 }
 
 void InsertNode(int r) {
@@ -138,58 +134,62 @@ void DeleteNode(int p) {
 }
 
 void lzss(FILE* infile, FILE* outfile) {
-	int c, i, len, r, s, last_match_length, code_buf_ptr;
-	unsigned char code_buf[32], mask;
+     int c, i, len, r, s, last_match_length, code_buf_ptr;
+     unsigned char code_buf[32], mask;
 
-	InitTree(); 
-	code_buf[0] = 0; 
-	code_buf_ptr = mask = 1;
-	s = 0; r = N - F;
+     InitTree();
+     code_buf[0] = 0;
+     code_buf_ptr = mask = 1;
+     s = codesize = 0; r = N - F;
 
-	for (len = 0; len < F && (c = getc(infile)) != EOF; len++)
-		text_buf[r + len] = c;  
-	if ((textsize = len) == 0) return; 
+     for (len = 0; len < F && (c = getc(infile)) != EOF; len++)
+     text_buf[r + len] = c;
+     if ((textsize = len) == 0) return;
 
-	InsertNode(r);
-	do {
-		if (match_length > len) match_length = len; 
+     InsertNode(r);
+     do {
+        if (match_length > len) match_length = len;
         if (match_length <= THRESHOLD) {
-			match_length = 1;  
-			code_buf[0] |= mask; 
-			code_buf[code_buf_ptr++] = text_buf[r]; 
-		} else {
-            code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
-            code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
-            code_buf[code_buf_ptr++] = match_position;        
+           match_length = 1;
+           code_buf[0] |= mask;
+           code_buf[code_buf_ptr++] = text_buf[r];
+        } else {
+           code_buf[code_buf_ptr++] = match_length - THRESHOLD - 1;
+           code_buf[code_buf_ptr++] = (match_position >> 8) & 0xff;
+           code_buf[code_buf_ptr++] = match_position;
         }
-		if ((mask <<= 1) == 0) { 
-			for (i = 0; i < code_buf_ptr; i++)
-				putc(code_buf[i], outfile); 
-			code_buf[0] = 0;  
-            code_buf_ptr = mask = 1;
-		}
-		last_match_length = match_length;
-		for (i = 0; i < last_match_length && (c = getc(infile)) != EOF; i++) {
-			DeleteNode(s);
-			text_buf[s] = c;
-			if (s < F - 1) text_buf[s + N] = c; 
-			s = (s + 1) & (N - 1);  
+        if ((mask <<= 1) == 0) {
+           for (i = 0; i < code_buf_ptr; i++) {
+               putc(code_buf[i], outfile);
+               codesize++;
+           }
+           code_buf[0] = 0;
+           code_buf_ptr = mask = 1;
+        }
+        last_match_length = match_length;
+        for (i = 0; i < last_match_length && (c = getc(infile)) != EOF; i++) {
+            DeleteNode(s);
+            text_buf[s] = c;
+            if (s < F - 1) text_buf[s + N] = c;
+            s = (s + 1) & (N - 1);
             r = (r + 1) & (N - 1);
-			InsertNode(r);
-		}
-		textsize += i;
-		while (i++ < last_match_length) {	
-			DeleteNode(s);					
-			s = (s + 1) & (N - 1);  
+            InsertNode(r);
+        }
+        textsize += i;
+        while (i++ < last_match_length) {
+            DeleteNode(s);
+            s = (s + 1) & (N - 1);
             r = (r + 1) & (N - 1);
-			if (--len) InsertNode(r);		
-		}
-	} while (len > 0);	
-	if (code_buf_ptr > 1) {
-		for (i = 0; i < code_buf_ptr; i++) 
+            if (--len) InsertNode(r);
+        }
+     } while (len > 0);
+     if (code_buf_ptr > 1) {
+        for (i = 0; i < code_buf_ptr; i++) {
             putc(code_buf[i], outfile);
-	}
-	printf("LZSS Out(%ld)/In(%ld): %.3f\n", codesize, textsize, (double)codesize / textsize);
+            codesize++;
+        }
+     }
+     printf("LZSS Out(%ld)/In(%ld): %.3f\n", codesize, textsize, (double)codesize / textsize);
 }
 
 void unlzss(FILE *in, FILE *out) {
@@ -255,7 +255,7 @@ void huff(FILE* in, FILE* out) {
 					huff_len[j]->len); // lookup in len table
             i = m | (i << 8);            
             putChar(huff_pos[(i >> 7)]->code,
-					huff_pos[(i >> 7)]->len); // lookup in pos table
+	    huff_pos[(i >> 7)]->len); // lookup in pos table
             putChar(i - (i >> 7 << 7), 7);
         }
     }
@@ -266,9 +266,9 @@ void huff(FILE* in, FILE* out) {
 
 void unhuff(FILE* in, FILE* out) {
     uint32_t i, j, k, c, code = 0, index = 8, len = 0, code_buf_ptr;
-	unsigned char code_buf[32], mask;
-	code_buf[0] = 0; 
-	code_buf_ptr = mask = 1;
+    unsigned char code_buf[32], mask;
+    code_buf[0] = 0;
+    code_buf_ptr = mask = 1;
     
     int getData() {
         if (index > 7) {
@@ -547,11 +547,11 @@ void extract_lzhs(const char *filename) {
     fseek(file, 0xA040, SEEK_SET);
     fread(&header, 1, sizeof(header), file);
     fwrite(&header, 1, sizeof(header), out);
-	buf = malloc(header.compressedSize);
-	fread(buf, 1, header.compressedSize, file);
-	fwrite(buf, 1, header.compressedSize, out);
-	fclose(out);
-	free(buf);
+    buf = malloc(header.compressedSize);
+    fread(buf, 1, header.compressedSize, file);
+    fwrite(buf, 1, header.compressedSize, out);
+    fclose(out);
+    free(buf);
     sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count++);
 	lzhs_decode(outname, outdecode);
 
@@ -566,16 +566,16 @@ void extract_lzhs(const char *filename) {
     fseek(file, 0x80000, SEEK_SET);
     fread(&header, 1, sizeof(header), file);
     fwrite(&header, 1, sizeof(header), out);
-	buf = malloc(header.compressedSize);
-	fread(buf, 1, header.compressedSize, file);
-	fwrite(buf, 1, header.compressedSize, out);
-	fclose(out);
-	free(buf);
+    buf = malloc(header.compressedSize);
+    fread(buf, 1, header.compressedSize, file);
+    fwrite(buf, 1, header.compressedSize, out);
+    fclose(out);
+    free(buf);
     sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count++);
 	lzhs_decode(outname, outdecode);
 
-	fseek(file, 0, SEEK_END);
-	fsize = ftell(file);
+    fseek(file, 0, SEEK_END);
+    fsize = ftell(file);
     if (0x80000 + 0x10 + header.compressedSize + (16 - header.compressedSize % 16) + 0x200 < fsize) {
 	sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
 	printf("Extracting to %s\n", outname);
@@ -588,11 +588,11 @@ void extract_lzhs(const char *filename) {
     fseek(file, 0x80000 + 0x10 + header.compressedSize + (16 - header.compressedSize % 16) + 0x200, SEEK_SET);
     fread(&header, 1, sizeof(header), file);
     fwrite(&header, 1, sizeof(header), out);
-	buf = malloc(header.compressedSize);
-	fread(buf, 1, header.compressedSize, file);
-	fwrite(buf, 1, header.compressedSize, out);
-	fclose(out);
-	free(buf);
+    buf = malloc(header.compressedSize);
+    fread(buf, 1, header.compressedSize, file);
+    fwrite(buf, 1, header.compressedSize, out);
+    fclose(out);
+    free(buf);
     sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
 	lzhs_decode(outname, outdecode);
     }
