@@ -250,41 +250,27 @@ void split_mtk_tz(const char *filename){
 
 int is_mtk_boot(const char *filename){
 	FILE *in = fopen(filename, "rb");
-	char *magic;
-	int mlen=0, result=0, fsize=0, len=0;
-
 	if(in == NULL){
 		printf("Can't open file %s\n", filename);
-		exit(1);
+		return 0;
 	}
 	fseek(in, 0, SEEK_END);
-	fsize = ftell(in);
-	if(fsize < mtk_pbl_size){
+	int fsize = ftell(in);
+	if (fsize < mtk_pbl_size){
 		fclose(in);
-		return result;
+		return 0;
 	}
-
+    
 	fseek(in, 0x100, SEEK_SET);
- 	char c;
-	do{
-		c=getc(in);
-		len++;
-    } while(c != '\x00'); //calculate string length
-    magic = malloc(len);
-
-	fseek(in, 0x100, SEEK_SET);
-	fread(magic, 1, len, in);
-	if(	strstr(magic, "MTK") != NULL &&
-		strstr(magic, "DTV") != NULL &&
-		strstr(magic, "ROMCODE") != NULL &&
-		strstr(magic, "MSDCBOOT") != NULL){
-			printf("Found valid PBL Magic %s\n", magic);
-			result=1;
-		}
-
+    char magic[] = "MTK/DTV/ROMCODE/MSDCBOOT";
+    char buf[sizeof(magic)];
+	fread(&buf, 1, sizeof(magic), in);
 	fclose(in);
-	return result;
-		
+	if (memcmp(&buf, &magic, sizeof(magic) - 1) == 0) {
+		printf("Found valid PBL magic: %s\n", magic);
+		return 1;
+	}
+	return 0;
 }
 
 int is_elf(const char *filename){

@@ -70,7 +70,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		extract_lzhs(filename);
         return;
 	} else if(is_cramfs_image(filename, "be")) {
-	    constructPath(extractedFile, folderExtractTo, PAKname, ".cramswap");
+    constructPath(extractedFile, folderExtractTo, PAKname, ".cramswap");
 	    printf("Swapping cramfs endian for file %s\n",filename);
 	    cramswap(filename,extractedFile);
 	    extracted=1;
