@@ -136,7 +136,6 @@ void DeleteNode(int p) {
 }
 
 void lzss(FILE* infile, FILE* outfile) {
-    int charno = 0, posno = 0;
 	int c, i, len, r, s, last_match_length, code_buf_ptr;
 	unsigned char code_buf[32], mask;
 
@@ -261,7 +260,7 @@ void huff(FILE* in, FILE* out) {
     putc(precode << (8 - preno), out);
     codesize += preno;
     codesize = (unsigned int)codesize >> 3;
-    printf("LZHS Out(%d)/In(%d): %.4f\n", codesize, textsize, (double)codesize / textsize);
+    printf("LZHS Out(%ld)/In(%ld): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
 
 void unhuff(FILE* in, FILE* out) {

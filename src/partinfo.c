@@ -201,10 +201,10 @@ unsigned int print_p2info(void){
 	char *devsizeunit;
 	if(devsize%(1024*1024*1024) == 0){
 		//Gigabytes
-		fprintf(destfile,"\tSize: %lldGB", (devsize/1024/1024/1024));
+		fprintf(destfile,"\tSize: %dGB", (devsize/1024/1024/1024));
 	} else {
 		//Small MTD, use Megabytes
-		fprintf(destfile,"\tSize: %lldMB", (devsize/1024/1024));
+		fprintf(destfile,"\tSize: %dMB", (devsize/1024/1024));
 	}
 	println();
 
