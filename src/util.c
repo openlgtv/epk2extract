@@ -307,7 +307,7 @@ int is_elf(const char *filename){
 }
 
 int is_lzhs_mem(struct lzhs_header *header){
-    if ((header->compressedSize <= 0xFFFFF) && (header->uncompressedSize >= 0x1FFFFF)) return 0;
+    if ((header->compressedSize <= 0xFFFFFF) && (header->uncompressedSize >= 0x1FFFFFF)) return 0;
 	if (header->compressedSize && header->uncompressedSize && (header->compressedSize <= header->uncompressedSize) && 
         !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) return 1;
 	return 0;
