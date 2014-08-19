@@ -306,23 +306,25 @@ int is_elf(const char *filename){
 	return result;
 }
 
+int is_lzhs_mem(struct lzhs_header *header){
+    if ((header->compressedSize <= 0xFFFFF) && (header->uncompressedSize >= 0x1FFFFF)) return 0;
+	if (header->compressedSize && header->uncompressedSize && (header->compressedSize <= header->uncompressedSize) && 
+        !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) return 1;
+	return 0;
+}
+
 int is_lzhs(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if(file == NULL){
 		printf("Can't open file %s\n", filename);
-		exit(1);
+		return 0;
 	}
-	size_t headerSize = sizeof(struct lzhs_header);
-	unsigned char *buffer = malloc(headerSize);
-	int read  = fread(buffer, 1, headerSize, file);
-	int result = 0;
-	if (read == headerSize){
-		struct lzhs_header *header = (struct lzhs_header *)buffer;
-		if ((header->compressedSize <= header->uncompressedSize) && !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) result=1;
-	}
-	free(buffer);
+    struct lzhs_header header;
+	int read  = fread(&header, 1, sizeof(header), file);
 	fclose(file);
-	return result;
+	if (read == sizeof(header))
+        return is_lzhs_mem(&header);
+	return 0;
 }
 
 int is_gzip(const char *filename) {

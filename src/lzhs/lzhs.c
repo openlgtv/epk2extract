@@ -403,13 +403,6 @@ int PreprocessInputFile(const char *filename, const char *outfilename){
   return result;
 }
 
-int is_lzhs_mem(struct lzhs_header *header){
-	if (!header->compressedSize || !header->uncompressedSize) return 0;
-	if ((header->compressedSize <= header->uncompressedSize) && 
-        !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) return 1;
-	return 0;
-}
-
 void lzhs_encode(const char *infile, const char *outfile){
     struct lzhs_header header;
 	FILE *in, *out;
