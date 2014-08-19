@@ -19,34 +19,48 @@ void InitTree(void) {
 	for (i = 0; i < N; i++) dad[i] = N;
 }
 
-void lazy_match(int r) {
+static void lazy_match(int r)
+{
 	unsigned char *key;
-    int i, p, tmp, cmp = 1;
-  
-    if (match_length < F - 1) {
-        key = &text_buf[r + 1];
-        p = key[0] + N + 1;
-        tmp = 0;
-        while (1) {
-            if (cmp < 0) {
-                if (lson[p] == N) break;
-                p = lson[p];
-            } else {
-                if (rson[p] == N) break;
-                p = rson[p];
-            }
-            for (i = 1; ; ++i) {
-                if (i < F) {
-                    cmp = key[i] - text_buf[p + i];
-                    if (key[i] == text_buf[p + i]) continue;
-                }
-                break;
-            }
-            if (i > tmp)
-                if ((tmp = i) > F - 1) break;
-        }
-    }
-    if (tmp > match_length) match_length = 0;
+	int i, p;
+	int cmp;
+	unsigned tmp;
+	
+	tmp=0;
+	if(match_length <= F-THRESHOLD ){
+		cmp = 1;
+		key = &text_buf[r+1];
+		p = key[0] + N + 1;
+		tmp=0;
+		while(1)
+		{
+			if(cmp >= 0)
+			{
+				if(rson[p] != NIL)
+					p = rson[p];
+				else break;
+			}
+			else
+			{
+				if(lson[p] != NIL)
+					p = lson[p];
+				else break;
+			}
+			for(i = 1; i <= F-1; i++)
+			{
+				cmp = key[i] - text_buf[p + i];
+				if(key[i] != text_buf[p + i])
+					break;
+			}
+			if(i > tmp)
+			{
+				tmp = i;
+				if(i > F-1)
+					break;
+			}
+		}
+	}
+	if (tmp > match_length) match_length = 0;
 }
 
 void InsertNode(int r) {

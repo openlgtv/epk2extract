@@ -244,6 +244,10 @@ void extract_mtk_boot(const char *filename, const char *outname){
 	fclose(out);
 }
 
+void split_mtk_tz(const char *filename){
+	unsigned int tz_off = 0x20000;
+}
+
 int is_mtk_boot(const char *filename){
 	FILE *in = fopen(filename, "rb");
 	char *magic;
