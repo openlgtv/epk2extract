@@ -66,8 +66,8 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		constructPath(extractedFile, folderExtractTo, "mtk_pbl.bin", "");		
 		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
 		extract_mtk_boot(filename, extractedFile);
-		printf("Scanning for LZHS files...\n");
-		scan_lzhs(filename, 1);
+		printf("Extracting embedded LZHS files...\n");
+		extract_lzhs(filename);
 		extracted=1;
 	} else if(is_cramfs_image(filename, "be")) {
 	    constructPath(extractedFile, folderExtractTo, PAKname, ".cramswap");

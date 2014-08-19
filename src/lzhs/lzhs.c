@@ -496,7 +496,7 @@ void lzhs_decode(const char *infile, const char *outfile){
 	if(!in){ printf("Cannot open %s\n", infile); exit(1); }
 	out = fopen("tmp.lzs", "wb");
 	if(!out){ printf("Cannot open %s\n", outfile); exit(1); }
-
+    
 	header = malloc(sizeof(struct lzhs_header));
 	fread((unsigned char *)header, 1, sizeof(struct lzhs_header), in);
 	printf("\n---LZHS Details---\n");
@@ -532,6 +532,62 @@ void lzhs_decode(const char *infile, const char *outfile){
 
 	unlink("tmp.lzs");
 	unlink("conv");
+}
+
+void extract_lzhs(const char *filename) {
+	int fsize, i, n, pos;
+	int count=0;
+	struct lzhs_header header;
+	char *outname, *outdecode;
+	unsigned char *buf;
+
+	outname = malloc(PATH_MAX);
+	outdecode = malloc(PATH_MAX);
+
+	FILE *file = fopen(filename, "rb");
+	FILE *out = NULL;
+	if(file == NULL){
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+
+	sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
+	printf("Extracting to %s\n", outname);
+	out = fopen(outname, "wb");
+	if(out == NULL){
+		printf("Cannot open file %s for writing\n", outname);
+		fclose(file);
+		exit(1);
+	}
+    fseek(file, 0xA040, SEEK_SET);
+    fread(&header, 1, sizeof(header), file);
+    fwrite(&header, 1, sizeof(header), out);
+	buf = malloc(header.compressedSize);
+	fread(buf, 1, header.compressedSize, file);
+	fwrite(buf, 1, header.compressedSize, out);
+	fclose(out);
+	free(buf);
+    sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count++);
+	lzhs_decode(outname, outdecode);
+
+	sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
+	printf("Extracting to %s\n", outname);
+	out = fopen(outname, "wb");
+	if(out == NULL){
+		printf("Cannot open file %s for writing\n", outname);
+		fclose(file);
+		exit(1);
+	}
+    fseek(file, 0x80000, SEEK_SET);
+    fread(&header, 1, sizeof(header), file);
+    fwrite(&header, 1, sizeof(header), out);
+	buf = malloc(header.compressedSize);
+	fread(buf, 1, header.compressedSize, file);
+	fwrite(buf, 1, header.compressedSize, out);
+	fclose(out);
+	free(buf);
+    sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
+	lzhs_decode(outname, outdecode);
 }
 
 void scan_lzhs(const char *filename, int extract){

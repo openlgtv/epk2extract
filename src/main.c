@@ -71,8 +71,8 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		constructPath(dest_file, dest_dir, "mtk_pbl.bin", "");		
 		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
 		extract_mtk_boot(file, dest_file);
-		printf("Scanning for LZHS files...\n");
-		scan_lzhs(file, 1);
+		printf("Extracting embedded LZHS files...\n");
+		extract_lzhs(file);
 		return EXIT_SUCCESS;
 	} else if(is_cramfs_image(file, "be")) {
 		constructPath(dest_file, dest_dir, file_name, ".cramswap");
