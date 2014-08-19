@@ -68,7 +68,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 		extract_mtk_boot(filename, extractedFile);
 		printf("Extracting embedded LZHS files...\n");
 		extract_lzhs(filename);
-		extracted=1;
+        return;
 	} else if(is_cramfs_image(filename, "be")) {
 	    constructPath(extractedFile, folderExtractTo, PAKname, ".cramswap");
 	    printf("Swapping cramfs endian for file %s\n",filename);
