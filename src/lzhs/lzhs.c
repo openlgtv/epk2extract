@@ -19,44 +19,30 @@ void InitTree(void) {
 	for (i = 0; i < N; i++) dad[i] = N;
 }
 
-static void lazy_match(int r)
-{
+static void lazy_match(int r) {
 	unsigned char *key;
-	int i, p;
-	int cmp;
-	unsigned tmp;
+	int i, p, cmp = 1, tmp = 0;
 	
-	tmp=0;
-	if(match_length <= F-THRESHOLD ){
-		cmp = 1;
-		key = &text_buf[r+1];
+	if (match_length <= F - THRESHOLD ){
+		key = &text_buf[r + 1];
 		p = key[0] + N + 1;
-		tmp=0;
-		while(1)
-		{
-			if(cmp >= 0)
-			{
+		while(1) {
+			if (cmp >= 0) {
 				if(rson[p] != NIL)
 					p = rson[p];
 				else break;
-			}
-			else
-			{
+			} else {
 				if(lson[p] != NIL)
-					p = lson[p];
+                    p = lson[p];
 				else break;
 			}
-			for(i = 1; i <= F-1; i++)
-			{
+			for (i = 1; i <= F - 1; i++) {
 				cmp = key[i] - text_buf[p + i];
-				if(key[i] != text_buf[p + i])
-					break;
+				if(key[i] != text_buf[p + i]) break;
 			}
-			if(i > tmp)
-			{
+			if (i > tmp) {
 				tmp = i;
-				if(i > F-1)
-					break;
+				if (i > F - 1) break;
 			}
 		}
 	}
@@ -425,6 +411,7 @@ int is_lzhs_mem(struct lzhs_header *header){
 }
 
 void lzhs_encode(const char *infile, const char *outfile){
+    struct lzhs_header header;
 	FILE *in, *out;
 	unsigned char *buf;
 	int fsize;
@@ -484,26 +471,19 @@ void lzhs_encode(const char *infile, const char *outfile){
 
 	printf("Step 5: Encoding with Huffman...\n");
 	
-	for(i=0; i<sizeof(struct lzhs_header); i++)
-		fputc(0x00, out); //prepare header
+    header.uncompressedSize = textsize;
+    header.checksum = checksum;
+	fwrite(&header, 1, sizeof(header), out);
 
 	huff(in, out);
+    header.compressedSize = codesize;
 	printf("Writing Header...\n");
-	printf("!!FIXME: header uncompressed and compressed sizes are not correct!!\n");
 	rewind(out);
-	for(i=0; i<4; i++)
-        fputc((textsize >> 8 * i), out);
-    for(i=0; i<4; i++)
-        fputc((codesize >> 8 * i), out);
-    /*fwrite(&textsize, 1, sizeof(unsigned int), out);
-	fwrite(&codesize, 1, sizeof(unsigned int), out);*/
-	fputc(checksum, out);
+    fwrite(&header, 1, sizeof(header), out);
 	printf("Done!\n");
 
 	fclose(in);
 	fclose(out);
-	/*unlink("tmp.lzs");
-	unlink("conv");*/
 }
 
 void lzhs_decode(const char *infile, const char *outfile){
