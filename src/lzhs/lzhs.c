@@ -283,14 +283,14 @@ void unhuff(FILE* in, FILE* out) {
 	unsigned char code_buf[32], mask;
 	code_buf[0] = 0; 
 	code_buf_ptr = mask = 1;
-
+    
     int getData() {
         if (index > 7) {
             index = 0;
             if ((c = getc(in)) == EOF) {
-                if (code_buf_ptr > 1) // flushing buffer
-                    for (i = 0; i < code_buf_ptr; i++) 
-                        putc(code_buf[i], out);    
+                if (code_buf_ptr > 1 && (code_buf_ptr % 16) == 0) // flushing buffer
+                    for (i = 0; i < code_buf_ptr; i++)
+                        putc(code_buf[i], out);
                 return 0;        
             }
         }
@@ -491,8 +491,12 @@ void lzhs_encode(const char *infile, const char *outfile){
 	printf("Writing Header...\n");
 	printf("!!FIXME: header uncompressed and compressed sizes are not correct!!\n");
 	rewind(out);
-	fwrite(&textsize, 1, sizeof(unsigned int), out);
-	fwrite(&codesize, 1, sizeof(unsigned int), out);
+	for(i=0; i<4; i++)
+        fputc((textsize >> 8 * i), out);
+    for(i=0; i<4; i++)
+        fputc((codesize >> 8 * i), out);
+    /*fwrite(&textsize, 1, sizeof(unsigned int), out);
+	fwrite(&codesize, 1, sizeof(unsigned int), out);*/
 	fputc(checksum, out);
 	printf("Done!\n");
 
