@@ -13,4 +13,10 @@ struct lzhs_header {
 #define F             34
 #define THRESHOLD     2
 
+/*for Huffman */
+typedef struct __attribute__((__packed__)) {
+	uint32_t code;
+	uint32_t len;
+} t_code;
+
 #endif

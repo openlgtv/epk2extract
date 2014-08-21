@@ -11,7 +11,9 @@
 unsigned long int textsize = 0, codesize = 0;
 unsigned char text_buf[N + F - 1];
 int	match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
-
+t_code (*huff_char)[1] = (void *)&char_table;
+t_code (*huff_len)[1]  = (void *)&len_table;
+t_code (*huff_pos)[1]  = (void *)&pos_table;
 
 void InitTree(void) { 
 	int  i;
@@ -246,15 +248,17 @@ void huff(FILE* in, FILE* out) {
         }
         if (flags & 1) {
             if ((c = getc(in)) == EOF) break;
-            putChar(*(uint32_t*)&char_len_table[8 * c], 
-                *(uint32_t*)&char_len_table[8 * c + 4]); // lookup in char table
+            putChar(huff_char[c]->code, 
+	                huff_char[c]->len); // lookup in char table
         } else {
             if ((j = getc(in)) == EOF) break; // match length
             if ((i = getc(in)) == EOF) break; // byte1 of match position
             if ((m = getc(in)) == EOF) break; // byte0 of match position
-            putChar(*(uint32_t*)&char_len_table[8 * (j + 256)], *(uint32_t*)&char_len_table[8 * (j + 256) + 4]); // lookup in len table
+            putChar(huff_len[j]->code,
+					huff_len[j]->len); // lookup in len table
             i = m | (i << 8);            
-            putChar(*(uint32_t*)&pos_table[8 * (i >> 7)], *(uint32_t*)&pos_table[8 * (i >> 7) + 4]); // lookup in pos table
+            putChar(huff_pos[(i >> 7)]->code,
+					huff_pos[(i >> 7)]->len); // lookup in pos table
             putChar(i - (i >> 7 << 7), 7);
         }
     }
@@ -288,14 +292,14 @@ void unhuff(FILE* in, FILE* out) {
     while (1) {
         if (!getData()) return;
         for (i = 0; i < 288; i++) {
-            if ( *(uint32_t*)&char_len_table[8 * i + 4] == len && *(uint32_t*)&char_len_table[8 * i] == code) {
+            if ( huff_char[i]->len == len && huff_char[i]->code == code) {
                 if (i > 255) {
                     code_buf[code_buf_ptr++] = i - 256;
                     code = len = 0;
                     while (1) {
                         if (!getData()) return;
                         for (j = 0; j < 32; j++) {
-                            if ( *(uint32_t*)&pos_table[8 * j + 4] == len && *(uint32_t*)&pos_table[8 * j] == code) {
+                            if ( huff_pos[j]->len == len && huff_pos[j]->code == code) {
                                 code_buf[code_buf_ptr++] = j >> 1;
                                 k = -1;
                                 break;
@@ -509,7 +513,9 @@ void lzhs_decode(const char *infile, const char *outfile){
 	uint8_t checksum = lzhs_calc_checksum(buf, fsize);
         printf("Calculated checksum = 0x%x\n", checksum);
 	if(checksum != header.checksum)
-            printf("[LZHS] WARNING: Checksum mismatch!!\n");
+		printf("[LZHS] WARNING: Checksum mismatch (expected 0x%x)!!\n", header.checksum);
+	if(fsize != header.uncompressedSize)
+		printf("[LZHS] WARNING: Size mismatch (got %d, expected %d)!!\n", fsize, header.uncompressedSize);
 	free(buf);
 	fclose(in);
 	fclose(out);
