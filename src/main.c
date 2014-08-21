@@ -33,26 +33,29 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	const char *file_name = basename(strdup(file));
 
 	char dest_file[1024] = "";
-	char lz4pack[1024] = "";
-
+	memset(dest_file, 0x00, sizeof(dest_file));
+	int repeat = 0;
 	if (check_lzo_header(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".lzounpack");
 		printf("Extracting LZO file to: %s\n", dest_file);
 		if (lzo_unpack(file, dest_file) == 0) {
 			handle_file(dest_file, config_opts);
-			return EXIT_SUCCESS;
+			repeat = 1;
 		}
 	} else if (is_nfsb(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unnfsb");
 		printf("Extracting nfsb image to: %s.\n\n", dest_file);
 		unnfsb(file, dest_file);
-		handle_file(dest_file, config_opts);
-		return EXIT_SUCCESS;
+		repeat = 1;
 	} else if (is_lz4(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unlz4");
 		printf("UnLZ4 file to: %s\n", dest_file);
-		decode_file(file, dest_file);
-		return EXIT_SUCCESS;			
+		//repeat = !decode_file(file, dest_file);
+		return EXIT_SUCCESS;
+	} else if(check_lzo_header(file)) {
+		constructPath(dest_file, dest_dir, file_name, ".unpacked");
+		printf("LZOunpack %s to %s\n", file, dest_file);
+		repeat = !lzo_unpack(file, dest_file);
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
 		printf("Unsquashfs file to: %s\n", dest_file);
@@ -65,7 +68,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		if (dest_file) 
 		    handle_file(dest_file, config_opts);
-		return EXIT_SUCCESS;
+		repeat = 1;
 	} else if (is_mtk_boot(file)) {
 		constructPath(dest_file, dest_dir, "mtk_pbl.bin", "");		
 		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
@@ -77,14 +80,13 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		constructPath(dest_file, dest_dir, file_name, ".cramswap");
 		printf("Swapping cramfs endian for file %s\n", file);
 		cramswap(file, dest_file);
-		handle_file(dest_file, config_opts);
-		return EXIT_SUCCESS;
+		repeat = 1;
 	} else if(is_cramfs_image(file, "le")) {
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
 		printf("Uncramfs %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
-		return EXIT_SUCCESS;
+		repeat = 1;
 	} else if (isFileEPK2(file)) {
 		extractEPK2file(file, config_opts);
 		return EXIT_SUCCESS;
@@ -96,10 +98,9 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		return EXIT_SUCCESS;
 	} else if (is_kernel(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unpaked");
-		printf("Extracting boot image to: %s.\n\n", dest_file);
+		printf("Extracting boot image to: %s\n\n", dest_file);
 		extract_kernel(file, dest_file);
-		handle_file(dest_file, config_opts);
-		return EXIT_SUCCESS;
+		repeat = 1;
 	} else if(isPartPakfile(file)) {
 		constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
 		printf("Saving Partition info to: %s\n", dest_file);
@@ -135,14 +136,15 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		return EXIT_SUCCESS;
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
 		printf("Splitting mtk tzfw...\n");
-		split_mtk_tz(file);
+		split_mtk_tz(file, dest_dir);
 		return EXIT_SUCCESS;
 	}
+	if(repeat) handle_file(dest_file, config_opts);
 	return EXIT_FAILURE;
 }
 
 int main(int argc, char *argv[]) {
-        printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.0 by sirius (http://openlgtv.org.ru)\n\n");
+        printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.1 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("Usage: epk2extract [-options] FILENAME\n\n");

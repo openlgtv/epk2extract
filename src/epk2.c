@@ -353,9 +353,8 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	char fwVersion[1024];
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
 	
-	char targetFolder[1024]="";
-	constructPath(targetFolder, config_opts->dest_dir, fwVersion, NULL);
-	createFolder(targetFolder);
+	constructPath(config_opts->dest_dir, "", fwVersion, NULL);
+	createFolder(config_opts->dest_dir);
 
 	long unsigned int offset = SIGNATURE_SIZE+0x654+SIGNATURE_SIZE+fwInfo->packageInfoSize;
 	for(i = 0; i < packageInfo->numOfSegments; i++) {
@@ -365,7 +364,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 		
 		char filename[1024] = "";
 		sprintf(name, "%s", segment.name);
-		constructPath(filename, targetFolder, name, ".pak");
+		constructPath(filename, config_opts->dest_dir, name, ".pak");
 		printf("Saving partition (%s) to file %s\n", name, filename);
 		outfile = fopen(filename, "w");
 		
@@ -387,7 +386,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			free(decrypted);
 		}
 		fclose(outfile);
-		processExtractedFile(filename, targetFolder, name);
+		handle_file(filename, config_opts);
 		i+=index-1;
 	}
 	
@@ -622,9 +621,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	char fwVersion[1024];
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
 
-	char targetFolder[1024]="";
-	constructPath(targetFolder, config_opts->dest_dir, fwVersion, NULL);
-	createFolder(targetFolder);
+	constructPath(config_opts->dest_dir, "", fwVersion, NULL);
+	createFolder(config_opts->dest_dir);
 
 	SelectAESkey(pakArray[0], config_opts);
 
@@ -635,11 +633,11 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		char filename[1024] = "";
 		char name[4];
 		sprintf(name, "%.4s", pakArray[index]->header->name);
-		constructPath(filename, targetFolder, name, ".pak");
+		constructPath(filename, config_opts->dest_dir, name, ".pak");
 		printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, fwInfo->pakCount, name, filename);
 		int length = writePAKsegment(pakArray[index], filename);
 		free(pakArray[index]);
-		processExtractedFile(filename, targetFolder, name);
+		handle_file(filename, config_opts);
 	}
 	if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 	close(file);

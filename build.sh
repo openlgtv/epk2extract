@@ -14,7 +14,7 @@ white='printf \033[01;37m'
 cwd=$(pwd)
 sourcedir=$(cd `dirname $0`; pwd -P)
 
-exe=("epk2extract" "lzhs/lzhsenc" "lzhs/lzhs_scanner")
+exe=("epk2extract" "tools/lzhsenc" "tools/lzhs_scanner")
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
 elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux

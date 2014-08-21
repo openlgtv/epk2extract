@@ -11,10 +11,10 @@
 #include <config.h>
 #include <openssl/aes.h>
 #include <inttypes.h>
-#include <time.h>
 #include <libgen.h>
 
 //partinfo
+#include <time.h>
 #include <fnmatch.h>
 #include <partinfo.h>
 
@@ -25,6 +25,10 @@
 #include <lzhs/lzhs.h>
 
 #include <elf.h>
+
+//kernel
+#include <u-boot/image.h>
+#include <arpa/inet.h>
 
 #include <formats.h>
 
@@ -229,7 +233,7 @@ void extract_mtk_boot(const char *filename, const char *outname){
 		exit(1);
 	}
 	FILE *out = fopen(outname, "wb");
-	if(in == NULL){
+	if(out == NULL){
 		printf("Can't open file %s for writing\n", outname);
 		exit(1);
 	}
@@ -244,8 +248,56 @@ void extract_mtk_boot(const char *filename, const char *outname){
 	fclose(out);
 }
 
-void split_mtk_tz(const char *filename){
+void split_mtk_tz(const char *filename, const char *destdir){
 	unsigned int tz_off = 0x20000;
+	unsigned char *buf;
+	char *dest = malloc(strlen(destdir)+strlen(filename)+10);
+	int n;
+	size_t fileSize, env_size, tz_size;
+	FILE *in = fopen(filename, "rb");
+	if(in == NULL){
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	memset(dest, 0x00, sizeof(dest));
+	constructPath(dest, destdir, "env.o", "");
+	FILE *out = fopen(dest, "wb");
+	if(out == NULL){
+		printf("Can't open file %s for writing\n", dest);
+		exit(1);
+	}
+	fseek(in, 0, SEEK_END);
+	fileSize = ftell(in);
+	rewind(in);
+	env_size = tz_off;
+	tz_size = fileSize - env_size;
+	buf = malloc(env_size);
+	n = fread(buf, 1, env_size, in);
+	if(n != env_size){
+		printf("Error, cannot read %s!\n", dest);
+		fclose(in); fclose(out);
+		exit(1);
+	}
+	printf("Extracting env.o ...\n");
+	fwrite(buf, 1, env_size, out);
+	memset(dest, 0x00, strlen(dest));
+	constructPath(dest, destdir, "tz.bin", "");
+	freopen(dest, "wb", out);
+	if(out == NULL){
+		printf("Can't open file %s for writing\n", dest);
+		exit(1);
+	}
+	buf = realloc(buf, tz_size);
+	memset(buf, 0x00, tz_size);
+	fseek(in, tz_off, SEEK_SET);
+	n = fread(buf, 1, tz_size, in);
+	if(n != tz_size){
+		printf("Error, cannot read %s!\n", dest);
+		fclose(in); fclose(out);
+		exit(1);
+	}
+	printf("Extracting tz.bin ...\n");
+	fwrite(buf, 1, tz_size, out);
 }
 
 int is_mtk_boot(const char *filename){
@@ -273,23 +325,25 @@ int is_mtk_boot(const char *filename){
 	return 0;
 }
 
+int is_elf_mem(Elf32_Ehdr *header){
+	size_t headerSize = 4;
+	if(!memcmp(&header->e_ident, ELFMAG, headerSize))
+		return 1;
+	return 0;
+}
+
 int is_elf(const char *filename){
 	FILE *file = fopen(filename, "rb");
 	if(file == NULL){
 		printf("Can't open file %s\n", filename);
 		exit(1);
 	}
-	size_t headerSize = sizeof(Elf32_Ehdr);
-	unsigned char *buffer = malloc(headerSize);
-	int read = fread(buffer, 1, headerSize, file);
-	int result = 0;
-	if(read == headerSize){
-		Elf32_Ehdr *header = (Elf32_Ehdr *)buffer;
-		if(!memcmp(&header->e_ident, buffer, sizeof(header->e_ident))){
-			result = 1;
-		}
+	Elf32_Ehdr header;
+	int read = fread(&header, 1, sizeof(header), file);
+	if(read == sizeof(header)){
+		return is_elf_mem(&header);
 	}
-	return result;
+	return 0;
 }
 
 int is_lzhs_mem(struct lzhs_header *header){
@@ -372,12 +426,15 @@ int isSTRfile(const char *filename) {
 
 int isdatetime(char *datetime)
 {
+	time_t rawtime;
+	struct tm time_val;
+	struct tm *systime;
+	systime = localtime(&rawtime);
 	// datetime format is YYYYMMDD
-	struct tm   time_val;
-	if ((strptime(datetime,"%Y%m%d",&time_val)) == 0)
-		return 0;
-	else
+	if(strptime(datetime,"%Y%m%d",&time_val) != 0 && (time_val.tm_year > 2005 && time_val.tm_year <= systime->tm_year))
 		return 1;
+	else
+		return 0;
 }
 
 /* detect_model - detect model and corresponding part struct
@@ -437,7 +494,7 @@ int isPartPakfile(const char *filename) {
 	memcpy(&partinfo, pi, sizeof(struct p2_partmap_info));
 	
 	int result = 0;
-        char *cmagic=malloc(4);
+	char cmagic[4];
 	sprintf(cmagic, "%x", pi->magic);
 	
 	if (isdatetime((char *)cmagic)) {
@@ -448,4 +505,47 @@ int isPartPakfile(const char *filename) {
 	if (ps != -1) result = 1;
 	fclose(file);
 	return result;
+}
+
+int is_kernel(const char *image_file) {
+	FILE *file = fopen(image_file, "r");
+	if (file == NULL) {
+		printf("Can't open file %s", image_file);
+		exit(1);
+	}
+	size_t header_size = sizeof(struct image_header);
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header_size);
+	int read = fread(buffer, 1, header_size, file);
+	if (read != header_size) return 0;
+	fclose(file);
+	struct image_header *image_header = (struct image_header *) buffer;
+	int result = image_header->ih_magic == ntohl(IH_MAGIC);
+	free(buffer);
+	return result;
+}
+
+void extract_kernel(const char *image_file, const char *destination_file) {
+	FILE *file = fopen(image_file, "r");
+	if (file == NULL) {
+		printf("Can't open file %s", image_file);
+		exit(1);
+	}
+	fseek(file, 0, SEEK_END);
+	int fileLength = ftell(file);
+	rewind(file);
+	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
+	int read = fread(buffer, 1, fileLength, file);
+	if (read != fileLength) {
+		printf("Error reading file. read %d bytes from %d.\n", read, fileLength);
+		free(buffer);
+		exit(1);
+	}
+	fclose(file);
+
+	struct image_header *image_header = (struct image_header *) buffer;
+	FILE *out = fopen(destination_file, "w");
+	int header_size = sizeof(struct image_header);
+	fwrite(buffer + header_size, 1, read - header_size, out);
+	fclose(out);
+	free(buffer);
 }

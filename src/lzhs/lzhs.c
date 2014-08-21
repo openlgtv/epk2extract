@@ -346,7 +346,7 @@ void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int e
      }
 }
 
-int PreprocessInputFile(const char *filename, const char *outfilename) {
+int lzhs_pad_file(const char *filename, const char *outfilename) {
     int input_filesize;
     size_t n;
     char *ptr;
@@ -405,7 +405,7 @@ void lzhs_encode(const char *infile, const char *outfile){
 
      printf("\n[LZHS] Padding...\n");
      sprintf(outtmp, "%s.tmp", infile);
-     PreprocessInputFile(infile, outtmp);
+     lzhs_pad_file(infile, outtmp);
 
      in = fopen(outtmp, "rb");
      if(!in){ printf("Cannot open file %s\n", infile); exit(1); }
@@ -617,12 +617,12 @@ void scan_lzhs(const char *filename, int extract){
 		exit(1);
 	}
 
-	for(i=0; ;i+=16){
+	for(i=0; ;i+=sizeof(header)){
 		n = fread(&header, 1, sizeof(header), file);
-		if(n<16) break;
+		if(n<sizeof(header)) break;
 		if(is_lzhs_mem(&header)){
 			count++;
-			pos = ftell(file)-16;
+			pos = ftell(file)-sizeof(header);
 			printf("\nFound LZHS Header at 0x%x\n", pos);
 			if(extract){
 				sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
