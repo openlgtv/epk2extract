@@ -28,11 +28,11 @@ static void lazy_match(int r) {
 		p = key[0] + N + 1;
 		while(1) {
 			if (cmp >= 0) {
-				if(rson[p] != NIL)
+				if(rson[p] != N)
 					p = rson[p];
 				else break;
 			} else {
-				if(lson[p] != NIL)
+				if(lson[p] != N)
                     p = lson[p];
 				else break;
 			}
@@ -273,7 +273,7 @@ void unhuff(FILE* in, FILE* out) {
         if (index > 7) {
             index = 0;
             if ((c = getc(in)) == EOF) {
-                if (code_buf_ptr > 1 && (code_buf_ptr % 16) == 0) // flushing buffer
+                if (code_buf_ptr > 1) // flushing buffer
                     for (i = 0; i < code_buf_ptr; i++)
                         putc(code_buf[i], out);
                 return 0;        
@@ -325,168 +325,150 @@ void unhuff(FILE* in, FILE* out) {
 }
 
 void ARMThumb_Convert(unsigned char* data, uint32_t size, uint32_t nowPos, int encoding) {
-	uint32_t i;
-	for (i = 0; i + 4 <= size; i += 2) {
-		if ((data[i + 1] & 0xF8) == 0xF0 && (data[i + 3] & 0xF8) == 0xF8) {
-			uint32_t src = ((data[i + 1] & 0x7) << 19) | (data[i + 0] << 11) | ((data[i + 3] & 0x7) << 8) | (data[i + 2]);
-			src <<= 1;
-			uint32_t dest;
-			if (encoding)
-				dest = nowPos + i + 4 + src;
-			else
-				dest = src - (nowPos + i + 4);
-			dest >>= 1;
-			data[i + 1] = 0xF0 | ((dest >> 19) & 0x7);
-			data[i + 0] = (dest >> 11);
-			data[i + 3] = 0xF8 | ((dest >> 8) & 0x7);
-			data[i + 2] = (dest);
-			i += 2;
-		}
-	}
+     uint32_t i;
+     for (i = 0; i + 4 <= size; i += 2) {
+         if ((data[i + 1] & 0xF8) == 0xF0 && (data[i + 3] & 0xF8) == 0xF8) {
+	    uint32_t src = ((data[i + 1] & 0x7) << 19) | (data[i + 0] << 11) | ((data[i + 3] & 0x7) << 8) | (data[i + 2]);
+            src <<= 1;
+	    uint32_t dest;
+            if (encoding)
+               dest = nowPos + i + 4 + src;
+            else
+               dest = src - (nowPos + i + 4);
+	    dest >>= 1;
+	    data[i + 1] = 0xF0 | ((dest >> 19) & 0x7);
+	    data[i + 0] = (dest >> 11);
+	    data[i + 3] = 0xF8 | ((dest >> 8) & 0x7);
+	    data[i + 2] = (dest);
+	    i += 2;
+         }
+     }
 }
 
-
-int PreprocessInputFile(const char *filename, const char *outfilename){
-  signed int result;
-  int v4;
-  size_t n;
-  char *ptr;
-  FILE *infile, *outfile;
-  int input_filesize;
-  infile = fopen(filename, "rb");
-  if ( infile )
-  {
-    outfile = fopen(outfilename, "wb");
-	if ( outfile )
-    {
-	
-	fseek (infile , 0 , SEEK_END);
-	size_t filesize = ftell(infile);
-	rewind(infile);
-    ptr = malloc (sizeof(char)*filesize);
-	int extrabytes=0;
-      for ( input_filesize = 0; ; input_filesize += n ) //start a loop. add read elements every iteration
-      {
-		n = fread(ptr, 1u, 0x200u, infile); //read 512 bytes from input into ptr
-        if ( n <= 0 ){
-		  break;
-		  }
-		if(n%16 != 0){
-			unsigned int x = (n/8)*8; //it will be truncated, so we get next multiple
-			if(x < n) x+=8;
-			x = x - n; //how many bytes we need to add
-			extrabytes+=x; //add the bytes to the counter
-		}
-        fwrite(ptr, 1u, n, outfile); //write read bytes to output
-      }
-	  printf("We need to fill extra %d bytes\n",extrabytes);
-		int i;
-		for(i=1; i<=extrabytes; i++){
-		putc(0xff, outfile);
-	  }
-      fclose(infile);
-      fclose(outfile);
-      result = 0;
+int PreprocessInputFile(const char *filename, const char *outfilename) {
+    int input_filesize;
+    size_t n;
+    char *ptr;
+    FILE *infile, *outfile;
+    infile = fopen(filename, "rb");
+    if (infile) {
+       outfile = fopen(outfilename, "wb");
+       if (outfile) {
+          fseek (infile , 0, SEEK_END);
+	  size_t filesize = ftell(infile);
+	  rewind(infile);
+          ptr = malloc(sizeof(char)*filesize);
+	  int extrabytes = 0;
+          for (input_filesize = 0; ; input_filesize += n ) { //start a loop. add read elements every iteration
+              n = fread(ptr, 1u, 0x200u, infile); //read 512 bytes from input into ptr
+              if (n <= 0) break;
+              if (n % 16 != 0) {
+	         unsigned int x = (n/8)*8; //it will be truncated, so we get next multiple
+		 if (x < n) x += 8;
+		 x = x - n; //how many bytes we need to add
+		 extrabytes += x; //add the bytes to the counter
+              }
+              fwrite(ptr, 1u, n, outfile); //write read bytes to output
+          }
+	  printf("We need to fill extra %d bytes\n", extrabytes);
+	  int i;
+	  for (i=1; i <= extrabytes; i++) putc(0xff, outfile);
+          fclose(infile);
+          fclose(outfile);
+          return 0;
+       } else {
+          printf("Open file %s failed.\n", outfilename);
+          return 1;
+       }
+    } else {
+      printf("open file %s fail \n", filename);
+      return 1;
     }
-    else
-    {
-      printf("open file %s fail\n", outfilename);
-      result = 1;
-    }
-  }
-  else
-  {
-    printf("open file %s fail \n", filename);
-    result = 1;
-  }
-  return result;
+    return 0;
 }
 
-unsigned char lzhs_calc_checksum(unsigned char *buf){
-	unsigned char checksum = 0; int i;
- 	for (i = 0; i < sizeof(buf); ++i) checksum += buf[i];
-	return checksum;
+unsigned char lzhs_calc_checksum(unsigned char *buf, int fsize) {
+     unsigned char checksum = 0; int i;
+     for (i = 0; i < fsize; ++i) checksum += buf[i];
+     return checksum;
 }
 
 void lzhs_encode(const char *infile, const char *outfile){
-    struct lzhs_header header;
-	FILE *in, *out;
-	unsigned char *buf;
-	int fsize;
+     struct lzhs_header header;
+     FILE *in, *out;
+     unsigned char *buf;
+     int fsize;
 
-	char *filedir = malloc(strlen(infile));
-	char *outtmp = malloc(strlen(infile)+5);
+     char *filedir = malloc(strlen(infile));
+     char *outtmp = malloc(strlen(infile)+5);
 
-	printf("\n[LZHS] Padding...\n");
-	sprintf(outtmp, "%s.tmp", infile);
-	PreprocessInputFile(infile, outtmp);
+     printf("\n[LZHS] Padding...\n");
+     sprintf(outtmp, "%s.tmp", infile);
+     PreprocessInputFile(infile, outtmp);
 
-	in=fopen(outtmp, "rb");
-	if(!in){ printf("Cannot open file %s\n", infile); exit(1); }
+     in = fopen(outtmp, "rb");
+     if(!in){ printf("Cannot open file %s\n", infile); exit(1); }
 
-	strcpy(outtmp, infile);
-	strcpy(filedir, dirname(outtmp));
+     strcpy(outtmp, infile);
+     strcpy(filedir, dirname(outtmp));
+     strcpy(outtmp, filedir);
+     strcat(outtmp, "/conv");
 
-	strcpy(outtmp, filedir);
-	strcat(outtmp, "/conv");
+     out = fopen(outtmp, "wb");
+     if(!out){ printf("Cannot open file conv\n"); exit(1); }
 
-	out=fopen(outtmp, "wb");
-	if(!out){ printf("Cannot open file conv\n"); exit(1); }
+     fseek(in, 0, SEEK_END);
+     fsize = ftell(in);
+     rewind(in);
 
-	fseek(in, 0, SEEK_END);
-	fsize = ftell(in);
-	buf = malloc(fsize);
+     buf = malloc(fsize);
+     fread(buf, 1, fsize, in);
 
-	rewind(in);
-	fread(buf, 1, fsize, in);
+     printf("[LZHS] Calculating checksum...\n");
+     header.checksum = lzhs_calc_checksum(buf, fsize);
+     memset(&header.spare, 0, sizeof(header.spare));
+     printf("Checksum = %x\n", header.checksum);
 
-	printf("[LZHS] Calculating Checksum...\n");
-	unsigned char checksum = lzhs_calc_checksum(buf);
-	printf("Checksum = %x\n", checksum); 
+     printf("[LZHS] Converting ARM => Thumb...\n");
+     ARMThumb_Convert(buf, fsize, 0, 1);
+     fwrite(buf, 1, fsize, out);
+     free(buf);
 
-	printf("[LZHS] Converting ARM => Thumb...\n");
-	ARMThumb_Convert(buf, fsize, 0, 1);
-	fwrite(buf, 1, fsize, out);
-	free(buf);
+     freopen(outtmp, "rb", in);
+     if(!in){ printf("Cannot open file conv\n", infile); exit(1); }
 
-	freopen(outtmp, "rb", in);
-	if(!in){ printf("Cannot open file conv\n", infile); exit(1); }
+     strcpy(outtmp, filedir);
+     strcat(outtmp, "/tmp.lzs");
+     freopen(outtmp, "wb", out);
 
-	strcpy(outtmp, filedir);
-	strcat(outtmp, "/tmp.lzs");
+     printf("[LZHS] Encoding with LZSS...\n");
+     lzss(in, out);
+     if(!out){ printf("Cannot open tmp.lzs\n"); exit(1); }
 
-	freopen(outtmp, "wb", out);
+     freopen(outtmp, "rb", in);
+     if(!in){ printf("Cannot open file tmp.lzs\n", infile); exit(1); }
+     freopen(outfile, "wb", out);
+     if(!out){ printf("Cannot open file %s\n", outfile); exit(1); }
 
-	printf("[LZHS] Encoding with LZSS...\n");
-	lzss(in, out);
-	if(!out){ printf("Cannot open tmp.lzs\n"); exit(1); }
+     printf("[LZHS] Encoding with Huffman...\n");
+     header.uncompressedSize = textsize;
+     fwrite(&header, 1, sizeof(header), out);
 
-	freopen(outtmp, "rb", in);
-	if(!in){ printf("Cannot open file tmp.lzs\n", infile); exit(1); }
-	freopen(outfile, "wb", out);
-	if(!out){ printf("Cannot open file %s\n", outfile); exit(1); }
+     huff(in, out);
+     header.compressedSize = codesize;
+     printf("[LZHS] Writing Header...\n");
+     rewind(out);
+     fwrite(&header, 1, sizeof(header), out);
+     printf("[LZHS] Done!\n");
 
-	printf("[LZHS] Encoding with Huffman...\n");
-	
-    header.uncompressedSize = textsize;
-    header.checksum = checksum;
-	fwrite(&header, 1, sizeof(header), out);
-
-	huff(in, out);
-    header.compressedSize = codesize;
-	printf("[LZHS] Writing Header...\n");
-	rewind(out);
-    fwrite(&header, 1, sizeof(header), out);
-	printf("[LZHS] Done!\n");
-
-	fclose(in);
-	fclose(out);
+     fclose(in);
+     fclose(out);
 }
 
 void lzhs_decode(const char *infile, const char *outfile){
 	FILE *in, *out;
 	unsigned char *buf;
-	struct lzhs_header *header;
+	struct lzhs_header header;
 	int fsize;
 
 	in = fopen(infile, "rb");
@@ -494,12 +476,11 @@ void lzhs_decode(const char *infile, const char *outfile){
 	out = fopen("tmp.lzs", "wb");
 	if(!out){ printf("Cannot open %s\n", outfile); exit(1); }
     
-	header = malloc(sizeof(struct lzhs_header));
-	fread((unsigned char *)header, 1, sizeof(struct lzhs_header), in);
+	fread(&header, 1, sizeof(header), in);
 	printf("\n---LZHS Details---\n");
-	printf("Compressed:\t%d\n", header->compressedSize);
-	printf("Uncompressed:\t%d\n", header->uncompressedSize);
-	printf("Checksum:\t0x%x\n\n", header->checksum);
+	printf("Compressed:\t%d\n", header.compressedSize);
+	printf("Uncompressed:\t%d\n", header.uncompressedSize);
+	printf("Checksum:\t0x%x\n\n", header.checksum);
 
 	printf("[LZHS] Decoding Huffman...\n");
 	unhuff(in, out);
@@ -522,18 +503,17 @@ void lzhs_decode(const char *infile, const char *outfile){
 	printf("[LZHS] Converting Thumb => ARM...\n");
 	ARMThumb_Convert(buf, fsize, 0, 0);
 	fwrite(buf, 1, fsize, out);
-	unsigned char checksum = lzhs_calc_checksum(buf);
-	if(checksum != header->checksum){
-		printf("[LZHS] WARNING: Checksum Mismatch!!\n");
-	}
 
+        printf("[LZHS] Calculating checksum...\n");
+	unsigned char checksum = lzhs_calc_checksum(buf, fsize);
+        printf("Calculated checksum = %x\n", checksum);
+	if(checksum != header.checksum)
+            printf("[LZHS] WARNING: Checksum mismatch!!\n");
 	free(buf);
-
 	fclose(in);
 	fclose(out);
-
-	unlink("tmp.lzs");
-	unlink("conv");
+	//unlink("tmp.lzs");
+	//unlink("conv");
 }
 
 void extract_lzhs(const char *filename) {

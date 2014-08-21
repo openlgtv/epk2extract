@@ -25,7 +25,6 @@
 
 char exe_dir[1024];
 char *current_dir;
-int endianswap;
 
 struct config_opts_t config_opts;
 
@@ -142,58 +141,8 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	return EXIT_FAILURE;
 }
 
-void test(void) {
-#include <fcntl.h>
-#include <lzhs/lzhs.h>
-    FILE* in = fopen("conv", "rb");
-	FILE* out = fopen("tmp2.lzs", "wb");
-	lzss(in, out);
-	fclose(in);	
-	fclose(out);	
-
-	in = fopen("tmp.lzs", "rb");
-	out = fopen("conv2", "wb");
-	unlzss(in, out);
-	fclose(in);	
-	int fileSize = ftell(out);
-
-    unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileSize);
-	fclose(out);
-    out = fopen("conv2", "rb");
-	fread(buffer, 1, fileSize, out);
-	
-	ARMThumb_Convert(buffer, fileSize, 0, 0);
-	out = fopen("u-boot.tmp", "wb");
-	fwrite(buffer, 1, fileSize, out);
-	fclose(out);
-	
-	struct lzhs_header header;
-    header.checksum = 0; int i;
-	for (i = 0; i < fileSize; ++i) header.checksum += buffer[i];
-	printf("Unlzss file size: %d bytes, checksum: %02X\n", fileSize, header.checksum);
-    free(buffer);
-
-	in = fopen("u-boot.lzhs", "rb");
-	out = fopen("tmp3.lzs", "wb");
-	fread(&header, 1, sizeof(header), in);
-	printf("Uncompressed size: %d, compressed size: %d, checksum: %02X\n", header.uncompressedSize, header.compressedSize, header.checksum);
-    unhuff(in, out);
-	fclose(in);	
-	fclose(out);	
-    
-	in = fopen("tmp3.lzs", "rb");
-	out = fopen("tmp2.lzhs", "wb");
-    fwrite(&header, 1, sizeof(header), out);
-	huff(in, out);
-	fclose(in);	
-	fclose(out);	
-    
-	exit(0);
-}
-
 int main(int argc, char *argv[]) {
-	//test();
-    printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.0 by sirius (http://openlgtv.org.ru)\n\n");
+        printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.0 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
