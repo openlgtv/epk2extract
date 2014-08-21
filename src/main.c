@@ -21,7 +21,7 @@
 #include <epk1.h>
 #include <epk2.h>
 #include <symfile.h>
-#include <formats.h>
+#include <minigzip.h>
 
 char exe_dir[1024];
 char *current_dir;

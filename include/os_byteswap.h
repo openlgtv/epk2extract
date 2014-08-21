@@ -1,6 +1,8 @@
 #ifndef BYTESWAP_H
 #define	BYTESWAP_H
 
+#define SWAP(x) SwapBytes(&x, sizeof(x))
+
 #ifdef __APPLE__
 #include <libkern/OSByteOrder.h> 
 #define bswap_16(x) OSSwapInt16(x)

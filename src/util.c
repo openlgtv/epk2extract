@@ -30,7 +30,8 @@
 #include <u-boot/image.h>
 #include <arpa/inet.h>
 
-#include <formats.h>
+//minigzip
+#include <minigzip.h>
 
 int ps;
 char *modelname;

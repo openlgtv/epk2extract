@@ -2,11 +2,9 @@
 #include <fcntl.h>
 #include <epk1.h>
 #include <errno.h>
-#include <formats.h>
-
+#include <os_byteswap.h>
 
 const char EPK1_MAGIC[] = "epak";
-int endianswap;
 
 int isFileEPK1(const char *epk_file) {
 	FILE *file = fopen(epk_file, "r");
@@ -66,10 +64,8 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	}
 	char verString[1024];
 	int index;
-	endianswap=0;
 	uint32_t pakcount = ((struct epk1Header_t*)buffer)->pakCount;
 	if (pakcount >> 8 != 0) {
-	    endianswap = 1;
 	    SWAP(pakcount);
 	    printf("\nFirmware type is EPK1 Big Endian...\n");
 	    unsigned char *header = malloc(sizeof(struct epk1BEHeader_t)); //allocate space for header

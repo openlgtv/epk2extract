@@ -22,10 +22,10 @@
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 
-#include <formats.h>
-
 // Application libraries
 #include <zlib.h>
+
+#include <os_byteswap.h>
 
 // Cramfs definitions
 #include "cramfs.h"
