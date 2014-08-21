@@ -446,19 +446,15 @@ int detect_model(struct p2_device_info *pid){
 	char *model;
 	retval = 0; //partinfo v2
 	int ismtk1   = !fnmatch("mtk3569-emmc",pid->name,FNM_NOMATCH); //match mtk2012
-	int ismtk1_1 = !fnmatch("mtk5369-emmc",pid->name,FNM_NOMATCH); //match mtk2012
-
 	int ismtk2   = !fnmatch("mtk3598-emmc",pid->name,FNM_NOMATCH); //match mtk2013
-	int ismtk2_2 = !fnmatch("mtk5398-emmc",pid->name,FNM_NOMATCH); //match mtk2013
-	
 	int is1152 = !fnmatch("l9_emmc",pid->name,FNM_NOMATCH); //match 1152
 	int is1154 = !fnmatch("h13_emmc",pid->name,FNM_NOMATCH); //match 1154
 	int isbcm1  = !fnmatch("bcm35xx_map0",pid->name,FNM_NOMATCH); //match broadcom
 	int isbcm2  = !fnmatch("bcm35230_map0",pid->name,FNM_NOMATCH); //match broadcom
 	int ismstar= !fnmatch("mstar_map0",pid->name,FNM_NOMATCH); //match mstar
 	
-	if(ismtk1 || ismtk1_1) model="Mtk 2012 - MTK5369";
-	else if(ismtk2 || ismtk2_2)	model="Mtk 2012 - MTK5398";
+	if(ismtk1) model="Mtk 2012 - MTK5369";
+	else if(ismtk2)	model="Mtk 2012 - MTK5398";
 	else if(is1152)	model="LG1152";
 	else if(is1154)	model="LG1154";
 	else if(isbcm1)	model="BCM 2011 - BCM35230";
