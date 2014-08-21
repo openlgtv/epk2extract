@@ -201,7 +201,7 @@ void unlzss(FILE *in, FILE *out) {
         }
         if (flags & 1) {
             if ((c = getc(in)) == EOF) break;
-            putc(text_buf[r++] = c, out);  
+            putc(text_buf[r++] = c, out);
             r &= (N - 1);
         } else {
             if ((j = getc(in)) == EOF) break; // match length
@@ -209,7 +209,8 @@ void unlzss(FILE *in, FILE *out) {
             if ((m = getc(in)) == EOF) break; // byte0 of match position
             i = (i << 8) | m;
             for (k = 0; k <= j + THRESHOLD; k++) {
-                putc(text_buf[r++] = text_buf[(r - 1 - i) & (N - 1)], out);
+                m = text_buf[(r - i) & (N - 1)];
+                putc(text_buf[r++] = m, out);
                 r &= (N - 1);
             }
         }
@@ -505,8 +506,8 @@ void lzhs_decode(const char *infile, const char *outfile){
 	fwrite(buf, 1, fsize, out);
 
         printf("[LZHS] Calculating checksum...\n");
-	unsigned char checksum = lzhs_calc_checksum(buf, fsize);
-        printf("Calculated checksum = %x\n", checksum);
+	uint8_t checksum = lzhs_calc_checksum(buf, fsize);
+        printf("Calculated checksum = 0x%x\n", checksum);
 	if(checksum != header.checksum)
             printf("[LZHS] WARNING: Checksum mismatch!!\n");
 	free(buf);
