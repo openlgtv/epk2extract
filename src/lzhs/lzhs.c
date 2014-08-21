@@ -165,7 +165,6 @@ void lzss(FILE* infile, FILE* outfile) {
 		if ((mask <<= 1) == 0) { 
 			for (i = 0; i < code_buf_ptr; i++)
 				putc(code_buf[i], outfile); 
-                codesize += code_buf_ptr;
 			code_buf[0] = 0;  
             code_buf_ptr = mask = 1;
 		}
@@ -189,7 +188,6 @@ void lzss(FILE* infile, FILE* outfile) {
 	if (code_buf_ptr > 1) {
 		for (i = 0; i < code_buf_ptr; i++) 
             putc(code_buf[i], outfile);
-		codesize += code_buf_ptr;
 	}
 	printf("LZSS Out(%ld)/In(%ld): %.3f\n", codesize, textsize, (double)codesize / textsize);
 }
@@ -223,7 +221,6 @@ void huff(FILE* in, FILE* out) {
     uint32_t preno = 0, precode = 0;
     void putChar(uint32_t code, uint32_t no) {
         uint32_t tmpno, tmpcode;
-        codesize += no;
         if (preno + no > 7) {
             do {
                 no -= tmpno = 8 - preno;
@@ -263,8 +260,7 @@ void huff(FILE* in, FILE* out) {
         }
     }
     putc(precode << (8 - preno), out);
-    codesize += preno;
-    codesize = (unsigned int)codesize >> 3;
+    codesize = ftell(out) - sizeof(struct lzhs_header);
     printf("LZHS Out(%ld)/In(%ld): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
 
