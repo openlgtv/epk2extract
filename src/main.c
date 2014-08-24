@@ -98,7 +98,8 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		extract_kernel(file, dest_file);
 		repeat = 1;
 	} else if(isPartPakfile(file)) {
-		constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
+		//constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
+        constructPath(dest_file, dest_dir, file_name, ".txt");
 		printf("Saving Partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
 		repeat = 0;
