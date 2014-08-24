@@ -133,20 +133,6 @@ void constructPath(char *result_path, const char *first, const char *second, con
 	if(postfix != NULL) strcat(result_path, postfix);
 }
 
-char *remove_ext(char* mystr) {
-    char *retstr;
-    char *lastdot;
-    if (mystr == NULL)
-         return NULL;
-    if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
-        return NULL;
-    strcpy (retstr, mystr);
-    lastdot = strrchr (retstr, '.');
-    if (lastdot != NULL)
-        *lastdot = '\0';
-    return retstr;
-}
-
 int is_lz4(const char *lz4file) {
 	FILE *file = fopen(lz4file, "r");
 	if (file == NULL) {

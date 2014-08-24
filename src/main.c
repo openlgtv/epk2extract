@@ -23,6 +23,16 @@
 #include <symfile.h>
 #include <minigzip.h>
 
+char *remove_ext(const char* mystr) {
+    char *retstr, *lastdot;
+    if (mystr == NULL) return NULL;
+    if ((retstr = (char *)malloc(strlen(mystr) + 1)) == NULL) return NULL;
+    strcpy(retstr, mystr);
+    lastdot = strrchr (retstr, '.');
+    if (lastdot != NULL) *lastdot = '\0';
+    return retstr;
+}
+
 char exe_dir[1024];
 char *current_dir;
 
@@ -32,125 +42,95 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	const char *dest_dir = config_opts->dest_dir;
 	const char *file_name = basename(strdup(file));
 
-	char dest_file[1024] = "";
-	memset(dest_file, 0x00, sizeof(dest_file));
-	int repeat = -1;
+	char dest_file[1024];
+	memset(dest_file, 0, sizeof(dest_file));
+	int repeat = 0;
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
-		repeat = 0;
 	} else if (isFileEPK2(file)) {
 		extractEPK2file(file, config_opts);
-		repeat = 0;
 	} else if (isFileEPK3(file)) {
 		extractEPK3file(file, config_opts);
-		repeat = 0;
 	} else if (is_lz4(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unlz4");
 		printf("UnLZ4 file to: %s\n", dest_file);
-		repeat = !decode_file(file, dest_file);
+		if (!decode_file(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (check_lzo_header(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".lzounpack");
 		printf("Extracting LZO file to: %s\n", dest_file);
-		repeat=!lzo_unpack(file, dest_file);
+		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_nfsb(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unnfsb");
 		printf("Extracting nfsb image to: %s.\n\n", dest_file);
 		unnfsb(file, dest_file);
-		repeat = 1;
+		handle_file(dest_file, config_opts);
 	} else if(check_lzo_header(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unpacked");
 		printf("LZOunpack %s to %s\n", file, dest_file);
-		repeat = !lzo_unpack(file, dest_file);
+		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
 		printf("Unsquashfs file to: %s\n", dest_file);
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
-		repeat = 0;
 	} else if (is_gzip(file)) {
 		constructPath(dest_file, dest_dir, "", "");
 		printf("Ungzip %s to folder %s\n", file, dest_file);
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
-		if (dest_file) 
-		    handle_file(dest_file, config_opts);
-		repeat = 1;
+		handle_file(dest_file, config_opts);
 	} else if (is_mtk_boot(file)) {
 		constructPath(dest_file, dest_dir, "mtk_pbl.bin", "");		
 		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
 		extract_mtk_boot(file, dest_file);
 		printf("Extracting embedded LZHS files...\n");
 		extract_lzhs(file);
-		repeat = 0;
 	} else if(is_cramfs_image(file, "be")) {
 		constructPath(dest_file, dest_dir, file_name, ".cramswap");
 		printf("Swapping cramfs endian for file %s\n", file);
 		cramswap(file, dest_file);
-		repeat = 1;
+		handle_file(dest_file, config_opts);
 	} else if(is_cramfs_image(file, "le")) {
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
 		printf("Uncramfs %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
-		repeat = 0;
 	} else if (is_kernel(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unpaked");
 		printf("Extracting boot image to: %s\n\n", dest_file);
 		extract_kernel(file, dest_file);
-		repeat = 1;
+		handle_file(dest_file, config_opts);
 	} else if(isPartPakfile(file)) {
-		//constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
-        constructPath(dest_file, dest_dir, file_name, ".txt");
+		constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
 		printf("Saving Partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
-		repeat = 0;
 	} else if(is_jffs2(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unjffs2");
 		printf("jffs2extract %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		jffs2extract(file, dest_file, "1234");
-		repeat = 0;
 	} else if(isSTRfile(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".ts");
 		setKey();
 		printf("\nConverting %s file to TS: %s\n", file, dest_file);
 		convertSTR2TS(file, dest_file, 0);
-		repeat = 0;
 	} else if(!memcmp(&file[strlen(file)-3], "PIF", 3)) {
 		constructPath(dest_file, dest_dir, file_name, ".ts");
 		setKey();
 		printf("\nProcessing PIF file: %s\n", file);
 		processPIF(file, dest_file);
-		repeat = 0;
 	} else if(symfile_load(file) == 0) {
 		constructPath(dest_file, dest_dir, file_name, ".idc");
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
-		repeat = 0;
 	} else if (is_lzhs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unlzhs");
 		printf("Unlzhs %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
-		repeat = 0;
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
 		printf("Splitting mtk tzfw...\n");
 		split_mtk_tz(file, dest_dir);
-		repeat = 0;
 	}
-	switch(repeat){
-		case -1: //file not handled
-			return EXIT_FAILURE;
-			break;
-		case 0: //file handled
-			return EXIT_SUCCESS;
-			break;
-		case 1: //file handled, repeat recursively
-			handle_file(dest_file, config_opts);
-			break;
-		default:
-			return EXIT_FAILURE;
-			break;
-	}
-	
+	return EXIT_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
