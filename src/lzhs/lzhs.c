@@ -478,7 +478,7 @@ void lzhs_decode(const char *infile, const char *outfile){
 	if(!out){ printf("Cannot open %s\n", outfile); exit(1); }
     
 	fread(&header, 1, sizeof(header), in);
-	printf("\n---LZHS Details---\n");
+	printf("\n---LZHS details---\n");
 	printf("Compressed:\t%d\n", header.compressedSize);
 	printf("Uncompressed:\t%d\n", header.uncompressedSize);
 	printf("Checksum:\t0x%x\n\n", header.checksum);
@@ -599,6 +599,13 @@ void extract_lzhs(const char *filename) {
 }
 
 void scan_lzhs(const char *filename, int extract){
+    int is_lzhs_mem(struct lzhs_header *header){
+        if ((header->compressedSize <= 0xFFFFFF) && (header->uncompressedSize >= 0x1FFFFFF)) return 0;
+        if (header->compressedSize && header->uncompressedSize && (header->compressedSize <= header->uncompressedSize) && 
+            !memcmp(&header->spare, "\0\0\0\0\0\0\0", sizeof(header->spare))) return 1;
+        return 0;
+    }
+
 	int fsize, i, n, pos;
 	int count=0;
 	struct lzhs_header header;
@@ -623,7 +630,7 @@ void scan_lzhs(const char *filename, int extract){
 		if(is_lzhs_mem(&header)){
 			count++;
 			pos = ftell(file)-sizeof(header);
-			printf("\nFound LZHS Header at 0x%x\n", pos);
+			printf("\nFound LZHS header at 0x%x\n", pos);
 			if(extract){
 				sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
 				printf("Extracting to %s\n", outname);

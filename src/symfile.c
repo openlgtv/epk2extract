@@ -85,8 +85,7 @@ int symfile_load(const char *fname) {
 	}
 
 	if (header->magic != MAGIC) {
-		say_error("bad magic 0x%x from `%s'", header->magic, fname);
-
+		//say_error("bad magic 0x%x from `%s'", header->magic, fname);
 		return -1;
 	}
 

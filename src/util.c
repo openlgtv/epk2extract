@@ -130,11 +130,11 @@ void constructPath(char *result_path, const char *first, const char *second, con
 	strcat(result_path, first);
 	strcat(result_path, G_DIR_SEPARATOR_S);
 	strcat(result_path, second);
-	if(postfix != NULL) strcat(result_path, postfix);
+	if (postfix != NULL) strcat(result_path, postfix);
 }
 
 int is_lz4(const char *lz4file) {
-	FILE *file = fopen(lz4file, "r");
+	FILE *file = fopen(lz4file, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s", lz4file);
 		exit(1);
@@ -150,7 +150,7 @@ int is_lz4(const char *lz4file) {
 }
 
 int is_nfsb(const char *filename) {
-	FILE *file = fopen(filename, "r");
+	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s", filename);
 		exit(1);
@@ -333,29 +333,27 @@ int is_elf(const char *filename){
 	return 0;
 }
 
-int is_lzhs_mem(struct lzhs_header *header){
-    if ((header->compressedSize <= 0xFFFFFF) && (header->uncompressedSize >= 0x1FFFFFF)) return 0;
-	if (header->compressedSize && header->uncompressedSize && (header->compressedSize <= header->uncompressedSize) && 
-        !memcmp(&header->spare, "\x00\x00\x00\x00\x00\x00\x00", sizeof(header->spare))) return 1;
-	return 0;
-}
-
 int is_lzhs(const char *filename) {
 	FILE *file = fopen(filename, "rb");
-	if(file == NULL){
+	if (file == NULL) {
 		printf("Can't open file %s\n", filename);
 		return 0;
 	}
     struct lzhs_header header;
-	int read  = fread(&header, 1, sizeof(header), file);
-	fclose(file);
-	if (read == sizeof(header))
-        return is_lzhs_mem(&header);
+	int read = fread(&header, 1, sizeof(header), file);
+	if (read == sizeof(header)) {
+       	fseek(file, 0, SEEK_END);
+        if ((ftell(file) - 16 == header.compressedSize) && (memcmp(&header.spare, "\0\0\0\0\0\0\0", sizeof(header.spare)) == 0)) {
+            fclose(file);
+            return 1;
+        }
+    }
+    fclose(file);
 	return 0;
 }
 
 int is_gzip(const char *filename) {
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "rb");
     if (file == NULL) {
 	printf("Can't open file %s\n", filename);
 	exit(1);
@@ -373,7 +371,7 @@ int is_gzip(const char *filename) {
 }
     
 int is_jffs2(const char *filename) {
-	FILE *file = fopen(filename, "r");
+	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s\n", filename);
 		exit(1);
@@ -396,7 +394,7 @@ int is_jffs2(const char *filename) {
 }
 
 int isSTRfile(const char *filename) {
-	FILE *file = fopen(filename, "r");
+	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s\n", filename);
 		exit(1);
@@ -491,7 +489,7 @@ int isPartPakfile(const char *filename) {
 }
 
 int is_kernel(const char *image_file) {
-	FILE *file = fopen(image_file, "r");
+	FILE *file = fopen(image_file, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s", image_file);
 		exit(1);
@@ -508,7 +506,7 @@ int is_kernel(const char *image_file) {
 }
 
 void extract_kernel(const char *image_file, const char *destination_file) {
-	FILE *file = fopen(image_file, "r");
+	FILE *file = fopen(image_file, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s", image_file);
 		exit(1);
@@ -526,7 +524,7 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 	fclose(file);
 
 	struct image_header *image_header = (struct image_header *) buffer;
-	FILE *out = fopen(destination_file, "w");
+	FILE *out = fopen(destination_file, "wb");
 	int header_size = sizeof(struct image_header);
 	fwrite(buffer + header_size, 1, read - header_size, out);
 	fclose(out);

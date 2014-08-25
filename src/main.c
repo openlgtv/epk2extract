@@ -46,9 +46,6 @@ char *get_ext(const char* mystr) {
     return retstr;
 }
 
-char exe_dir[PATH_MAX];
-char *current_dir;
-
 struct config_opts_t config_opts;
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
@@ -142,12 +139,13 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
 		printf("Splitting mtk tzfw...\n");
 		split_mtk_tz(file, dest_dir);
-	}
+	} else 
+        return EXIT_FAILURE;
 	return EXIT_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
-        printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.1 by sirius (http://openlgtv.org.ru)\n\n");
+    printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.2 by sirius (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
@@ -160,7 +158,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	current_dir = malloc(PATH_MAX);
+    char exe_dir[PATH_MAX];
+	char *current_dir = malloc(PATH_MAX);
 	getcwd(current_dir, PATH_MAX);
 	printf("Current directory: %s\n", current_dir);
 	readlink("/proc/self/exe", exe_dir, PATH_MAX);
