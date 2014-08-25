@@ -120,8 +120,12 @@ void createFolder(const char *directory) {
 	struct stat st;
 	if (stat(directory, &st) != 0) {
 		if (mkdir((const char*) directory, 0744) != 0) {
-			printf("FATAL: Can't create directory '%s'\n", directory);
-			exit(1);
+			printf("FATAL: Can't create directory '%s'\n\n", directory);
+            #ifdef __CYGWIN__
+                puts("Press any key to continue...");
+                getch();
+            #endif
+            exit(1);
 		}
 	}
 }
@@ -136,36 +140,34 @@ void constructPath(char *result_path, const char *first, const char *second, con
 int is_lz4(const char *lz4file) {
 	FILE *file = fopen(lz4file, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s", lz4file);
+		printf("Can't open file %s\n\n", lz4file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
-	size_t headerSize = 4;
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
-	int read = fread(buffer, 1, headerSize, file);
-	if (read != headerSize) return 0;
-	fclose(file);
-	int result = !memcmp(&buffer[0], "LZ4P", 4); 
-	free(buffer);
-	return result;
+	char magic[4];
+	if (fread(&magic, 1, 4, file) != 4) return 0;
+	return !memcmp(&magic, "LZ4P", 4);
 }
 
 int is_nfsb(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s", filename);
+		printf("Can't open file %s\n\n", filename);
+        #ifdef __CYGWIN__
+            puts("Press any key to continue...");
+            getch();
+        #endif
 		exit(1);
 	}
-	size_t headerSize = 0x10;
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
-	int read = fread(buffer, 1, headerSize, file);
-	int result = 0;
-	if (read == headerSize) {
-		result = !memcmp(&buffer[0x0], "NFSB", 4);
-		if (!result) result = !memcmp(&buffer[0xE], "md5", 3);
-	}
+	char header[0x11];
+	if (fread(&header, 1, sizeof(header), file) != sizeof(header)) return 0;
 	fclose(file);
-	free(buffer);
-	return result;
+	if (memcmp(&header, "NFSB", 4) == 0) 
+        return !memcmp(&header[0xE], "md5", 3);
+	return 0;
 }
 
 void unnfsb(char* filename, char* extractedFile) {
