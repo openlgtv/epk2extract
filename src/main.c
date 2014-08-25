@@ -70,22 +70,22 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		if(!strcmp(file_name, "logo.pak"))
 			constructPath(dest_file, dest_dir, file_name, ".bmp");
 		else
-			constructPath(dest_file, dest_dir, file_name, ".lzounpack");
-		printf("Extracting LZO file to: %s\n", dest_file);
+			constructPath(dest_file, dest_dir, file_name, ".unlzo");
+		printf("UnLZO file to: %s\n", dest_file);
 		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_nfsb(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unnfsb");
-		printf("Unnfsb file to: %s\n", dest_file);
+		printf("UnNFSB file to: %s\n", dest_file);
 		unnfsb(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
-		printf("Unsquashfs file to: %s\n", dest_file);
+		printf("UnSQUASHFS file to: %s\n", dest_file);
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
 	} else if (is_gzip(file)) {
 		constructPath(dest_file, dest_dir, "", "");
-		printf("Ungzip %s to folder %s\n", file, dest_file);
+		printf("UnGZIP %s to folder %s\n", file, dest_file);
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		handle_file(dest_file, config_opts);
 	} else if (is_mtk_boot(file)) {
@@ -101,7 +101,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		handle_file(dest_file, config_opts);
 	} else if(is_cramfs_image(file, "le")) {
 		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
-		printf("Uncramfs %s to folder %s\n", file, dest_file);
+		printf("UnCRAMFS %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 	} else if (is_kernel(file)) {
@@ -111,11 +111,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		handle_file(dest_file, config_opts);
 	} else if(isPartPakfile(file)) {
 		constructPath(dest_file, dest_dir, file_base, ".txt");
-		printf("Saving Partition info to: %s\n", dest_file);
+		printf("Saving partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
 	} else if(is_jffs2(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unjffs2");
-		printf("jffs2extract %s to folder %s\n", file, dest_file);
+		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		jffs2extract(file, dest_file, "1234");
 	} else if(isSTRfile(file)) {
@@ -134,7 +134,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		symfile_write_idc(dest_file);
 	} else if (is_lzhs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unlzhs");
-		printf("Unlzhs %s to %s\n", file, dest_file);
+		printf("UnLZHS %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
 		printf("Splitting mtk tzfw...\n");
