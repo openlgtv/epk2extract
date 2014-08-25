@@ -362,9 +362,12 @@ void do_list(int inode, std::string root="")
 			if (!whine++)
 				perror("chmod");
 		
-		if (chown(pathname.c_str(), uid, gid))
-			if (!whine++)
+		if (chown(pathname.c_str(), uid, gid)) {
+        #ifndef __CYGWIN__
+            if (!whine++)
 				perror("chown");
+        #endif
+        }
 	}
 //	printf("%s (%d)\n", pathname.c_str(), max_size);
 	std::list<int> &child = childs[inode];
