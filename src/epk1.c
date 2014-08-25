@@ -4,22 +4,20 @@
 #include <errno.h>
 #include <os_byteswap.h>
 
-const char EPK1_MAGIC[] = "epak";
-
 int isFileEPK1(const char *epk_file) {
-	FILE *file = fopen(epk_file, "r");
+	FILE *file = fopen(epk_file, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s", epk_file);
+		printf("Can't open file %s\n\n", epk_file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
-	size_t header_size = sizeof(struct epk1Header_t);
-	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header_size);
-	int read = fread(buffer, 1, header_size, file);
-	if (read != header_size) return 0;
+    char magic[4];
+	if (fread(&magic, 1, 4, file) != 4) return 0;
 	fclose(file);
-	int result = !memcmp(((struct epk1Header_t*)(buffer))->epakMagic, EPK1_MAGIC, 4);
-	free(buffer);
-	return result;
+	return !memcmp(&magic, "epak", 4);
 }
 
 void printHeaderInfo(struct epk1Header_t *epakHeader) {
@@ -47,19 +45,31 @@ void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader)
 void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) {
 	int file;
 	if (!(file = open(epk_file, O_RDONLY))) {
-		printf("\nCan't open file %s\n", epk_file);
+		printf("\nCan't open file %s\n\n", epk_file);
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 	struct stat statbuf;
 	if (fstat(file, &statbuf) < 0) {
-		printf("\nfstat error\n"); 
+		printf("\nfstat error\n\n"); 
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 	int fileLength = statbuf.st_size;
 	printf("File size: %d bytes\n", fileLength);
 	void *buffer;
 	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
-		printf("\nCannot mmap input file (%s). Aborting\n", strerror(errno));
+		printf("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
+		#ifdef __CYGWIN__
+			puts("Press any key to continue...");
+			getch();
+		#endif
 		exit(1);
 	}
 	char verString[1024];
@@ -110,7 +120,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
             constructPath(filename, config_opts->dest_dir, pakName, ".pak");
             printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
                 pakHeader->platform, pakRecord->offset, pakRecord->size, filename);
-            FILE *outfile = fopen(((const char*) filename), "w");
+            FILE *outfile = fopen(((const char*) filename), "wb");
             fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord->size - 132, outfile);
             fclose(outfile);
             handle_file(filename, config_opts);
@@ -136,7 +146,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 		constructPath(filename, config_opts->dest_dir, pakName, ".pak");
         printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
             pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
-		FILE *outfile = fopen(((const char*) filename), "w");
+		FILE *outfile = fopen(((const char*) filename), "wb");
 		fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
 		fclose(outfile);
 		handle_file(filename, config_opts);
@@ -157,7 +167,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 			constructPath(filename, config_opts->dest_dir, pakName, ".pak");
             printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, 
                 pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
-			FILE *outfile = fopen(((const char*) filename), "w");
+			FILE *outfile = fopen(((const char*) filename), "wb");
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakHeader->pakSize + 4, outfile);
 			fclose(outfile);
 			handle_file(filename, config_opts);
