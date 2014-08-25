@@ -24,7 +24,7 @@ struct config_opts_t {
 #endif
 
 #ifndef PATH_MAX
-	#define PATH_MAX        4096	/* # chars in a path name including nul */
+	#define PATH_MAX        1024	/* # chars in a path name including nul */
 #endif
 
 #endif /* CONFIG_H_ */

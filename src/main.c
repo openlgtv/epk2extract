@@ -33,18 +33,32 @@ char *remove_ext(const char* mystr) {
     return retstr;
 }
 
-char exe_dir[1024];
+char *get_ext(const char* mystr) {
+    char *retstr, *lastdot;
+    if (mystr == NULL) return NULL;
+    if ((retstr = (char *)malloc(strlen(mystr) + 1)) == NULL) return NULL;
+    lastdot = strrchr (mystr, '.');
+	if (lastdot != NULL){
+		sprintf(retstr, "%s", lastdot+1);
+		int i;
+		for(i = 0; retstr[i]; i++) retstr[i] = tolower(retstr[i]);
+	}
+    return retstr;
+}
+
+char exe_dir[PATH_MAX];
 char *current_dir;
 
 struct config_opts_t config_opts;
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
-	const char *dest_dir = config_opts->dest_dir;
-	const char *file_name = basename(strdup(file));
-
-	char dest_file[1024];
+	char *dest_dir = config_opts->dest_dir;
+	char *file_name = basename(strdup(file));
+	char *file_base = remove_ext(strdup(file_name));
+	//char *file_ext = get_ext(strdup(file_name));
+	char *dest_file = malloc(strlen(file) + 50);
+	
 	memset(dest_file, 0, sizeof(dest_file));
-	int repeat = 0;
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
 	} else if (isFileEPK2(file)) {
@@ -56,7 +70,10 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("UnLZ4 file to: %s\n", dest_file);
 		if (!decode_file(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (check_lzo_header(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".lzounpack");
+		if(!strcmp(file_name, "logo.pak"))
+			constructPath(dest_file, dest_dir, file_name, ".bmp");
+		else
+			constructPath(dest_file, dest_dir, file_name, ".lzounpack");
 		printf("Extracting LZO file to: %s\n", dest_file);
 		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_nfsb(file)) {
@@ -64,10 +81,6 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("Extracting nfsb image to: %s.\n\n", dest_file);
 		unnfsb(file, dest_file);
 		handle_file(dest_file, config_opts);
-	} else if(check_lzo_header(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unpacked");
-		printf("LZOunpack %s to %s\n", file, dest_file);
-		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
 		printf("Unsquashfs file to: %s\n", dest_file);
@@ -100,7 +113,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if(isPartPakfile(file)) {
-		constructPath(dest_file, dest_dir, remove_ext(file_name), ".txt");
+		constructPath(dest_file, dest_dir, file_base, ".txt");
 		printf("Saving Partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
 	} else if(is_jffs2(file)) {
@@ -150,7 +163,7 @@ int main(int argc, char *argv[]) {
 	current_dir = malloc(PATH_MAX);
 	getcwd(current_dir, PATH_MAX);
 	printf("Current directory: %s\n", current_dir);
-	readlink("/proc/self/exe", exe_dir, 1024);
+	readlink("/proc/self/exe", exe_dir, PATH_MAX);
 	config_opts.config_dir = dirname(exe_dir);
 	config_opts.dest_dir = NULL;
 
