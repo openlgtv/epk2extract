@@ -287,8 +287,9 @@ void unhuff(FILE* in, FILE* out) {
   
     while (1) {
         if (!getData()) return;
+        if (len < 4) continue; // len should be min 5
         for (i = 0; i < 288; i++) {
-            if ( huff_char[i]->len == len && huff_char[i]->code == code) {
+            if (huff_char[i]->len == len && huff_char[i]->code == code) {
                 if (i > 255) {
                     code_buf[code_buf_ptr++] = i - 256;
                     code = len = 0;
