@@ -75,7 +75,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_nfsb(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unnfsb");
-		printf("Extracting nfsb image to: %s.\n\n", dest_file);
+		printf("Extracting nfsb image to: %s.\n", dest_file);
 		unnfsb(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (is_squashfs(file)) {
@@ -150,9 +150,9 @@ int main(int argc, char *argv[]) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
 		printf("Options:\n");
-		printf("  -c : extract to current directory instead of source file directory\n");
+		printf("  -c : extract to current directory instead of source file directory\n\n");
 		#ifdef __CYGWIN__
-			puts("\nPress any key to continue...");
+			puts("Press any key to continue...");
 			getch();
 		#endif
 		return 1;
