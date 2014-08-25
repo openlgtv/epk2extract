@@ -287,7 +287,7 @@ void unhuff(FILE* in, FILE* out) {
   
     while (1) {
         if (!getData()) return;
-        if (len < 4) continue; // len should be min 5
+        if (len < 4) continue; // len in code_len table should be min 4
         for (i = 0; i < 288; i++) {
             if (huff_char[i]->len == len && huff_char[i]->code == code) {
                 if (i > 255) {
@@ -295,8 +295,9 @@ void unhuff(FILE* in, FILE* out) {
                     code = len = 0;
                     while (1) {
                         if (!getData()) return;
+                        if (len < 2) continue; // len in pos table should be min 2
                         for (j = 0; j < 32; j++) {
-                            if ( huff_pos[j]->len == len && huff_pos[j]->code == code) {
+                            if (huff_pos[j]->len == len && huff_pos[j]->code == code) {
                                 code_buf[code_buf_ptr++] = j >> 1;
                                 k = -1;
                                 break;
