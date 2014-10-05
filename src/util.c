@@ -17,6 +17,9 @@
 #include <time.h>
 #include <fnmatch.h>
 #include <partinfo.h>
+char *modelname;
+char *mtdname;
+part_struct_type part_type;
 
 //jffs2
 #include <jffs2/jffs2.h>
@@ -32,10 +35,6 @@
 
 //minigzip
 #include <minigzip.h>
-
-int ps;
-char *modelname;
-char *mtdname;
 
 void SwapBytes(void *pv, size_t n)
 {
@@ -116,30 +115,38 @@ void rmrf(char *path) {
 	if (stat(path, &status) == 0) nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
+int err_ret(const char *format, ...){
+	va_list args;
+	va_start( args, format );
+	vprintf(format, args);
+	va_end(args);
+	#ifdef __CYGWIN__
+		puts("Press any key to continue...");
+		getch();
+	#endif
+	return EXIT_FAILURE;
+}
+
+void err_exit(const char *format, ...){
+	va_list args;
+	va_start( args, format );
+	exit(err_ret(format, args));
+	va_end(args);
+}
+
 void createFolder(const char *directory) {
 	struct stat st;
 	if (stat(directory, &st) != 0) {
-		if (mkdir((const char*) directory, 0744) != 0) {
-			printf("FATAL: Can't create directory '%s'\n\n", directory);
-            #ifdef __CYGWIN__
-                puts("Press any key to continue...");
-                getch();
-            #endif
-            exit(1);
-		}
+		if (mkdir((const char*) directory, 0744) != 0)
+			err_exit("FATAL: Can't create directory '%s'\n\n", directory);
 	}
 }
 
 int is_lz4(const char *lz4file) {
 	FILE *file = fopen(lz4file, "rb");
-	if (file == NULL) {
-		printf("Can't open file %s\n\n", lz4file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
-	}
+	if (file == NULL)
+		err_exit("Can't open file %s\n\n", lz4file);
+
 	char magic[4];
 	if (fread(&magic, 1, 4, file) != 4) return 0;
 	return !memcmp(&magic, "LZ4P", 4);
@@ -147,14 +154,9 @@ int is_lz4(const char *lz4file) {
 
 int is_nfsb(const char *filename) {
 	FILE *file = fopen(filename, "rb");
-	if (file == NULL) {
-		printf("Can't open file %s\n\n", filename);
-        #ifdef __CYGWIN__
-            puts("Press any key to continue...");
-            getch();
-        #endif
-		exit(1);
-	}
+	if (file == NULL)
+		err_exit("Can't open file %s\n\n", filename);
+
 	char header[0x11];
 	if (fread(&header, 1, sizeof(header), file) != sizeof(header)) return 0;
 	fclose(file);
@@ -210,21 +212,18 @@ void extract_mtk_boot(const char *filename, const char *outname){
 	int n;
 
 	FILE *in = fopen(filename, "rb");
-	if(in == NULL){
-		printf("Can't open file %s\n", filename);
-		exit(1);
-	}
+	if(in == NULL)
+		err_exit("Can't open file %s\n", filename);
+
 	FILE *out = fopen(outname, "wb");
-	if(out == NULL){
-		printf("Can't open file %s for writing\n", outname);
-		exit(1);
-	}
+	if(out == NULL)
+		err_exit("Can't open file %s for writing\n", outname);
+
 	n = fread(buf, 1, mtk_pbl_size, in);
-	if(n != mtk_pbl_size){
-		printf("Error!\n");
+	if(n != mtk_pbl_size)
 		fclose(in);
-		exit(1);
-	}
+		err_exit("Error: PBL size mismatch!\n");
+
 	fclose(in);
 	fwrite(buf, 1, mtk_pbl_size, out);
 	fclose(out);
@@ -238,16 +237,14 @@ void split_mtk_tz(const char *filename, const char *destdir){
 	size_t fileSize, env_size, tz_size;
 	FILE *in = fopen(filename, "rb");
 	if(in == NULL){
-		printf("Can't open file %s\n", filename);
-		exit(1);
+		err_exit("Can't open file %s\n", filename);
 	}
 	memset(dest, 0x00, sizeof(dest));
 	sprintf(dest, "%s/env.o", destdir);
 	FILE *out = fopen(dest, "wb");
-	if(out == NULL){
-		printf("Can't open file %s for writing\n", dest);
-		exit(1);
-	}
+	if(out == NULL)
+		err_exit("Can't open file %s for writing\n", dest);
+
 	fseek(in, 0, SEEK_END);
 	fileSize = ftell(in);
 	rewind(in);
@@ -256,25 +253,23 @@ void split_mtk_tz(const char *filename, const char *destdir){
 	buf = malloc(env_size);
 	n = fread(buf, 1, env_size, in);
 	if(n != env_size){
-		printf("Error, cannot read %s!\n", dest);
 		fclose(in); fclose(out);
-		exit(1);
+		err_exit("Error, env.o size mismatch\n");
 	}
 	printf("Extracting env.o ...\n");
 	fwrite(buf, 1, env_size, out);
 	memset(dest, 0x00, strlen(dest));
 	sprintf(dest, "%s/tz.bin", destdir);
 	freopen(dest, "wb", out);
-	if(out == NULL){
-		printf("Can't open file %s for writing\n", dest);
-		exit(1);
-	}
+	if(out == NULL)
+		err_exit("Can't open file %s for writing\n", dest);
+
 	buf = realloc(buf, tz_size);
 	memset(buf, 0x00, tz_size);
 	fseek(in, tz_off, SEEK_SET);
 	n = fread(buf, 1, tz_size, in);
 	if(n != tz_size){
-		printf("Error, cannot read %s!\n", dest);
+		err_exit("Error, tz.bin size mismatch!\n");
 		fclose(in); fclose(out);
 		exit(1);
 	}
@@ -285,8 +280,7 @@ void split_mtk_tz(const char *filename, const char *destdir){
 int is_mtk_boot(const char *filename){
 	FILE *in = fopen(filename, "rb");
 	if(in == NULL){
-		printf("Can't open file %s\n", filename);
-		return 0;
+		err_exit("Can't open file %s\n", filename);
 	}
 	fseek(in, 0, SEEK_END);
 	int fsize = ftell(in);
@@ -317,8 +311,7 @@ int is_elf_mem(Elf32_Ehdr *header){
 int is_elf(const char *filename){
 	FILE *file = fopen(filename, "rb");
 	if(file == NULL){
-		printf("Can't open file %s\n", filename);
-		exit(1);
+		err_exit("Can't open file %s\n", filename);
 	}
 	Elf32_Ehdr header;
 	int read = fread(&header, 1, sizeof(header), file);
@@ -331,8 +324,7 @@ int is_elf(const char *filename){
 int is_lzhs(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s\n", filename);
-		return 0;
+		err_exit("Can't open file %s\n", filename);
 	}
     struct lzhs_header header;
 	int read = fread(&header, 1, sizeof(header), file);
@@ -349,16 +341,15 @@ int is_lzhs(const char *filename) {
 
 int is_gzip(const char *filename) {
     FILE *file = fopen(filename, "rb");
-    if (file == NULL) {
-	printf("Can't open file %s\n", filename);
-	exit(1);
+    if (file == NULL){
+		err_exit("Can't open file %s\n", filename);
     }
     size_t headerSize = 0x3;
     unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
     int read = fread(buffer, 1, headerSize, file);
     int result = 0;
     if (read == headerSize){
-	result = !memcmp(&buffer[0x0], "\x1F\x8B\x08", 3);
+		result = !memcmp(&buffer[0x0], "\x1F\x8B\x08", 3); //gzip magic check
     }
     free(buffer);
     fclose(file);
@@ -369,7 +360,7 @@ int is_jffs2(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
 		printf("Can't open file %s\n", filename);
-		exit(1);
+		return 0;
 	}
 	size_t headerSize = 0x2;
 	unsigned short magic = JFFS2_MAGIC_BITMASK;
@@ -379,8 +370,8 @@ int is_jffs2(const char *filename) {
 	if (read == headerSize){
 	    result = !memcmp(&buffer[0x0], &magic, 2);
 	    if(!result){
-		magic=JFFS2_OLD_MAGIC_BITMASK;
-		result = !memcmp(&buffer[0x0], &magic, 2);
+			magic=JFFS2_OLD_MAGIC_BITMASK;
+			result = !memcmp(&buffer[0x0], &magic, 2);
 	    }
 	}
 	fclose(file);
@@ -391,8 +382,7 @@ int is_jffs2(const char *filename) {
 int isSTRfile(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s\n", filename);
-		exit(1);
+		err_exit("Can't open file %s\n", filename);
 	}
 	size_t headerSize = 0xC0*4;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
@@ -417,49 +407,49 @@ int isdatetime(char *datetime)
 		return 0;
 }
 
-/* detect_model - detect model and corresponding part struct
-0 --> partinfo v2 struct
-1 --> partinfo v1 struct
-2 --> mdtinfo struct */
-int detect_model(struct p2_device_info *pid){
-	int retval;
+/* detect_model - detect model and corresponding part struct */
+part_struct_type detect_model(struct p2_device_info *pid){
+	part_struct_type retval;
 	char *model;
-	retval = 0; //partinfo v2
-	int ismtk1   = !fnmatch("mtk3569-emmc",pid->name,FNM_NOMATCH); //match mtk2012
-	int ismtk2   = !fnmatch("mtk3598-emmc",pid->name,FNM_NOMATCH); //match mtk2013
-	int is1152 = !fnmatch("l9_emmc",pid->name,FNM_NOMATCH); //match 1152
-	int is1154 = !fnmatch("h13_emmc",pid->name,FNM_NOMATCH); //match 1154
+	part_type = STRUCT_INVALID;
+	int ismtk1  = !fnmatch("mtk3569-emmc",pid->name,FNM_NOMATCH); //match mtk2012
+	int ismtk2  = !fnmatch("mtk3598-emmc",pid->name,FNM_NOMATCH); //match mtk2013
+	int is1152  = !fnmatch("l9_emmc",pid->name,FNM_NOMATCH); //match 1152
+	int is1154  = !fnmatch("h13_emmc",pid->name,FNM_NOMATCH); //match 1154
 	int isbcm1  = !fnmatch("bcm35xx_map0",pid->name,FNM_NOMATCH); //match broadcom
 	int isbcm2  = !fnmatch("bcm35230_map0",pid->name,FNM_NOMATCH); //match broadcom
-	int ismstar= !fnmatch("mstar_map0",pid->name,FNM_NOMATCH); //match mstar
+	int ismstar = !fnmatch("mstar_map0",pid->name,FNM_NOMATCH); //match mstar
 	
 	if(ismtk1) model="Mtk 2012 - MTK5369";
 	else if(ismtk2)	model="Mtk 2012 - MTK5398";
 	else if(is1152)	model="LG1152";
 	else if(is1154)	model="LG1154";
-	else if(isbcm1)	model="BCM 2011 - BCM35230";
-	else if(isbcm2)	model="BCM 2010 - BCM35XX";
+	else if(isbcm1)	model="BCM 2010 - BCM35XX";
+	else if(isbcm2)	model="BCM 2011 - BCM35230";
 	else if(ismstar) model="Mstar Saturn/LM1";
-	else return -1;
+	else return part_type;
 	
-	if(!ismtk2 && !is1154){
-		if(ismtk1 || is1152) retval=1; //partinfo v1
-		else retval=2; //mtdinfo
+	if(ismtk2 || is1154){
+		part_type = STRUCT_PARTINFOv2;
+	} else if(ismtk1 || is1152){
+		part_type = STRUCT_PARTINFOv1; //partinfo v1
+	} else {
+		part_type = STRUCT_MTDINFO; //mtdinfo
 	}
+
 	mtdname=pid->name;
 	modelname=model;
 	/*printf("\nMTD name -> %s\n",mtdname);
 	printf("%s Detected\n\n", modelname);*/
 
-	return retval;
+	return part_type;
 }
 
 int isPartPakfile(const char *filename) {
    FILE *file = fopen(filename, "rb");
-	if (file == NULL) {
-		printf("Can't open file %s\n", filename);
-		exit(1);
-	}
+	if (file == NULL)
+		err_exit("Can't open file %s\n", filename);
+
 	struct p2_partmap_info partinfo;
 	
 	struct p2_partmap_info *pi= (struct p2_partmap_info*)malloc(sizeof(struct p2_partmap_info));       
@@ -477,18 +467,17 @@ int isPartPakfile(const char *filename) {
 		printf("Found valid partpak magic 0x%x in %s\n", pi->magic, filename);
 	}
 	
-	ps = detect_model(&(pi->dev));
-	if (ps != -1) result = 1;
+	detect_model(&(pi->dev));
+	if (part_type != STRUCT_INVALID) result = 1;
 	fclose(file);
 	return result;
 }
 
 int is_kernel(const char *image_file) {
 	FILE *file = fopen(image_file, "rb");
-	if (file == NULL) {
-		printf("Can't open file %s", image_file);
-		exit(1);
-	}
+	if (file == NULL)
+		err_exit("Can't open file %s", image_file);
+
 	size_t header_size = sizeof(struct image_header);
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * header_size);
 	int read = fread(buffer, 1, header_size, file);
@@ -502,19 +491,17 @@ int is_kernel(const char *image_file) {
 
 void extract_kernel(const char *image_file, const char *destination_file) {
 	FILE *file = fopen(image_file, "rb");
-	if (file == NULL) {
-		printf("Can't open file %s", image_file);
-		exit(1);
-	}
+	if (file == NULL)
+		err_exit("Can't open file %s", image_file);
+
 	fseek(file, 0, SEEK_END);
 	int fileLength = ftell(file);
 	rewind(file);
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * fileLength);
 	int read = fread(buffer, 1, fileLength, file);
 	if (read != fileLength) {
-		printf("Error reading file. read %d bytes from %d.\n", read, fileLength);
 		free(buffer);
-		exit(1);
+		err_exit("Error reading file. read %d bytes from %d.\n", read, fileLength);
 	}
 	fclose(file);
 

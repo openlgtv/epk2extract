@@ -7,12 +7,7 @@
 int isFileEPK1(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s\n\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("Can't open file %s\n\n", epk_file);
 	}
     char magic[4];
 	if (fread(&magic, 1, 4, file) != 4) return 0;
@@ -45,32 +40,17 @@ void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader)
 void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) {
 	int file;
 	if (!(file = open(epk_file, O_RDONLY))) {
-		printf("\nCan't open file %s\n\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nCan't open file %s\n\n", epk_file);
 	}
 	struct stat statbuf;
 	if (fstat(file, &statbuf) < 0) {
-		printf("\nfstat error\n\n"); 
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nfstat error\n\n");
 	}
 	int fileLength = statbuf.st_size;
 	printf("File size: %d bytes\n", fileLength);
 	void *buffer;
 	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
-		printf("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
 	}
 	char verString[1024];
 	int index;

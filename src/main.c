@@ -151,10 +151,7 @@ int main(int argc, char *argv[]) {
         printf("Usage: epk2extract [-options] FILENAME\n\n");
         printf("Options:\n");
         printf("  -c : extract to current directory instead of source file directory\n\n");
-        #ifdef __CYGWIN__
-        puts("Press any key to continue...");
-        getch();
-        #endif
+		err_exit();
         return 1;
     }
 
@@ -198,18 +195,8 @@ int main(int argc, char *argv[]) {
 		config_opts.dest_dir = strdup(exe_dir);
     printf("Destination directory: %s\n", config_opts.dest_dir);
     int exit_code = handle_file(input_file, &config_opts);
-    if (exit_code == EXIT_FAILURE) {
-        printf("Unsupported input file format: %s\n\n", input_file);
-        #ifdef __CYGWIN__
-            puts("Press any key to continue...");
-            getch();
-        #endif
-        return exit_code;
-    }
-    printf("\nExtraction is finished.\n\n");
-    #ifdef __CYGWIN__
-        puts("Press any key to continue...");
-        getch();
-    #endif
-    return exit_code;
+    if (exit_code == EXIT_FAILURE)
+        return err_ret("Unsupported input file format: %s\n\n", input_file);
+
+    return !err_ret("\nExtraction is finished.\n\n");
 }

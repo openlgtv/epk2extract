@@ -31,5 +31,12 @@ typedef enum PART_INFO {
 	PART_INFO_FILESIZE
 } PART_INFO_TYPE;
 
+typedef enum {
+	STRUCT_INVALID,
+	STRUCT_MTDINFO,
+	STRUCT_PARTINFOv1,
+	STRUCT_PARTINFOv2
+} part_struct_type;
+
 
 #endif /* _PART_COMMON_H_ */

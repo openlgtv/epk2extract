@@ -17,7 +17,7 @@
 extern int errno;
 
 FILE *destfile;
-int ps;
+part_struct_type part_type;
 char *modelname;
 
 //structs
@@ -78,14 +78,7 @@ static const char *p2_menu_partition_info[] = {
 	"[%2d] Empty\n"
 };
 
-unsigned int print_minfo(void){
-	int i=0;
-	struct m_partition_info *bi = NULL;
-	
-	struct m_device_info *mtdi = NULL;
-	mtdi = M_GET_DEV_INFO(0);
-	fprintf(destfile,"MTD Name: %s",mtdi->name);
-	unsigned int devsize = mtdi->size;
+void print_size(unsigned int devsize){
 	char *devsizeunit;
 	if(devsize%(1024*1024*1024) == 0){
 		//Gigabytes
@@ -94,6 +87,18 @@ unsigned int print_minfo(void){
 		//Small MTD, use Megabytes
 		fprintf(destfile,"\tSize: %dMB",(devsize/1024/1024));
 	}
+}
+
+
+unsigned int print_minfo(void){
+	int i=0;
+	struct m_partition_info *bi = NULL;
+	
+	struct m_device_info *mtdi = NULL;
+	mtdi = M_GET_DEV_INFO(0);
+	fprintf(destfile,"MTD Name: %s",mtdi->name);
+	unsigned int devsize = mtdi->size;
+	print_size(devsize);
 	println();
 		
 	println(); fprintf(destfile, "%s", m_menu_partition_str[0]);println();println();
@@ -137,14 +142,7 @@ unsigned int print_p1info(void){
 	p1di = P1_GET_DEV_INFO();
 	fprintf(destfile,"Flash Name: %s",p1di->name);
 	unsigned int devsize = p1di->size;
-	char *devsizeunit;
-	if(devsize%(1024*1024*1024) == 0){
-		//Gigabytes
-		fprintf(destfile,"\tSize: %dGB",(devsize/1024/1024/1024));
-	} else {
-		//Small MTD, use Megabytes
-		fprintf(destfile,"\tSize: %dMB",(devsize/1024/1024));
-	}
+	print_size(devsize);
 	println();
 
 	println(); fprintf(destfile, "%s", p_menu_partition_str[0]); println(); println();
@@ -198,14 +196,7 @@ unsigned int print_p2info(void){
 	p2di = P2_GET_DEV_INFO();
 	fprintf(destfile,"Flash Name: %s",p2di->name);
 	unsigned int devsize = p2di->size;
-	char *devsizeunit;
-	if(devsize%(1024*1024*1024) == 0){
-		//Gigabytes
-		fprintf(destfile,"\tSize: %dGB", (devsize/1024/1024/1024));
-	} else {
-		//Small MTD, use Megabytes
-		fprintf(destfile,"\tSize: %dMB", (devsize/1024/1024));
-	}
+	print_size(devsize);
 	println();
 
 	println(); fprintf(destfile, "%s", p_menu_partition_str[0]);println();println();
@@ -256,15 +247,26 @@ unsigned int do_partinfo(void){
 	fprintf(destfile, "%s Detected", modelname);
 	println(); println();
 
-	if(ps==0) print_p2info();
-	else if(ps==1) print_p1info();
-	else if(ps==2) print_minfo();
+	switch(part_type){
+		case STRUCT_PARTINFOv2:
+			print_p2info();
+			break;
+		case STRUCT_PARTINFOv1:
+			print_p1info();
+			break;
+		case STRUCT_MTDINFO:
+			print_minfo();
+			break;
+		default:
+			err_exit("Unhandled partition table structure\n");
+			break;
+	}
 	println();
 	
 	char buf[256];
 	rewind(destfile);
 	printf("\n");
-	while( fgets(buf,sizeof buf,destfile) ) {
+	while( fgets(buf,sizeof buf,destfile) ) { //print file we just wrote to stdout
 		printf( "%s", buf );
 	}
 	fclose(destfile);
@@ -275,8 +277,7 @@ unsigned int load_partinfo(const char *filename){
 	FILE *file;
 	file = fopen(filename, "rb");
 	if (file == NULL){
-		printf("Can't open file %s\n", filename);
-		exit(1);
+		err_exit("Can't open file %s\n", filename);
 	}
 	
 	int ret = 0;
@@ -284,32 +285,38 @@ unsigned int load_partinfo(const char *filename){
 	unsigned char *offset = NULL;
 	unsigned char *buf = NULL;
 
-	if(ps==0){
-		size = sizeof(struct p2_partmap_info);
-		pmi = (struct p2_partmap_info *)malloc(size);
-		fread(pmi, 1, size, file);
-		memcpy(&p2_partinfo, pmi, size);
-	}else if(ps==1){
-		size = sizeof(struct p1_partmap_info);
-		mpi = (struct p1_partmap_info*)malloc(size);
-		fread(mpi, 1, size, file);
-		memcpy(&p1_partinfo, mpi, size);
-	}else if(ps==2){
-		size = sizeof(struct m_partmap_info);
-		bmi = (struct m_partmap_info*)malloc(size);
-		fread(bmi, 1, size, file);
-		memcpy(&m_partinfo, bmi, size);
+	switch(part_type){
+		case STRUCT_PARTINFOv2:
+			size = sizeof(struct p2_partmap_info);
+			pmi = (struct p2_partmap_info *)malloc(size);
+			fread(pmi, 1, size, file);
+			memcpy(&p2_partinfo, pmi, size);
+			break;
+		case STRUCT_PARTINFOv1:
+			size = sizeof(struct p1_partmap_info);
+			mpi = (struct p1_partmap_info*)malloc(size);
+			fread(mpi, 1, size, file);
+			memcpy(&p1_partinfo, mpi, size);
+			break;
+		case STRUCT_MTDINFO:
+			size = sizeof(struct m_partmap_info);
+			bmi = (struct m_partmap_info*)malloc(size);
+			fread(bmi, 1, size, file);
+			memcpy(&m_partinfo, bmi, size);
+			break;
+		default:
+			fclose(file);
+			err_exit("Unhandled partition table structure\n");
+			break;
 	}
 	return 0;
 }
 
-unsigned int dump_partinfo(const char *filename, const char *df){
-	destfile = fopen(df, "w+");
-	if (destfile == NULL){
-		printf("Can't open file %s for writing. Error is: %s\n", df, strerror(errno));
-		fclose(destfile);
-		exit(1);
-	}
+unsigned int dump_partinfo(const char *filename, const char *outfile){
+	destfile = fopen(outfile, "w+");
+	if (destfile == NULL)
+		err_exit("Can't open file %s for writing. Error is: %s\n", outfile, strerror(errno));
+
 	load_partinfo(filename);
 	do_partinfo();
 	return 0;

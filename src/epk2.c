@@ -137,12 +137,7 @@ void SelectAESkey(struct pak2_t* pak, struct config_opts_t *config_opts) {
 	fclose(fp);
 	if (line) free(line);
 	free(decrypted);
-	printf("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n\n");
-	#ifdef __CYGWIN__
-		puts("Press any key to continue...");
-		getch();
-	#endif
-	exit(EXIT_FAILURE);
+	err_exit("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n\n");
 }
 
 int writePAKsegment(struct pak2_t *pak, const char *filename) {
@@ -166,12 +161,7 @@ int writePAKsegment(struct pak2_t *pak, const char *filename) {
 int isFileEPK2(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s\n\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("Can't open file %s\n\n", epk_file);
 	}
 	size_t headerSize = 0x650+SIGNATURE_SIZE;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
@@ -187,12 +177,7 @@ int isFileEPK2(const char *epk_file) {
 int isFileEPK3(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s\n\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("Can't open file %s\n\n", epk_file);
 	}
 	size_t headerSize = 0x6B7;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
@@ -206,34 +191,19 @@ int isFileEPK3(const char *epk_file) {
 void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	int file;
 	if (!(file = open(epk_file, O_RDONLY))) {
-		printf("\nCan't open file %s\n\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nCan't open file %s\n\n", epk_file);
 	}
 
 	struct stat statbuf;
 	if (fstat(file, &statbuf) < 0) {
-		printf("\nfstat error\n\n"); 
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nfstat error\n\n"); 
 	}
 
 	int fileLength = statbuf.st_size;
 	printf("File size: %d bytes\n", fileLength);
 	void *buffer;
 	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
-		printf("\nCannot mmap input file. Aborting\n\n"); 
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nCannot mmap input file. Aborting\n\n"); 
 	}
 
 	printf("\nVerifying digital signature of EPK3 firmware header...\n");
@@ -264,14 +234,10 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 
 	if (!verified) {
 		printf("Cannot verify firmware's digital signature (maybe you don't have proper PEM file). Aborting.\n\n");
-		if (munmap(buffer, fileLength) == -1) 
+		if (munmap(buffer, fileLength) == -1)
             printf("Error un-mmapping the file\n\n");
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
 		close(file);
-		exit(1);
+		err_exit();
 	}
 
 	int headerSize = 0x6B4;
@@ -288,13 +254,9 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 		if (fp == NULL) {
 			printf("\nError: Cannot open AES.key file.\n\n");
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file\n\n");
-            #ifdef __CYGWIN__
-                puts("Press any key to continue...");
-                getch();
-            #endif
 			close(file);
 			free(fwInfo);
-			exit(1);
+			err_exit();
 		}
 		char* line = NULL;
 		size_t len = 0;
@@ -326,11 +288,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 			close(file);
 			free(fwInfo);
-			#ifdef __CYGWIN__
-				puts("Press any key to continue...");
-				getch();
-			#endif
-			exit(EXIT_FAILURE);
+			err_exit();
 		}
 	}
 
@@ -401,34 +359,19 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	int file;
 	if (!(file = open(epk_file, O_RDONLY))) {
-		printf("\nCan't open file %s\n\n", epk_file);
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nCan't open file %s\n\n", epk_file);
 	}
 
 	struct stat statbuf;
 	if (fstat(file, &statbuf) < 0) {
-		printf("\nfstat error\n\n"); 
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nfstat error\n\n"); 
 	}
 
 	int fileLength = statbuf.st_size;
 	printf("File size: %d bytes\n", fileLength);
 	void *buffer;
 	if ( (buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED ) {
-		printf("\nCannot mmap input file. Aborting\n\n"); 
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
-		exit(1);
+		err_exit("\nCannot mmap input file. Aborting\n\n"); 
 	}
 
 	printf("\nVerifying digital signature of EPK2 firmware header...\n");
@@ -461,12 +404,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		printf("Cannot verify firmware's digital signature (maybe you don't have proper PEM file). Aborting.\n\n");
 		if (munmap(buffer, fileLength) == -1) 
             printf("Error un-mmapping the file\n\n");
-		#ifdef __CYGWIN__
-			puts("Press any key to continue...");
-			getch();
-		#endif
 		close(file);
-		exit(1);
+		err_exit();
 	}
 
 	int headerSize = 0x5B4 + SIGNATURE_SIZE;
@@ -484,13 +423,9 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			printf("\nError: Cannot open AES.key file.\n\n");
 			if (munmap(buffer, fileLength) == -1) 
                 printf("Error un-mmapping the file\n\n");
-            #ifdef __CYGWIN__
-                puts("Press any key to continue...");
-                getch();
-            #endif
 			close(file);
 			free(fwInfo);
-			exit(1);
+			err_exit();
 		}
 		char* line = NULL;
 		size_t len = 0;
@@ -522,11 +457,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 			close(file);
 			free(fwInfo);
-			#ifdef __CYGWIN__
-				puts("Press any key to continue...");
-				getch();
-			#endif
-			exit(EXIT_FAILURE);
+			err_exit();
 		}
 	}
 
@@ -592,16 +523,12 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 				else {
 					printf("Fallback failed. Sorry, aborting now.\n\n");
 					if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file\n\n");
-                    #ifdef __CYGWIN__
-                        puts("Press any key to continue...");
-                        getch();
-                    #endif
 					close(file);
 					free(fwInfo);
 					int i;
 					for (i=0; i<count; ++i) free(pakArray[i]);
 					free(pakArray);
-					exit(1);
+					err_exit();
 				}
 			}
 
