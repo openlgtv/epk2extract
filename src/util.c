@@ -220,9 +220,10 @@ void extract_mtk_boot(const char *filename, const char *outname){
 		err_exit("Can't open file %s for writing\n", outname);
 
 	n = fread(buf, 1, mtk_pbl_size, in);
-	if(n != mtk_pbl_size)
+	if(n != mtk_pbl_size){
 		fclose(in);
 		err_exit("Error: PBL size mismatch!\n");
+	}
 
 	fclose(in);
 	fwrite(buf, 1, mtk_pbl_size, out);
@@ -269,9 +270,8 @@ void split_mtk_tz(const char *filename, const char *destdir){
 	fseek(in, tz_off, SEEK_SET);
 	n = fread(buf, 1, tz_size, in);
 	if(n != tz_size){
-		err_exit("Error, tz.bin size mismatch!\n");
 		fclose(in); fclose(out);
-		exit(1);
+		err_exit("Error, tz.bin size mismatch!\n");
 	}
 	printf("Extracting tz.bin ...\n");
 	fwrite(buf, 1, tz_size, out);
@@ -359,8 +359,7 @@ int is_gzip(const char *filename) {
 int is_jffs2(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
-		printf("Can't open file %s\n", filename);
-		return 0;
+		err_exit("Can't open file %s\n", filename);
 	}
 	size_t headerSize = 0x2;
 	unsigned short magic = JFFS2_MAGIC_BITMASK;
