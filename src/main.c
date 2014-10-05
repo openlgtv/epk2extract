@@ -63,77 +63,77 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else if (isFileEPK3(file)) {
 		extractEPK3file(file, config_opts);
 	} else if (is_lz4(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unlz4");
+		sprintf(dest_file, "%s/%s.unlz4", dest_dir, file_name);
 		printf("UnLZ4 file to: %s\n", dest_file);
 		if (!decode_file(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (check_lzo_header(file)) {
 		if(!strcmp(file_name, "logo.pak"))
-			constructPath(dest_file, dest_dir, file_name, ".bmp");
+			sprintf(dest_file, "%s/%s.bmp", dest_dir, file_name);
 		else
-			constructPath(dest_file, dest_dir, file_name, ".unlzo");
+			sprintf(dest_file, "%s/%s.unlzo", dest_dir, file_name);
 		printf("UnLZO file to: %s\n", dest_file);
 		if (!lzo_unpack(file, dest_file)) handle_file(dest_file, config_opts);
 	} else if (is_nfsb(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unnfsb");
+		sprintf(dest_file, "%s/%s.unnfsb", dest_dir, file_name);
 		printf("UnNFSB file to: %s\n", dest_file);
 		unnfsb(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (is_squashfs(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
+		sprintf(dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
 		printf("UnSQUASHFS file to: %s\n", dest_file);
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
 	} else if (is_gzip(file)) {
-		constructPath(dest_file, dest_dir, "", "");
+		sprintf(dest_file, "%s/", dest_dir);
 		printf("UnGZIP %s to folder %s\n", file, dest_file);
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		handle_file(dest_file, config_opts);
 	} else if (is_mtk_boot(file)) {
-		constructPath(dest_file, dest_dir, "mtk_pbl.bin", "");		
+		sprintf(dest_file, "%s/mtk_pbl.bin", dest_dir);
 		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
 		extract_mtk_boot(file, dest_file);
 		printf("Extracting embedded LZHS files...\n");
 		extract_lzhs(file);
 	} else if(is_cramfs_image(file, "be")) {
-		constructPath(dest_file, dest_dir, file_name, ".cramswap");
+		sprintf(dest_file, "%s/%s.cramswap", dest_dir, file_name);
 		printf("Swapping cramfs endian for file %s\n", file);
 		cramswap(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if(is_cramfs_image(file, "le")) {
-		constructPath(dest_file, dest_dir, file_name, ".uncramfs");
+		sprintf(dest_file, "%s/%s.uncramfs", dest_dir, file_name);
 		printf("UnCRAMFS %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 	} else if (is_kernel(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unpaked");
+		sprintf(dest_file, "%s/%s.unpaked", dest_dir, file_name);
 		printf("Extracting boot image to: %s\n", dest_file);
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if(isPartPakfile(file)) {
-		constructPath(dest_file, dest_dir, file_base, ".txt");
+		sprintf(dest_file, "%s/%s.txt", dest_dir, file_base);
 		printf("Saving partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
 	} else if(is_jffs2(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unjffs2");
+		sprintf(dest_file, "%s/%s.unjffs2", dest_dir, file_name);
 		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		jffs2extract(file, dest_file, "1234");
 	} else if(isSTRfile(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".ts");
+		sprintf(dest_file, "%s/%s.ts", dest_dir, file_name);
 		setKey();
 		printf("\nConverting %s file to TS: %s\n", file, dest_file);
 		convertSTR2TS(file, dest_file, 0);
 	} else if(!memcmp(&file[strlen(file)-3], "PIF", 3)) {
-		constructPath(dest_file, dest_dir, file_name, ".ts");
+		sprintf(dest_file, "%s/%s.ts", dest_dir, file_name);
 		setKey();
 		printf("\nProcessing PIF file: %s\n", file);
 		processPIF(file, dest_file);
 	} else if(symfile_load(file) == 0) {
-		constructPath(dest_file, dest_dir, file_name, ".idc");
+		sprintf(dest_file, "%s/%s.idc", dest_dir, file_name);
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
 	} else if (is_lzhs(file)) {
-		constructPath(dest_file, dest_dir, file_name, ".unlzhs");
+		sprintf(dest_file, "%s/%s.unlzhs", dest_dir, file_name);
 		printf("UnLZHS %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {

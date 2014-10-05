@@ -355,7 +355,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	char fwVersion[1024];
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
 	
-	constructPath(config_opts->dest_dir, "", fwVersion, NULL);
+	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
 	createFolder(config_opts->dest_dir);
 
 	long unsigned int offset = SIGNATURE_SIZE+0x654+SIGNATURE_SIZE+fwInfo->packageInfoSize;
@@ -366,7 +366,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 		
 		char filename[1024] = "";
 		sprintf(name, "%s", segment.name);
-		constructPath(filename, config_opts->dest_dir, name, ".pak");
+		sprintf(filename, "%s/%s.pak", config_opts->dest_dir, name);
 		printf("Saving partition (%s) to file %s\n", name, filename);
 		outfile = fopen(filename, "w");
 		
@@ -645,7 +645,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	char fwVersion[1024];
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
 
-	constructPath(config_opts->dest_dir, "", fwVersion, NULL);
+	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
 	createFolder(config_opts->dest_dir);
 
 	SelectAESkey(pakArray[0], config_opts);
@@ -657,7 +657,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		char filename[1024] = "";
 		char name[4];
 		sprintf(name, "%.4s", pakArray[index]->header->name);
-		constructPath(filename, config_opts->dest_dir, name, ".pak");
+		sprintf(filename, "%s/%s.pak", config_opts->dest_dir, name);
 		printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, fwInfo->pakCount, name, filename);
 		int length = writePAKsegment(pakArray[index], filename);
 		free(pakArray[index]);

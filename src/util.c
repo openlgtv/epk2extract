@@ -130,13 +130,6 @@ void createFolder(const char *directory) {
 	}
 }
 
-void constructPath(char *result_path, const char *first, const char *second, const char* postfix) {
-	strcat(result_path, first);
-	strcat(result_path, G_DIR_SEPARATOR_S);
-	strcat(result_path, second);
-	if (postfix != NULL) strcat(result_path, postfix);
-}
-
 int is_lz4(const char *lz4file) {
 	FILE *file = fopen(lz4file, "rb");
 	if (file == NULL) {
@@ -249,7 +242,7 @@ void split_mtk_tz(const char *filename, const char *destdir){
 		exit(1);
 	}
 	memset(dest, 0x00, sizeof(dest));
-	constructPath(dest, destdir, "env.o", "");
+	sprintf(dest, "%s/env.o", destdir);
 	FILE *out = fopen(dest, "wb");
 	if(out == NULL){
 		printf("Can't open file %s for writing\n", dest);
@@ -270,7 +263,7 @@ void split_mtk_tz(const char *filename, const char *destdir){
 	printf("Extracting env.o ...\n");
 	fwrite(buf, 1, env_size, out);
 	memset(dest, 0x00, strlen(dest));
-	constructPath(dest, destdir, "tz.bin", "");
+	sprintf(dest, "%s/tz.bin", destdir);
 	freopen(dest, "wb", out);
 	if(out == NULL){
 		printf("Can't open file %s for writing\n", dest);
