@@ -194,6 +194,8 @@ int main(int argc, char *argv[]) {
     #endif
     printf("Input file: %s\n", input_file);
     if (config_opts.dest_dir == NULL) config_opts.dest_dir = dirname(strdup(input_file));
+	if (strlen(config_opts.dest_dir) == 1 && config_opts.dest_dir[0] == '.')
+		config_opts.dest_dir = strdup(exe_dir);
     printf("Destination directory: %s\n", config_opts.dest_dir);
     int exit_code = handle_file(input_file, &config_opts);
     if (exit_code == EXIT_FAILURE) {

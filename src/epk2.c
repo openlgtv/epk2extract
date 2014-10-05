@@ -353,6 +353,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	char name[4];
 
 	char fwVersion[1024];
+	memset(&fwVersion, 0x0, sizeof(fwVersion));
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
 	
 	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
@@ -643,8 +644,8 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	printf("Last extracted file offset: %d\n\n", last_extracted_file_offset);
 
 	char fwVersion[1024];
+	memset(&fwVersion, 0x0, sizeof(fwVersion));
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
-
 	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
 	createFolder(config_opts->dest_dir);
 
