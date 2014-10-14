@@ -1,3 +1,51 @@
+epk2extract
+===========
+epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TVs.
+
+Supported Formats:
+===========================================
+**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV. We're thinking about releasing the keys extracted so far in the future.**
+
+**NOTE: To decrypt PVR recordings you need a dump of the unique AES-128 key from your TV**
+
+| Format	| Notes
+| :-----	| :-----
+| epk v1	| First version of epk format, not encrypted and not signed
+| epk v2	| Introduces signing and encryption, keys needed
+| epk v3   	| Keys needed
+| squashfs	| 
+| cramfs	| 
+| lz4		| Slightly modified version with header
+| lzo		| 
+| gzip		| 
+| jffs2		| 
+| lzhs		| Special compression for MTK bootloaders (boot.pak, tzfw.pak), uses lzss + huffman
+| mtinfo/partinfo |  Partition table format (mtdi.pak, part.pak)
+| str/pif	| PVR recording format that can be found in netcast models
+| sym		| Debugging symbols. Can extracts function names and addresses to an IDA script file (idc)
+
+Although epk2extract is only tested on LG firmware files, you may use it to extract other files like a general unpack tool, as long as they have a supported format in the table above.
+
+**!!WARNING!!**<br>
+**epk2extract isn't designed to repack files**<br>
+**If you wish to repack modified files, follow the openlgtv wiki/forum, and do it in a Linux environment (no cygwin)**<br>
+**Don't repack files extracted in cygwin environment**<br>
+**In any case, you do so at your own risk**<br>
+*THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE*
+
+| Tools:	| Description
+| :----		| :----
+| lzhsenc	| Compresses a given file with lzhs algorithm
+| lzhs_scanner	| Scans a given file to find lzhs files, and can extracts them
+
+
 To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
 ===========================================
 
