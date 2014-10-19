@@ -176,14 +176,13 @@ int isFileEPK2(const char *epk_file) {
 
 int isFileEPK3(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");
-	if (file == NULL) {
-		err_exit("Can't open file %s\n\n", epk_file);
-	}
-	size_t headerSize = 0x6B7;
+	if (!file) err_exit("Can't open file %s\n\n", epk_file);
+	size_t headerSize = 0x6BD;
 	unsigned char* buffer = (unsigned char*) malloc(sizeof(char) * headerSize);
 	if (fread(buffer, 1, headerSize, file) != headerSize) return 0;
 	fclose(file);
 	int result = (buffer[0x6B0] == 0 && buffer[0x6B5] == 0x2E && buffer[0x6B7] == 0x2E);
+    //if (!result) result = (buffer[0x6B0] == 0 && buffer[0x6B8] == 0x2E && buffer[0x6BD] == 0x2E);
     free(buffer);
 	return result;
 }
@@ -237,7 +236,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 		if (munmap(buffer, fileLength) == -1)
             printf("Error un-mmapping the file\n\n");
 		close(file);
-		err_exit();
+		err_exit("");
 	}
 
 	int headerSize = 0x6B4;
@@ -256,7 +255,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file\n\n");
 			close(file);
 			free(fwInfo);
-			err_exit();
+			err_exit("");
 		}
 		char* line = NULL;
 		size_t len = 0;
@@ -288,7 +287,7 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 			close(file);
 			free(fwInfo);
-			err_exit();
+			err_exit("");
 		}
 	}
 
@@ -405,7 +404,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		if (munmap(buffer, fileLength) == -1) 
             printf("Error un-mmapping the file\n\n");
 		close(file);
-		err_exit();
+		err_exit("");
 	}
 
 	int headerSize = 0x5B4 + SIGNATURE_SIZE;
@@ -425,7 +424,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
                 printf("Error un-mmapping the file\n\n");
 			close(file);
 			free(fwInfo);
-			err_exit();
+			err_exit("");
 		}
 		char* line = NULL;
 		size_t len = 0;
@@ -457,7 +456,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
 			close(file);
 			free(fwInfo);
-			err_exit();
+			err_exit("");
 		}
 	}
 
@@ -528,7 +527,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 					int i;
 					for (i=0; i<count; ++i) free(pakArray[i]);
 					free(pakArray);
-					err_exit();
+					err_exit("");
 				}
 			}
 
