@@ -145,7 +145,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.2 by sirius (http://openlgtv.org.ru)\n\n");
+    printf("\nLG Electronics digital TV firmware package (EPK) extractor 4.3 by sirius (http://openlgtv.org.ru)\n\n");
     if (argc < 2) {
         printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
         printf("Usage: epk2extract [-options] FILENAME\n\n");
