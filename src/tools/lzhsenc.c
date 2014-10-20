@@ -7,9 +7,5 @@ int main(int argc, char *argv[]){
 	}
 	printf("LZHS Encoding %s => %s...\n", argv[1], argv[2]);
 	lzhs_encode(argv[1], argv[2]);
-	#ifdef __CYGWIN__
-		puts("\nPress any key to continue...");
-		getch();
-	#endif
-	return 0;
+	return !err_ret("");
 }

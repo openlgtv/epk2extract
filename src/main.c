@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
         printf("Usage: epk2extract [-options] FILENAME\n\n");
         printf("Options:\n");
         printf("  -c : extract to current directory instead of source file directory\n\n");
-		err_exit();
+		err_exit("");
         return 1;
     }
 

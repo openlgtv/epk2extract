@@ -84,11 +84,25 @@ void printPAKinfo(struct pak2_t* pak) {
 		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
 		//hexdump(decrypted, headerSize);
 		struct pak2segmentHeader_t* decryptedSegmentHeader = (struct pak2segmentHeader_t*) decrypted;
-		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x', size='%u bytes')\n",
+		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x', size='%u bytes', ",
 			index + 1, pak->header->name, decryptedSegmentHeader->version[3],
 			decryptedSegmentHeader->version[2], decryptedSegmentHeader->version[1],
 			decryptedSegmentHeader->version[0], decryptedSegmentHeader->platform, 
             PAKsegment->content_file_offset, PAKsegment->content_len);
+			switch((build_type_t)decryptedSegmentHeader->devmode){
+				case RELEASE:
+					printf("build=RELEASE");
+					break;
+				case DEBUG:
+					printf("build=DEBUG");
+					break;
+				case TEST:
+					printf("build=TEST");
+					break;
+				default:
+					printf("build=UNKNOWN %0x%x\n", decryptedSegmentHeader->devmode);
+			}
+			printf(")\n");
 		free(decrypted);
 	}
 }
@@ -124,7 +138,7 @@ void SelectAESkey(struct pak2_t* pak, struct config_opts_t *config_opts) {
 		struct pak2segment_t *PAKsegment = pak->segments[0];
 		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
 		struct pak2segmentHeader_t* decryptedSegmentHeader = (struct pak2segmentHeader_t*) decrypted;
-		if (!memcmp(decryptedSegmentHeader->unknown4, "MPAK", 4)) {
+		if (!memcmp(decryptedSegmentHeader->pakMagic, "MPAK", 4)) {
 			printf("Success!\n");
 			fclose(fp);
 			if (line) free(line);
@@ -546,7 +560,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 			pak->segments = realloc(pak->segments, pak->segment_count * sizeof(struct pak2segment_t*));
 			struct pak2segment_t *PAKsegment = malloc(sizeof(struct pak2segment_t));
 			PAKsegment->header = pak2segmentHeader;
-			PAKsegment->content = pak2segmentHeader->unknown4 + (sizeof(pak2segmentHeader->unknown4));
+			PAKsegment->content = pak2segmentHeader->signature + sizeof(struct pak2segmentHeader_t);
 			PAKsegment->content_file_offset = PAKsegment->content - epk2headerOffset;
 			PAKsegment->content_len = signed_length - sizeof(struct pak2segmentHeader_t);
 			pak->segments[pak->segment_count - 1] = PAKsegment;

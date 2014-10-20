@@ -129,7 +129,7 @@ int err_ret(const char *format, ...){
 
 void err_exit(const char *format, ...){
 	va_list args;
-	va_start( args, format );
+	va_start(args, format);
 	exit(err_ret(format, args));
 	va_end(args);
 }
