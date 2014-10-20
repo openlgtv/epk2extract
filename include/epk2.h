@@ -16,10 +16,7 @@
 #include <openssl/err.h>
 #include <openssl/aes.h>
 #include <epk.h>
-
-typedef int bool;
-#define TRUE   (1)
-#define FALSE  (0)
+#include <stdbool.h>
 
 enum { SIGNATURE_SIZE = 0x80 };
 

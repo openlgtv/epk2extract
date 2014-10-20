@@ -516,10 +516,10 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		unsigned int max_distance = pakHeader->maxPAKsegmentSize + sizeof(struct pak2segmentHeader_t);
 		while (!verified) { 
 			unsigned int PAKsegment_length = distance_between_paks;
-			bool is_next_segment_needed = FALSE;
+			bool is_next_segment_needed = false;
 			if (PAKsegment_length > max_distance) {
 				PAKsegment_length = max_distance;
-				is_next_segment_needed = TRUE;
+				is_next_segment_needed = true;
 			}
 			unsigned int signed_length = next_pak_length;
 			if (signed_length > max_distance) {
