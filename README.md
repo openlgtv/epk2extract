@@ -1,10 +1,10 @@
 epk2extract
 ===========
-epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TVs.
+epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TV sets.
 
 Supported Formats:
 ===========================================
-**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV. We're thinking about releasing the keys extracted so far in the future.**
+**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV. We're thinking about releasing the keys extracted in the near future.**
 
 **NOTE: To decrypt PVR recordings you need a dump of the unique AES-128 key from your TV**
 
@@ -43,7 +43,7 @@ OTHER DEALINGS IN THE SOFTWARE*
 | Tools:	| Description
 | :----		| :----
 | lzhsenc	| Compresses a given file with lzhs algorithm
-| lzhs_scanner	| Scans a given file to find lzhs files, and can extracts them
+| lzhs_scanner	| Scans a given file to find lzhs files, and extracts them
 
 
 To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
@@ -93,7 +93,7 @@ To change default editor for commits to nano:
 
 ## To use:
 
-Put *.pem and AES.key files beside epk2extract binary.
+Put *.pem and AES.key files in the same directory as the epk2extract binary.
 
 Run it via sudo or su because rootfs extraction requires root-access:
 
