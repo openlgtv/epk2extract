@@ -2,6 +2,8 @@ epk2extract
 ===========
 epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TV sets.
 
+# NOTE: we moved to https://github.com/openlgtv/epk2extract
+
 Supported Formats:
 ===========================================
 **NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV. We're thinking about releasing the keys extracted in the near future.**
