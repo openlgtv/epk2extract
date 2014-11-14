@@ -326,11 +326,13 @@ int is_lzhs(const char *filename) {
 	if (file == NULL) {
 		err_exit("Can't open file %s\n", filename);
 	}
+	size_t threshold = 10;
     struct lzhs_header header;
 	int read = fread(&header, 1, sizeof(header), file);
 	if (read == sizeof(header)) {
        	fseek(file, 0, SEEK_END);
-        if ((ftell(file) - 16 == header.compressedSize) && (memcmp(&header.spare, "\0\0\0\0\0\0\0", sizeof(header.spare)) == 0)) {
+		size_t diff = ftell(file) - sizeof(header) - header.compressedSize;
+        if (diff <= threshold && diff >= 0 && (memcmp(&header.spare, "\0\0\0\0\0\0\0", sizeof(header.spare)) == 0)) {
             fclose(file);
             return 1;
         }
