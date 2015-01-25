@@ -25,13 +25,12 @@
 #include "squashfs_fs.h"
 #include "compressor.h"
 
-static int gzip_init(void **strm, int block_size, int flags)
-{
+static int gzip_init(void **strm, int block_size, int flags) {
 	int res;
 	z_stream *stream;
 
 	stream = *strm = malloc(sizeof(z_stream));
-	if(stream == NULL)
+	if (stream == NULL)
 		goto failed;
 
 	stream->zalloc = Z_NULL;
@@ -39,26 +38,23 @@ static int gzip_init(void **strm, int block_size, int flags)
 	stream->opaque = 0;
 
 	res = deflateInit(stream, 9);
-	if(res != Z_OK)
+	if (res != Z_OK)
 		goto failed2;
 
 	return 0;
 
-failed2:
+ failed2:
 	free(stream);
-failed:
+ failed:
 	return -1;
 }
 
-
-static int gzip_compress(void *strm, void *d, void *s, int size, int block_size,
-		int *error)
-{
+static int gzip_compress(void *strm, void *d, void *s, int size, int block_size, int *error) {
 	int res;
 	z_stream *stream = strm;
 
 	res = deflateReset(stream);
-	if(res != Z_OK)
+	if (res != Z_OK)
 		goto failed;
 
 	stream->next_in = s;
@@ -67,17 +63,17 @@ static int gzip_compress(void *strm, void *d, void *s, int size, int block_size,
 	stream->avail_out = block_size;
 
 	res = deflate(stream, Z_FINISH);
-	if(res == Z_STREAM_END)
+	if (res == Z_STREAM_END)
 		/*
 		 * Success, return the compressed size.
 		 */
-		return (int) stream->total_out;
-	if(res == Z_OK)
+		return (int)stream->total_out;
+	if (res == Z_OK)
 		/*
 		 * Output buffer overflow.  Return out of buffer space
 		 */
 		return 0;
-failed:
+ failed:
 	/*
 	 * All other errors return failure, with the compressor
 	 * specific error code in *error
@@ -86,18 +82,15 @@ failed:
 	return -1;
 }
 
-
-static int gzip_uncompress(void *d, void *s, int size, int block_size, int *error)
-{
+static int gzip_uncompress(void *d, void *s, int size, int block_size, int *error) {
 	int res;
 	unsigned long bytes = block_size;
 
 	res = uncompress(d, &bytes, s, size);
 
 	*error = res;
-	return res == Z_OK ? (int) bytes : -1;
+	return res == Z_OK ? (int)bytes : -1;
 }
-
 
 struct compressor gzip_comp_ops = {
 	.init = gzip_init,
@@ -109,4 +102,3 @@ struct compressor gzip_comp_ops = {
 	.name = "gzip",
 	.supported = 1
 };
-

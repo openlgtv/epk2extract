@@ -6,17 +6,17 @@
  */
 
 #ifndef EPK2_H_
-#define EPK2_H_
+#    define EPK2_H_
 
-#include <stdint.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/aes.h>
-#include <epk.h>
-#include <stdbool.h>
+#    include <stdint.h>
+#    include <sys/stat.h>
+#    include <sys/types.h>
+#    include <openssl/evp.h>
+#    include <openssl/pem.h>
+#    include <openssl/err.h>
+#    include <openssl/aes.h>
+#    include <epk.h>
+#    include <stdbool.h>
 
 enum { SIGNATURE_SIZE = 0x80 };
 
@@ -34,36 +34,36 @@ struct epk3header_t {
 	unsigned char otaID[32];
 	uint32_t packageInfoSize;
 	uint32_t bChunked;
-}; 
+};
 
 struct pak3segmentHeader_t {
-	unsigned char unknown1[4]; // 0x01 00 00 00
-	uint32_t infoRecordSize; // 0x144
+	unsigned char unknown1[4];	// 0x01 00 00 00
+	uint32_t infoRecordSize;	// 0x144
 	unsigned char name[128];
 	unsigned char address1[128];
 	unsigned char address2[32];
 	uint32_t pakSize;
-	uint32_t unknown2; // 0x00 00 00 00
-	uint32_t unknown3; // 0x01 00 00 00
+	uint32_t unknown2;			// 0x00 00 00 00
+	uint32_t unknown3;			// 0x01 00 00 00
 	uint32_t segmentNumber;
 	uint32_t totalSegments;
 	uint32_t segmentSize;
-	uint32_t unknown4; // 0x00 00 00 00
-}; 
+	uint32_t unknown4;			// 0x00 00 00 00
+};
 
 struct pak3_t {
 	uint32_t packageInfoSize;
 	uint32_t numOfSegments;
 	struct pak3segmentHeader_t segment;
-}; 
+};
 
 /* main epk2 header */
 struct epk2header_t {
 	unsigned char signature[SIGNATURE_SIZE];
-	unsigned char epakMagic[4]; //epak
+	unsigned char epakMagic[4];	//epak
 	uint32_t fileSize;
 	uint32_t pakCount;
-	unsigned char EPK2magic[4]; //EPK2
+	unsigned char EPK2magic[4];	//EPK2
 	unsigned char fwVersion[4];
 	unsigned char otaID[32];
 	uint32_t headerLength;

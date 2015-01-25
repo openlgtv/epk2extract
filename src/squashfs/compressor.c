@@ -32,7 +32,7 @@
 #include "squashfs_fs.h"
 
 #ifndef GZIP_SUPPORT
-static struct compressor gzip_comp_ops =  {
+static struct compressor gzip_comp_ops = {
 	NULL, NULL, NULL, NULL, NULL, NULL, ZLIB_COMPRESSION, "gzip", 0
 };
 #else
@@ -65,11 +65,9 @@ static struct compressor xz_comp_ops = {
 extern struct compressor xz_comp_ops;
 #endif
 
-
 static struct compressor unknown_comp_ops = {
-	NULL, NULL, NULL , NULL, NULL, NULL, NULL, NULL, 0, "unknown", 0
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, "unknown", 0
 };
-
 
 struct compressor *compressor[] = {
 	&gzip_comp_ops,
@@ -79,58 +77,44 @@ struct compressor *compressor[] = {
 	&unknown_comp_ops
 };
 
-
-struct compressor *lookup_compressor(char *name)
-{
+struct compressor *lookup_compressor(char *name) {
 	int i;
 
-	for(i = 0; compressor[i]->id; i++)
-		if(strcmp(compressor[i]->name, name) == 0)
+	for (i = 0; compressor[i]->id; i++)
+		if (strcmp(compressor[i]->name, name) == 0)
 			break;
 
 	return compressor[i];
 }
 
-
-struct compressor *lookup_compressor_id(int id)
-{
+struct compressor *lookup_compressor_id(int id) {
 	int i;
 
-	for(i = 0; compressor[i]->id; i++)
-		if(id == compressor[i]->id)
+	for (i = 0; compressor[i]->id; i++)
+		if (id == compressor[i]->id)
 			break;
 
 	return compressor[i];
 }
 
-
-void display_compressors(char *indent, char *def_comp)
-{
+void display_compressors(char *indent, char *def_comp) {
 	int i;
 
-	for(i = 0; compressor[i]->id; i++)
-		if(compressor[i]->supported)
-			fprintf(stderr, "%s\t%s%s\n", indent,
-				compressor[i]->name,
-				strcmp(compressor[i]->name, def_comp) == 0 ?
-				" (default)" : "");
+	for (i = 0; compressor[i]->id; i++)
+		if (compressor[i]->supported)
+			fprintf(stderr, "%s\t%s%s\n", indent, compressor[i]->name, strcmp(compressor[i]->name, def_comp) == 0 ? " (default)" : "");
 }
 
-
-void display_compressor_usage(char *def_comp)
-{
+void display_compressor_usage(char *def_comp) {
 	int i;
 
-	for(i = 0; compressor[i]->id; i++)
-		if(compressor[i]->supported) {
-			char *str = strcmp(compressor[i]->name, def_comp) == 0 ?
-				" (default)" : "";
-			if(compressor[i]->usage) {
-				fprintf(stderr, "\t%s%s\n",
-					compressor[i]->name, str);
+	for (i = 0; compressor[i]->id; i++)
+		if (compressor[i]->supported) {
+			char *str = strcmp(compressor[i]->name, def_comp) == 0 ? " (default)" : "";
+			if (compressor[i]->usage) {
+				fprintf(stderr, "\t%s%s\n", compressor[i]->name, str);
 				compressor[i]->usage();
 			} else
-				fprintf(stderr, "\t%s (no options)%s\n",
-					compressor[i]->name, str);
+				fprintf(stderr, "\t%s (no options)%s\n", compressor[i]->name, str);
 		}
 }

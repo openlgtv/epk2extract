@@ -29,25 +29,21 @@
 
 #define LZMA_HEADER_SIZE	(LZMA_PROPS_SIZE + 8)
 
-static int lzma_compress(void *strm, void *dest, void *src, int size, int block_size,
-		int *error)
-{
+static int lzma_compress(void *strm, void *dest, void *src, int size, int block_size, int *error) {
 	unsigned char *d = dest;
-	size_t props_size = LZMA_PROPS_SIZE,
-		outlen = block_size - LZMA_HEADER_SIZE;
+	size_t props_size = LZMA_PROPS_SIZE, outlen = block_size - LZMA_HEADER_SIZE;
 	int res;
 
-	res = LzmaCompress(dest + LZMA_HEADER_SIZE, &outlen, src, size, dest,
-		&props_size, 5, block_size, 3, 0, 2, 32, 1);
-	
-	if(res == SZ_ERROR_OUTPUT_EOF) {
+	res = LzmaCompress(dest + LZMA_HEADER_SIZE, &outlen, src, size, dest, &props_size, 5, block_size, 3, 0, 2, 32, 1);
+
+	if (res == SZ_ERROR_OUTPUT_EOF) {
 		/*
 		 * Output buffer overflow.  Return out of buffer space error
 		 */
 		return 0;
 	}
 
-	if(res != SZ_OK) {
+	if (res != SZ_OK) {
 		/*
 		 * All other errors return failure, with the compressor
 		 * specific error code in *error
@@ -78,26 +74,18 @@ static int lzma_compress(void *strm, void *dest, void *src, int size, int block_
 	return outlen + LZMA_HEADER_SIZE;
 }
 
-
-static int lzma_uncompress(void *dest, void *src, int size, int block_size,
-	int *error)
-{
+static int lzma_uncompress(void *dest, void *src, int size, int block_size, int *error) {
 	unsigned char *s = src;
 	size_t outlen, inlen = size - LZMA_HEADER_SIZE;
 	int res;
 
-	outlen = s[LZMA_PROPS_SIZE] |
-		(s[LZMA_PROPS_SIZE + 1] << 8) |
-		(s[LZMA_PROPS_SIZE + 2] << 16) |
-		(s[LZMA_PROPS_SIZE + 3] << 24);
+	outlen = s[LZMA_PROPS_SIZE] | (s[LZMA_PROPS_SIZE + 1] << 8) | (s[LZMA_PROPS_SIZE + 2] << 16) | (s[LZMA_PROPS_SIZE + 3] << 24);
 
-	res = LzmaUncompress(dest, &outlen, src + LZMA_HEADER_SIZE, &inlen, src,
-		LZMA_PROPS_SIZE);
-	
+	res = LzmaUncompress(dest, &outlen, src + LZMA_HEADER_SIZE, &inlen, src, LZMA_PROPS_SIZE);
+
 	*error = res;
 	return res == SZ_OK ? outlen : -1;
 }
-
 
 struct compressor lzma_comp_ops = {
 	.init = NULL,
@@ -109,4 +97,3 @@ struct compressor lzma_comp_ops = {
 	.name = "lzma",
 	.supported = 1
 };
-

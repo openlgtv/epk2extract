@@ -58,8 +58,6 @@
 #define WANT_LZO_WILDARGV 1
 #include "lzo/portab.h"
 
-
-
 static unsigned long total_in = 0;
 static unsigned long total_out = 0;
 static lzo_bool opt_debug = 0;
@@ -68,13 +66,14 @@ lzo_uint32 fi_size = 0;
 
 /* magic file header for lzopack-compressed files */
 static const unsigned char magic[8] = { 0x00, 0xe9, 0x4c, 0x5a, 0x4f, 0xff,
-		0x1a, 0x00 };
+	0x1a, 0x00
+};
 
 /*************************************************************************
  // file IO
  **************************************************************************/
 
-lzo_uint xread(FILE *fp, lzo_voidp buf, lzo_uint len, lzo_bool allow_eof) {
+lzo_uint xread(FILE * fp, lzo_voidp buf, lzo_uint len, lzo_bool allow_eof) {
 	lzo_uint l;
 
 	l = (lzo_uint) lzo_fread(fp, buf, len);
@@ -86,33 +85,33 @@ lzo_uint xread(FILE *fp, lzo_voidp buf, lzo_uint len, lzo_bool allow_eof) {
 		fprintf(stderr, "\nread error - premature end of file\n");
 		exit(1);
 	}
-	total_in += (unsigned long) l;
+	total_in += (unsigned long)l;
 	return l;
 }
 
-lzo_uint xwrite(FILE *fp, const lzo_voidp buf, lzo_uint len) {
+lzo_uint xwrite(FILE * fp, const lzo_voidp buf, lzo_uint len) {
 	if (fp != NULL && lzo_fwrite(fp, buf, len) != len) {
 		fprintf(stderr, "\nwrite error  (disk full ?)\n");
 		exit(1);
 	}
-	total_out += (unsigned long) len;
+	total_out += (unsigned long)len;
 	return len;
 }
 
-int xgetc(FILE *fp) {
+int xgetc(FILE * fp) {
 	unsigned char c;
-	xread(fp, (lzo_voidp) &c, 1, 0);
+	xread(fp, (lzo_voidp) & c, 1, 0);
 	return c;
 }
 
-void xputc(FILE *fp, int c) {
-	unsigned char cc = (unsigned char) (c & 0xff);
-	xwrite(fp, (const lzo_voidp) &cc, 1);
+void xputc(FILE * fp, int c) {
+	unsigned char cc = (unsigned char)(c & 0xff);
+	xwrite(fp, (const lzo_voidp)&cc, 1);
 }
 
 /* read and write portable 32-bit integers */
 
-lzo_uint32 xread32(FILE *fp) {
+lzo_uint32 xread32(FILE * fp) {
 	unsigned char b[4];
 	lzo_uint32 v;
 
@@ -124,13 +123,13 @@ lzo_uint32 xread32(FILE *fp) {
 	return v;
 }
 
-void xwrite32(FILE *fp, lzo_xint v) {
+void xwrite32(FILE * fp, lzo_xint v) {
 	unsigned char b[4];
 
-	b[3] = (unsigned char) ((v >> 0) & 0xff);
-	b[2] = (unsigned char) ((v >> 8) & 0xff);
-	b[1] = (unsigned char) ((v >> 16) & 0xff);
-	b[0] = (unsigned char) ((v >> 24) & 0xff);
+	b[3] = (unsigned char)((v >> 0) & 0xff);
+	b[2] = (unsigned char)((v >> 8) & 0xff);
+	b[1] = (unsigned char)((v >> 16) & 0xff);
+	b[0] = (unsigned char)((v >> 24) & 0xff);
 	xwrite(fp, b, 4);
 }
 
@@ -146,7 +145,7 @@ void xwrite32(FILE *fp, lzo_xint v) {
  //   compression.
  **************************************************************************/
 
-int do_compress(FILE *fi, FILE *fo, int level, lzo_uint block_size) {
+int do_compress(FILE * fi, FILE * fo, int level, lzo_uint block_size) {
 	int r = 0;
 	lzo_bytep in = NULL;
 	lzo_bytep out = NULL;
@@ -154,8 +153,8 @@ int do_compress(FILE *fi, FILE *fo, int level, lzo_uint block_size) {
 	lzo_uint in_len;
 	lzo_uint out_len;
 	lzo_uint32 wrk_len = 0;
-	lzo_uint32 flags = 1; /* do compute a checksum */
-	int method = 1; /* compression method: LZO1X */
+	lzo_uint32 flags = 1;		/* do compute a checksum */
+	int method = 1;				/* compression method: LZO1X */
 	lzo_uint32 checksum;
 
 	total_in = total_out = 0;
@@ -167,8 +166,8 @@ int do_compress(FILE *fi, FILE *fo, int level, lzo_uint block_size) {
 	xwrite32(fo, fi_size);
 	printf("Decompressed size : %d\n", fi_size);
 	xwrite32(fo, flags);
-	xputc(fo, method); /* compression method */
-	xputc(fo, level); /* compression level */
+	xputc(fo, method);			/* compression method */
+	xputc(fo, level);			/* compression level */
 	xwrite32(fo, block_size);
 	checksum = lzo_adler32(0, NULL, 0);
 
@@ -239,13 +238,11 @@ int do_compress(FILE *fi, FILE *fo, int level, lzo_uint block_size) {
 		xwrite32(fo, checksum);
 
 	r = 0;
-	err: lzo_free(wrkmem);
+ err:lzo_free(wrkmem);
 	lzo_free(out);
 	lzo_free(in);
 	return r;
 }
-
-
 
 /*************************************************************************
  // decompress / test
@@ -254,7 +251,7 @@ int do_compress(FILE *fi, FILE *fo, int level, lzo_uint block_size) {
  // memory - see overlap.c.
  **************************************************************************/
 
-int do_decompress(FILE *fi, FILE *fo) {
+int do_decompress(FILE * fi, FILE * fo) {
 	unsigned int r = 0;
 	lzo_bytep buf = NULL;
 	lzo_uint buf_len;
@@ -270,8 +267,7 @@ int do_decompress(FILE *fi, FILE *fo) {
 	/*
 	 * Step 1: check magic header, read flags & block size, init checksum
 	 */
-	if (xread(fi, m, sizeof(magic), 1) != sizeof(magic) || memcmp(m, magic,
-			sizeof(magic)) != 0) {
+	if (xread(fi, m, sizeof(magic), 1) != sizeof(magic) || memcmp(m, magic, sizeof(magic)) != 0) {
 		//printf("header error - this file is not compressed by lzopack\n");
 		r = 1;
 		goto err;
@@ -292,8 +288,7 @@ int do_decompress(FILE *fi, FILE *fo) {
 	}
 	block_size = xread32(fi);
 	if (block_size < 1024 || block_size > 8 * 1024 * 1024L) {
-		printf("header error - invalid block size %ld\n",
-				(long) block_size);
+		printf("header error - invalid block size %ld\n", (long)block_size);
 		r = 3;
 		goto err;
 	}
@@ -330,8 +325,7 @@ int do_decompress(FILE *fi, FILE *fo) {
 		in_len = xread32(fi);
 
 		/* sanity check of the size values */
-		if (in_len > block_size || out_len > block_size || in_len == 0
-				|| in_len > out_len) {
+		if (in_len > block_size || out_len > block_size || in_len == 0 || in_len > out_len) {
 			printf("block size error - data corrupted\n");
 			r = 5;
 			goto err;
@@ -380,7 +374,7 @@ int do_decompress(FILE *fi, FILE *fo) {
 	}
 
 	r = 0;
-	err: lzo_free(buf);
+ err:lzo_free(buf);
 	return r;
 }
 
@@ -388,14 +382,13 @@ int do_decompress(FILE *fi, FILE *fo) {
  //
  **************************************************************************/
 
-
 /* open input file */
 static FILE *xopen_fi(const char *name) {
 	FILE *fp;
 
 	fp = fopen(name, "rb");
 	if (fp == NULL) {
-		printf("cannot open input file %s\n",name);
+		printf("cannot open input file %s\n", name);
 		exit(1);
 	} else {
 		struct stat st;
@@ -422,10 +415,10 @@ static FILE *xopen_fo(const char *name) {
 #if 0
 	/* this is an example program, so make sure we don't overwrite a file */
 	fp = fopen(name, "rb");
-	if (fp != NULL)
-	{
+	if (fp != NULL) {
 		printf("%s: file %s already exists -- not overwritten\n", progname, name);
-		fclose(fp); fp = NULL;
+		fclose(fp);
+		fp = NULL;
 		exit(1);
 	}
 #endif
@@ -438,7 +431,7 @@ static FILE *xopen_fo(const char *name) {
 }
 
 /* close file */
-static void xclose(FILE *fp) {
+static void xclose(FILE * fp) {
 	if (fp) {
 		int err;
 		err = ferror(fp);
@@ -456,8 +449,8 @@ int check_lzo_header(const char *name) {
 	FILE *fi = xopen_fi(name);
 
 	unsigned char m[sizeof(magic)];
-	int result =  (xread(fi, m, sizeof(magic), 1) != sizeof(magic) || memcmp(m, magic,
-				sizeof(magic)) != 0);
+	int result = (xread(fi, m, sizeof(magic), 1) != sizeof(magic) || memcmp(m, magic,
+																			sizeof(magic)) != 0);
 
 	xclose(fi);
 
@@ -468,7 +461,7 @@ int check_lzo_header(const char *name) {
  //
  **************************************************************************/
 
-int __lzo_cdecl_main lzo_unpack(const char* in_name, const char* out_name) {
+int __lzo_cdecl_main lzo_unpack(const char *in_name, const char *out_name) {
 
 	int r = 0;
 	FILE *fi = NULL;
@@ -480,8 +473,7 @@ int __lzo_cdecl_main lzo_unpack(const char* in_name, const char* out_name) {
 	 */
 	if (lzo_init() != LZO_E_OK) {
 		printf("internal error - lzo_init() failed !!!\n");
-		printf(
-				"(this usually indicates a compiler bug - try recompiling\nwithout optimizations, and enable `-DLZO_DEBUG' for diagnostics)\n");
+		printf("(this usually indicates a compiler bug - try recompiling\nwithout optimizations, and enable `-DLZO_DEBUG' for diagnostics)\n");
 		exit(1);
 	}
 
@@ -493,9 +485,8 @@ int __lzo_cdecl_main lzo_unpack(const char* in_name, const char* out_name) {
 #if defined(ACC_MM_AHSHIFT)
 	/* reduce memory requirements for ancient 16-bit DOS 640kB real-mode */
 	if (ACC_MM_AHSHIFT != 3)
-	opt_block_size = 16 * 1024L;
+		opt_block_size = 16 * 1024L;
 #endif
-
 
 	/*
 	 * Step 4: process file(s)
@@ -503,7 +494,7 @@ int __lzo_cdecl_main lzo_unpack(const char* in_name, const char* out_name) {
 	fi = xopen_fi(in_name);
 	fo = xopen_fo(out_name);
 	r = do_decompress(fi, fo);
-//	if (r == 0)	printf("decompressed %lu into %lu bytes\n", total_in, total_out);
+//  if (r == 0) printf("decompressed %lu into %lu bytes\n", total_in, total_out);
 	xclose(fi);
 	fi = NULL;
 	xclose(fo);
@@ -514,4 +505,3 @@ int __lzo_cdecl_main lzo_unpack(const char* in_name, const char* out_name) {
 /*
  vi:ts=4:et
  */
-

@@ -31,44 +31,38 @@
 //****************************
 // Warning messages
 //****************************
-#define _CRT_SECURE_NO_WARNINGS    // Visual (must be first line)
-
+#define _CRT_SECURE_NO_WARNINGS	// Visual (must be first line)
 
 //****************************
 // Includes
 //****************************
-#include <stdio.h>		// fprintf, fopen, fread, _fileno(?)
-#include <stdlib.h>		// malloc
-#include <string.h>		// strcmp
-#include <time.h>		// clock
-#include <stdint.h>		// uint32_t
+#include <stdio.h>				// fprintf, fopen, fread, _fileno(?)
+#include <stdlib.h>				// malloc
+#include <string.h>				// strcmp
+#include <time.h>				// clock
+#include <stdint.h>				// uint32_t
 #ifdef _WIN32
-#include <io.h>			// _setmode
-#include <fcntl.h>		// _O_BINARY
+#    include <io.h>				// _setmode
+#    include <fcntl.h>			// _O_BINARY
 #endif
 #include "lz4.h"
 #include "lz4hc.h"
 #include "bench.h"
-
 
 //**************************************
 // Compiler functions
 //**************************************
 #define GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
 
-#if defined(_MSC_VER)    // Visual Studio
-#define swap32 _byteswap_ulong
+#if defined(_MSC_VER)			// Visual Studio
+#    define swap32 _byteswap_ulong
 #elif GCC_VERSION >= 430
-#define swap32 __builtin_bswap32
+#    define swap32 __builtin_bswap32
 #else
 static inline unsigned int swap32(unsigned int x) {
-			return	((x << 24) & 0xff000000 ) |
-				((x <<  8) & 0x00ff0000 ) |
-				((x >>  8) & 0x0000ff00 ) |
-				((x >> 24) & 0x000000ff );
-		 }
+	return ((x << 24) & 0xff000000) | ((x << 8) & 0x00ff0000) | ((x >> 8) & 0x0000ff00) | ((x >> 24) & 0x000000ff);
+}
 #endif
-
 
 //****************************
 // Constants
@@ -80,13 +74,12 @@ static inline unsigned int swap32(unsigned int x) {
 #define EXTENSION ".lz4"
 #define WELCOME_MESSAGE "*** %s %s, by %s (%s) ***\n", COMPRESSOR_NAME, COMPRESSOR_VERSION, AUTHOR, COMPILED
 
-unsigned int CHUNKSIZE = 8<<20;    // 8 MB
+unsigned int CHUNKSIZE = 8 << 20;	// 8 MB
 #define CACHELINE 64
 //#define ARCHIVE_MAGICNUMBER 0x184C2102
 #define ARCHIVE_MAGICNUMBER 0x50345A4C
 //#define ARCHIVE_MAGICNUMBER_SIZE 4
 #define ARCHIVE_MAGICNUMBER_SIZE 0x20
-
 
 //**************************************
 // Architecture Macros
@@ -96,142 +89,144 @@ static const int one = 1;
 #define CPU_BIG_ENDIAN (!CPU_LITTLE_ENDIAN)
 #define LITTLE_ENDIAN32(i)   if (CPU_BIG_ENDIAN) { i = swap32(i); }
 
-
 //**************************************
 // Macros
 //**************************************
 #define DISPLAY(...) fprintf(stderr, __VA_ARGS__)
 
-
 //****************************
 // Functions
 //****************************
-int usage(char* exename)
-{
-	DISPLAY( "Usage :\n");
-	DISPLAY( "      %s [arg] input output\n", exename);
-	DISPLAY( "Arguments :\n");
-	DISPLAY( " -c0: Fast compression (default) \n");
-	DISPLAY( " -c1: High compression \n");
-	DISPLAY( " -d : decompression \n");
-	DISPLAY( " -b#: Benchmark files, using # compression level\n");
-	DISPLAY( " -t : check compressed file \n");
-	DISPLAY( " -h : help (this text)\n");
-	DISPLAY( "input  : can be 'stdin' (pipe) or a filename\n");
-	DISPLAY( "output : can be 'stdout'(pipe) or a filename or 'null'\n");
+int usage(char *exename) {
+	DISPLAY("Usage :\n");
+	DISPLAY("      %s [arg] input output\n", exename);
+	DISPLAY("Arguments :\n");
+	DISPLAY(" -c0: Fast compression (default) \n");
+	DISPLAY(" -c1: High compression \n");
+	DISPLAY(" -d : decompression \n");
+	DISPLAY(" -b#: Benchmark files, using # compression level\n");
+	DISPLAY(" -t : check compressed file \n");
+	DISPLAY(" -h : help (this text)\n");
+	DISPLAY("input  : can be 'stdin' (pipe) or a filename\n");
+	DISPLAY("output : can be 'stdout'(pipe) or a filename or 'null'\n");
 	return 0;
 }
 
-
-int badusage(char* exename)
-{
+int badusage(char *exename) {
 	DISPLAY("Wrong parameters\n");
 	usage(exename);
 	return 0;
 }
 
-
-
-int get_fileHandle(char* input_filename, char* output_filename, FILE** pfinput, FILE** pfoutput)
-{
+int get_fileHandle(char *input_filename, char *output_filename, FILE ** pfinput, FILE ** pfoutput) {
 	char stdinmark[] = "stdin";
 	char stdoutmark[] = "stdout";
 
-	if (!strcmp (input_filename, stdinmark)) {
-		DISPLAY( "Using stdin for input\n");
+	if (!strcmp(input_filename, stdinmark)) {
+		DISPLAY("Using stdin for input\n");
 		*pfinput = stdin;
-#ifdef _WIN32 // Need to set stdin/stdout to binary mode specifically for windows
-		_setmode( _fileno( stdin ), _O_BINARY );
+#ifdef _WIN32					// Need to set stdin/stdout to binary mode specifically for windows
+		_setmode(_fileno(stdin), _O_BINARY);
 #endif
 	} else {
-		*pfinput = fopen( input_filename, "rb" );
+		*pfinput = fopen(input_filename, "rb");
 	}
 
-	if (!strcmp (output_filename, stdoutmark)) {
-		DISPLAY( "Using stdout for output\n");
+	if (!strcmp(output_filename, stdoutmark)) {
+		DISPLAY("Using stdout for output\n");
 		*pfoutput = stdout;
-#ifdef _WIN32 // Need to set stdin/stdout to binary mode specifically for windows
-		_setmode( _fileno( stdout ), _O_BINARY );
+#ifdef _WIN32					// Need to set stdin/stdout to binary mode specifically for windows
+		_setmode(_fileno(stdout), _O_BINARY);
 #endif
 	} else {
-		*pfoutput = fopen( output_filename, "wb" );
+		*pfoutput = fopen(output_filename, "wb");
 	}
 
-	if ( *pfinput==0 ) { DISPLAY( "Pb opening %s\n", input_filename);  return 2; }
-	if ( *pfoutput==0) { DISPLAY( "Pb opening %s\n", output_filename); return 3; }
+	if (*pfinput == 0) {
+		DISPLAY("Pb opening %s\n", input_filename);
+		return 2;
+	}
+	if (*pfoutput == 0) {
+		DISPLAY("Pb opening %s\n", output_filename);
+		return 3;
+	}
 
 	return 0;
 }
 
-
-
-int compress_file(char* input_filename, char* output_filename, int compressionlevel)
-{
-	int (*compressionFunction)(const char*, char*, int);
+int compress_file(char *input_filename, char *output_filename, int compressionlevel) {
+	int (*compressionFunction) (const char *, char *, int);
 	unsigned long long filesize = 0;
 	unsigned long long compressedfilesize = ARCHIVE_MAGICNUMBER_SIZE;
 	unsigned int u32var;
-	char* in_buff;
-	char* out_buff;
-	FILE* finput;
-	FILE* foutput;
+	char *in_buff;
+	char *out_buff;
+	FILE *finput;
+	FILE *foutput;
 	int r;
-	int displayLevel = (compressionlevel>0);
+	int displayLevel = (compressionlevel > 0);
 	clock_t start, end;
 
-
 	// Init
-	switch (compressionlevel)
-	{
-	case 0 : compressionFunction = LZ4_compress; break;
-	case 1 : compressionFunction = LZ4_compressHC; break;
-	default : compressionFunction = LZ4_compress;
+	switch (compressionlevel) {
+	case 0:
+		compressionFunction = LZ4_compress;
+		break;
+	case 1:
+		compressionFunction = LZ4_compressHC;
+		break;
+	default:
+		compressionFunction = LZ4_compress;
 	}
 	start = clock();
 	r = get_fileHandle(input_filename, output_filename, &finput, &foutput);
-	if (r) return r;
+	if (r)
+		return r;
 
 	// Allocate Memory
-	
-	in_buff = (char*)malloc(CHUNKSIZE);
-	out_buff = (char*)malloc(LZ4_compressBound(CHUNKSIZE));
-	if (!in_buff || !out_buff) { DISPLAY("Allocation error : not enough memory\n"); return 8; }
 
+	in_buff = (char *)malloc(CHUNKSIZE);
+	out_buff = (char *)malloc(LZ4_compressBound(CHUNKSIZE));
+	if (!in_buff || !out_buff) {
+		DISPLAY("Allocation error : not enough memory\n");
+		return 8;
+	}
 	// Write Archive Header
 	u32var = ARCHIVE_MAGICNUMBER;
 	LITTLE_ENDIAN32(u32var);
-	*(unsigned int*)out_buff = u32var;
+	*(unsigned int *)out_buff = u32var;
 	fwrite(out_buff, 1, ARCHIVE_MAGICNUMBER_SIZE, foutput);
 
 	// Main Loop
-	while (1)
-	{
+	while (1) {
 		int outSize;
 		// Read Block
-	    int inSize = fread(in_buff, 1, CHUNKSIZE, finput);
-		if( inSize<=0 ) break;
+		int inSize = fread(in_buff, 1, CHUNKSIZE, finput);
+		if (inSize <= 0)
+			break;
 		filesize += inSize;
-		if (displayLevel) DISPLAY("Read : %i MB  \r", (int)(filesize>>20));
+		if (displayLevel)
+			DISPLAY("Read : %i MB  \r", (int)(filesize >> 20));
 
 		// Compress Block
-		outSize = compressionFunction(in_buff, out_buff+4, inSize);
-		compressedfilesize += outSize+4;
-		if (displayLevel) DISPLAY("Read : %i MB  ==> %.2f%%\r", (int)(filesize>>20), (double)compressedfilesize/filesize*100);
+		outSize = compressionFunction(in_buff, out_buff + 4, inSize);
+		compressedfilesize += outSize + 4;
+		if (displayLevel)
+			DISPLAY("Read : %i MB  ==> %.2f%%\r", (int)(filesize >> 20), (double)compressedfilesize / filesize * 100);
 
 		// Write Block
 		LITTLE_ENDIAN32(outSize);
-		* (unsigned int*) out_buff = outSize;
+		*(unsigned int *)out_buff = outSize;
 		LITTLE_ENDIAN32(outSize);
-		fwrite(out_buff, 1, outSize+4, foutput);
+		fwrite(out_buff, 1, outSize + 4, foutput);
 	}
 
 	// Status
 	end = clock();
-	DISPLAY( "Compressed %llu bytes into %llu bytes ==> %.2f%%\n",
-		(unsigned long long) filesize, (unsigned long long) compressedfilesize, (double)compressedfilesize/filesize*100);
+	DISPLAY("Compressed %llu bytes into %llu bytes ==> %.2f%%\n", (unsigned long long)filesize, (unsigned long long)compressedfilesize, (double)compressedfilesize / filesize * 100);
 	{
-		double seconds = (double)(end - start)/CLOCKS_PER_SEC;
-		DISPLAY( "Done in %.2f s ==> %.2f MB/s\n", seconds, (double)filesize / seconds / 1024 / 1024);
+		double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+		DISPLAY("Done in %.2f s ==> %.2f MB/s\n", seconds, (double)filesize / seconds / 1024 / 1024);
 	}
 
 	// Close & Free
@@ -243,73 +238,91 @@ int compress_file(char* input_filename, char* output_filename, int compressionle
 	return 0;
 }
 
-
-int decode_file(char* input_filename, char* output_filename) {
+int decode_file(char *input_filename, char *output_filename) {
 	unsigned long long filesize = 0;
-	char* in_buff;
-	char* out_buff;
+	char *in_buff;
+	char *out_buff;
 	size_t uselessRet;
 	int sinkint;
-	uint32_t chunkSize[ARCHIVE_MAGICNUMBER_SIZE/4];
-	FILE* finput;
-	FILE* foutput;
+	uint32_t chunkSize[ARCHIVE_MAGICNUMBER_SIZE / 4];
+	FILE *finput;
+	FILE *foutput;
 	clock_t start, end;
 	int r;
 
 	// Init
 	start = clock();
 	r = get_fileHandle(input_filename, output_filename, &finput, &foutput);
-	if (r) return r;
+	if (r)
+		return r;
 
 	// Check Archive Header
 	uselessRet = fread(chunkSize, 1, ARCHIVE_MAGICNUMBER_SIZE, finput);
-	if (!uselessRet) { DISPLAY("Cannot read header\n"); return -1; }
+	if (!uselessRet) {
+		DISPLAY("Cannot read header\n");
+		return -1;
+	}
 	//LITTLE_ENDIAN32(chunkSize);
-	if (chunkSize[0] != ARCHIVE_MAGICNUMBER) { DISPLAY("Unrecognized header : file cannot be decoded\n"); return 6; }
-
+	if (chunkSize[0] != ARCHIVE_MAGICNUMBER) {
+		DISPLAY("Unrecognized header : file cannot be decoded\n");
+		return 6;
+	}
 	// Allocate Memory
-        CHUNKSIZE = (uint32_t) chunkSize[3];
-	in_buff = (char*)malloc(CHUNKSIZE + CHUNKSIZE / 0xFF + 64);
-	out_buff = (char*)malloc(CHUNKSIZE);
-	if (!in_buff || !out_buff) { DISPLAY("Allocation error : not enough memory\n"); return 7; }
+	CHUNKSIZE = (uint32_t) chunkSize[3];
+	in_buff = (char *)malloc(CHUNKSIZE + CHUNKSIZE / 0xFF + 64);
+	out_buff = (char *)malloc(CHUNKSIZE);
+	if (!in_buff || !out_buff) {
+		DISPLAY("Allocation error : not enough memory\n");
+		return 7;
+	}
 
-       	uint32_t n = 0;
+	uint32_t n = 0;
 	uint32_t nextSize;
-       	uint32_t numOfSizes = chunkSize[4];
-       	uint32_t* sizesTable = (uint32_t *)malloc(4 * numOfSizes);
-        uselessRet = fread(sizesTable, 4, numOfSizes, finput);
-	if (!uselessRet) { DISPLAY("Cannot read sizes table\n"); return -1; }
+	uint32_t numOfSizes = chunkSize[4];
+	uint32_t *sizesTable = (uint32_t *) malloc(4 * numOfSizes);
+	uselessRet = fread(sizesTable, 4, numOfSizes, finput);
+	if (!uselessRet) {
+		DISPLAY("Cannot read sizes table\n");
+		return -1;
+	}
 	filesize = 0LL;
-	while (1) { // Main Loop
+	while (1) {					// Main Loop
 		nextSize = sizesTable[n];
 		uselessRet = fread(in_buff, 1, nextSize, finput);
-		if (!uselessRet) { DISPLAY("Cannot read header\n"); return -1; }
+		if (!uselessRet) {
+			DISPLAY("Cannot read header\n");
+			return -1;
+		}
 		if (n >= numOfSizes - 1) {
 			// Decode Block
 			sinkint = LZ4_uncompress_unknownOutputSize(in_buff, out_buff, nextSize, CHUNKSIZE);
-			if (sinkint < 0) { DISPLAY("Decoding Failed ! Corrupted input !\n"); return 9; }
+			if (sinkint < 0) {
+				DISPLAY("Decoding Failed ! Corrupted input !\n");
+				return 9;
+			}
 			filesize += sinkint;
 
 			// Write Block
 			fwrite(out_buff, 1, sinkint, foutput);
 			break;
-	    	}
+		}
 		uint32_t res = LZ4_uncompress(in_buff, out_buff, CHUNKSIZE);
-		if ( nextSize != res ) {
+		if (nextSize != res) {
 			printf("Uncompress error. n:%d, res:%X, nextSize:%X\n", n, res, nextSize);
 			return 8;
 		}
 		filesize += CHUNKSIZE;
 		++n;
 		fwrite(out_buff, 1, CHUNKSIZE, foutput);
-		if (n >= numOfSizes) break;
+		if (n >= numOfSizes)
+			break;
 	}
 
 	// Status
 	end = clock();
-	DISPLAY( "Successfully decoded %llu bytes. ", (unsigned long long)filesize); {
-		double seconds = (double)(end - start)/CLOCKS_PER_SEC;
-		DISPLAY( "Done in %.2f s ==> %.2f MB/s\n", seconds, (double)filesize / seconds / 1024 / 1024);
+	DISPLAY("Successfully decoded %llu bytes. ", (unsigned long long)filesize); {
+		double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+		DISPLAY("Done in %.2f s ==> %.2f MB/s\n", seconds, (double)filesize / seconds / 1024 / 1024);
 	}
 
 	// Close & Free
@@ -321,7 +334,6 @@ int decode_file(char* input_filename, char* output_filename) {
 
 	return 0;
 }
-
 
 //int main(int argc, char** argv)
 //{
@@ -347,9 +359,9 @@ int decode_file(char* input_filename, char* output_filename) {
 
   //for(i=1; i<argc; i++)
   //{
-    //char* argument = argv[i];
+	//char* argument = argv[i];
 
-    //if(!argument) continue;   // Protection if argument empty
+	//if(!argument) continue;   // Protection if argument empty
 
 	// Select command
 	//if (argument[0]=='-')
@@ -379,10 +391,10 @@ int decode_file(char* input_filename, char* output_filename) {
 	//}
 
 	// first provided filename is input
-    //if (!input_filename) { input_filename=argument; filenamesStart=i; continue; }
+	//if (!input_filename) { input_filename=argument; filenamesStart=i; continue; }
 
 	// second provided filename is output
-    //if (!output_filename)
+	//if (!output_filename)
 	//{
 		//output_filename=argument;
 		//if (!strcmp (output_filename, nullinput)) output_filename = nulmark;

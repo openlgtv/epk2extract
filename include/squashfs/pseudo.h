@@ -22,31 +22,31 @@
  * pseudo.h
  */
 struct pseudo_dev {
-	char		type;
-	unsigned int	mode;
-	unsigned int	uid;
-	unsigned int	gid;
-	unsigned int	major;
-	unsigned int	minor;
-	int		pseudo_id;
-	int		fd;
-	int		child;
+	char type;
+	unsigned int mode;
+	unsigned int uid;
+	unsigned int gid;
+	unsigned int major;
+	unsigned int minor;
+	int pseudo_id;
+	int fd;
+	int child;
 #ifdef USE_TMP_FILE
-	char		*filename;
+	char *filename;
 #endif
 };
 
 struct pseudo_entry {
-	char			*name;
-	char			*pathname;
-	struct pseudo		*pseudo;
-	struct pseudo_dev	*dev;
+	char *name;
+	char *pathname;
+	struct pseudo *pseudo;
+	struct pseudo_dev *dev;
 };
-	
+
 struct pseudo {
-	int			names;
-	int			count;
-	struct pseudo_entry	*name;
+	int names;
+	int count;
+	struct pseudo_entry *name;
 };
 
 extern int read_pseudo_def(struct pseudo **, char *);

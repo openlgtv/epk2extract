@@ -29,44 +29,30 @@
 
 extern int root_process;
 
-void write_xattr(char *pathname, unsigned int xattr)
-{
+void write_xattr(char *pathname, unsigned int xattr) {
 	unsigned int count;
 	struct xattr_list *xattr_list;
 	int i;
 
-	if(xattr == SQUASHFS_INVALID_XATTR ||
-			sBlk.s.xattr_id_table_start == SQUASHFS_INVALID_BLK)
+	if (xattr == SQUASHFS_INVALID_XATTR || sBlk.s.xattr_id_table_start == SQUASHFS_INVALID_BLK)
 		return;
 
 	xattr_list = get_xattr(xattr, &count);
-	if(xattr_list == NULL) {
+	if (xattr_list == NULL) {
 		ERROR("Failed to read xattrs for file %s\n", pathname);
 		return;
 	}
 
-	for(i = 0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		int prefix = xattr_list[i].type & SQUASHFS_XATTR_PREFIX_MASK;
 
-		if(root_process || prefix == SQUASHFS_XATTR_USER) {
+		if (root_process || prefix == SQUASHFS_XATTR_USER) {
 			int res = lsetxattr(pathname, xattr_list[i].full_name,
-				xattr_list[i].value, xattr_list[i].vsize, 0);
+								xattr_list[i].value, xattr_list[i].vsize, 0);
 
-			if(res == -1)
-				ERROR("write_xattr: failed to write xattr %s"
-					" for file %s because %s\n",
-					xattr_list[i].full_name, pathname,
-					errno == ENOSPC || errno == EDQUOT ?
-					"no extended attribute space remaining "
-					"on destination filesystem" :
-					errno == ENOTSUP ?
-					"extended attributes are not supported "
-					"by the destination filesystem" :
-					"a weird error occurred");
+			if (res == -1)
+				ERROR("write_xattr: failed to write xattr %s" " for file %s because %s\n", xattr_list[i].full_name, pathname, errno == ENOSPC || errno == EDQUOT ? "no extended attribute space remaining " "on destination filesystem" : errno == ENOTSUP ? "extended attributes are not supported " "by the destination filesystem" : "a weird error occurred");
 		} else
-			ERROR("write_xattr: could not write xattr %s "
-					"for file %s because you're not "
-					"superuser!\n",
-					xattr_list[i].full_name, pathname);
+			ERROR("write_xattr: could not write xattr %s " "for file %s because you're not " "superuser!\n", xattr_list[i].full_name, pathname);
 	}
 }

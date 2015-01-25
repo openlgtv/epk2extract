@@ -35,10 +35,8 @@
 #define LZMA_OPTIONS 5
 #define MEMLIMIT (32 * 1024 * 1024)
 
-static int lzma_compress(void *dummy, void *dest, void *src,  int size,
-	int block_size, int *error)
-{
-	unsigned char *d = (unsigned char *) dest;
+static int lzma_compress(void *dummy, void *dest, void *src, int size, int block_size, int *error) {
+	unsigned char *d = (unsigned char *)dest;
 	lzma_options_lzma opt;
 	lzma_stream strm = LZMA_STREAM_INIT;
 	int res;
@@ -47,7 +45,7 @@ static int lzma_compress(void *dummy, void *dest, void *src,  int size,
 	opt.dict_size = block_size;
 
 	res = lzma_alone_encoder(&strm, &opt);
-	if(res != LZMA_OK) {
+	if (res != LZMA_OK) {
 		lzma_end(&strm);
 		goto failed;
 	}
@@ -60,13 +58,13 @@ static int lzma_compress(void *dummy, void *dest, void *src,  int size,
 	res = lzma_code(&strm, LZMA_FINISH);
 	lzma_end(&strm);
 
-	if(res == LZMA_STREAM_END) {
+	if (res == LZMA_STREAM_END) {
 		/*
-	 	 * Fill in the 8 byte little endian uncompressed size field in
+		 * Fill in the 8 byte little endian uncompressed size field in
 		 * the LZMA header.  8 bytes is excessively large for squashfs
 		 * but this is the standard LZMA header and which is expected by
 		 * the kernel code
-	 	 */
+		 */
 
 		d[LZMA_PROPS_SIZE] = size & 255;
 		d[LZMA_PROPS_SIZE + 1] = (size >> 8) & 255;
@@ -77,16 +75,16 @@ static int lzma_compress(void *dummy, void *dest, void *src,  int size,
 		d[LZMA_PROPS_SIZE + 6] = 0;
 		d[LZMA_PROPS_SIZE + 7] = 0;
 
-		return (int) strm.total_out;
+		return (int)strm.total_out;
 	}
 
-	if(res == LZMA_OK)
+	if (res == LZMA_OK)
 		/*
-	 	 * Output buffer overflow.  Return out of buffer space
-	 	 */
+		 * Output buffer overflow.  Return out of buffer space
+		 */
 		return 0;
 
-failed:
+ failed:
 	/*
 	 * All other errors return failure, with the compressor
 	 * specific error code in *error
@@ -95,25 +93,19 @@ failed:
 	return -1;
 }
 
-
-static int lzma_uncompress(void *dest, void *src, int size, int block_size,
-	int *error)
-{
+static int lzma_uncompress(void *dest, void *src, int size, int block_size, int *error) {
 	lzma_stream strm = LZMA_STREAM_INIT;
 	int uncompressed_size = 0, res;
 	unsigned char lzma_header[LZMA_HEADER_SIZE];
 
 	res = lzma_alone_decoder(&strm, MEMLIMIT);
-	if(res != LZMA_OK) {
+	if (res != LZMA_OK) {
 		lzma_end(&strm);
 		goto failed;
 	}
 
 	memcpy(lzma_header, src, LZMA_HEADER_SIZE);
-	uncompressed_size = lzma_header[LZMA_PROPS_SIZE] |
-		(lzma_header[LZMA_PROPS_SIZE + 1] << 8) |
-		(lzma_header[LZMA_PROPS_SIZE + 2] << 16) |
-		(lzma_header[LZMA_PROPS_SIZE + 3] << 24);
+	uncompressed_size = lzma_header[LZMA_PROPS_SIZE] | (lzma_header[LZMA_PROPS_SIZE + 1] << 8) | (lzma_header[LZMA_PROPS_SIZE + 2] << 16) | (lzma_header[LZMA_PROPS_SIZE + 3] << 24);
 	memset(lzma_header + LZMA_PROPS_SIZE, 255, LZMA_UNCOMP_SIZE);
 
 	strm.next_out = dest;
@@ -123,7 +115,7 @@ static int lzma_uncompress(void *dest, void *src, int size, int block_size,
 
 	res = lzma_code(&strm, LZMA_RUN);
 
-	if(res != LZMA_OK || strm.avail_in != 0) {
+	if (res != LZMA_OK || strm.avail_in != 0) {
 		lzma_end(&strm);
 		goto failed;
 	}
@@ -134,15 +126,13 @@ static int lzma_uncompress(void *dest, void *src, int size, int block_size,
 	res = lzma_code(&strm, LZMA_FINISH);
 	lzma_end(&strm);
 
-	if(res == LZMA_STREAM_END || (res == LZMA_OK &&
-		strm.total_out >= uncompressed_size && strm.avail_in == 0))
+	if (res == LZMA_STREAM_END || (res == LZMA_OK && strm.total_out >= uncompressed_size && strm.avail_in == 0))
 		return uncompressed_size;
 
-failed:
+ failed:
 	*error = res;
 	return -1;
 }
-
 
 struct compressor lzma_comp_ops = {
 	.init = NULL,
@@ -154,4 +144,3 @@ struct compressor lzma_comp_ops = {
 	.name = "lzma",
 	.supported = 1
 };
-

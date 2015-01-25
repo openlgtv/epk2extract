@@ -48,11 +48,11 @@ struct symfile_header {
 	uint32_t size;
 	uint32_t n_symbols;
 	uint32_t tail_size;
-}__attribute__((packed));
+} __attribute__ ((packed));
 
-struct sym_table sym_table = { .n_symbols = 0, .sym_entry = NULL, .hash = NULL,
-		.n_dwarf_lst = 0, .dwarf_lst = NULL, .dwarf_data = NULL, .sym_name =
-				NULL };
+struct sym_table sym_table = {.n_symbols = 0,.sym_entry = NULL,.hash = NULL,
+	.n_dwarf_lst = 0,.dwarf_lst = NULL,.dwarf_data = NULL,.sym_name = NULL
+};
 
 int symfile_load(const char *fname) {
 	int fd = -1;
@@ -90,14 +90,13 @@ int symfile_load(const char *fname) {
 	}
 
 	if ((header->size + sizeof(*header)) != (uint32_t) st_buf.st_size) {
-		say_error("bad file `%s' size: %su, expected size: %lu", fname,
-				st_buf.st_size, header->size + sizeof(*header));
+		say_error("bad file `%s' size: %su, expected size: %lu", fname, st_buf.st_size, header->size + sizeof(*header));
 
 		return -1;
 	}
 
 	if ((header->tail_size + sizeof(struct sym_entry) * header->n_symbols)
-			!= header->size) {
+		!= header->size) {
 		say_error("file `%s' is broken", fname);
 
 		return -1;
@@ -149,8 +148,7 @@ int symfile_load(const char *fname) {
 uint32_t symfile_addr_by_name(const char *name) {
 	unsigned i = 0;
 	for (i = 0; i < sym_table.n_symbols; ++i) {
-		char *sym_name = sym_table.sym_name
-				+ sym_table.sym_entry[i].sym_name_off;
+		char *sym_name = sym_table.sym_name + sym_table.sym_entry[i].sym_name_off;
 
 		if (strcmp(sym_name, name) == 0)
 			return sym_table.sym_entry[i].addr;
@@ -172,20 +170,19 @@ void symfile_write_idc(const char *fname) {
 
 	unsigned i = 0;
 	for (i = 0; i < sym_table.n_symbols; ++i) {
-			char *sym_name = sym_table.sym_name
-					+ sym_table.sym_entry[i].sym_name_off;
+		char *sym_name = sym_table.sym_name + sym_table.sym_entry[i].sym_name_off;
 
-			uint32_t addr = sym_table.sym_entry[i].addr;
-			uint32_t end = sym_table.sym_entry[i].end;
+		uint32_t addr = sym_table.sym_entry[i].addr;
+		uint32_t end = sym_table.sym_entry[i].end;
 
-			//printf("%s: %x...%x\n", sym_name, addr, end);
+		//printf("%s: %x...%x\n", sym_name, addr, end);
 
-			fprintf(outfile, "MakeNameEx( 0x%x, \"%s\", SN_NOWARN | SN_CHECK);\n", addr, sym_name);
+		fprintf(outfile, "MakeNameEx( 0x%x, \"%s\", SN_NOWARN | SN_CHECK);\n", addr, sym_name);
 
-			fprintf(outfile, "if(SegName(0x%x)==\".text\") {\n", addr);
-			fprintf(outfile, "   MakeCode(0x%x);\n", addr);
-			fprintf(outfile, "   MakeFunction(0x%x, 0x%x);\n", addr, end);
-			fprintf(outfile, "};\n", addr);
+		fprintf(outfile, "if(SegName(0x%x)==\".text\") {\n", addr);
+		fprintf(outfile, "   MakeCode(0x%x);\n", addr);
+		fprintf(outfile, "   MakeFunction(0x%x, 0x%x);\n", addr, end);
+		fprintf(outfile, "};\n", addr);
 
 	}
 
@@ -201,12 +198,10 @@ void symfile_write_idc(const char *fname) {
 
 }
 
-
 const char *symfile_name_by_addr(uint32_t addr) {
 	int i = 0;
 	for (i = sym_table.n_symbols - 1; i >= 0; --i) {
-		if (sym_table.sym_entry[i].addr <= addr && sym_table.sym_entry[i].end
-				> addr)
+		if (sym_table.sym_entry[i].addr <= addr && sym_table.sym_entry[i].end > addr)
 			return sym_table.sym_name + sym_table.sym_entry[i].sym_name_off;
 	}
 

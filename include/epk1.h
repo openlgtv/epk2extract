@@ -6,14 +6,14 @@
  */
 
 #ifndef EPK1_H_
-#define EPK1_H_
+#    define EPK1_H_
 
-#include <stdint.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <epk.h>
-#include <string.h>
+#    include <stdint.h>
+#    include <sys/stat.h>
+#    include <sys/types.h>
+#    include <stdio.h>
+#    include <epk.h>
+#    include <string.h>
 
 struct pakRec_t {
 	uint32_t offset;
@@ -21,9 +21,9 @@ struct pakRec_t {
 };
 
 struct epk1BEHeader_t {
-    unsigned char epakMagic[4];
-    uint32_t fileSize;
-    uint32_t pakCount;
+	unsigned char epakMagic[4];
+	uint32_t fileSize;
+	uint32_t pakCount;
 	uint32_t offset;
 	uint32_t size;
 };

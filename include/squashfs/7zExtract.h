@@ -2,9 +2,9 @@
 2008-11-23 : Igor Pavlov : Public domain */
 
 #ifndef __7Z_EXTRACT_H
-#define __7Z_EXTRACT_H
+#    define __7Z_EXTRACT_H
 
-#include "7zIn.h"
+#    include "7zIn.h"
 
 /*
   SzExtract extracts file from archive
@@ -26,16 +26,12 @@
     Free *outBuffer and set *outBuffer to 0, if you want to flush cache.
 */
 
-SRes SzAr_Extract(
-    const CSzArEx *db,
-    ILookInStream *inStream,
-    UInt32 fileIndex,         /* index of file */
-    UInt32 *blockIndex,       /* index of solid block */
-    Byte **outBuffer,         /* pointer to pointer to output buffer (allocated with allocMain) */
-    size_t *outBufferSize,    /* buffer size for output buffer */
-    size_t *offset,           /* offset of stream for required file in *outBuffer */
-    size_t *outSizeProcessed, /* size of file in *outBuffer */
-    ISzAlloc *allocMain,
-    ISzAlloc *allocTemp);
+SRes SzAr_Extract(const CSzArEx * db, ILookInStream * inStream, UInt32 fileIndex,	/* index of file */
+				  UInt32 * blockIndex,	/* index of solid block */
+				  Byte ** outBuffer,	/* pointer to pointer to output buffer (allocated with allocMain) */
+				  size_t * outBufferSize,	/* buffer size for output buffer */
+				  size_t * offset,	/* offset of stream for required file in *outBuffer */
+				  size_t * outSizeProcessed,	/* size of file in *outBuffer */
+				  ISzAlloc * allocMain, ISzAlloc * allocTemp);
 
 #endif

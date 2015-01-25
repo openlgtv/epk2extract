@@ -6,9 +6,9 @@
 #include <partinfo.h>
 
 #ifdef __CYGWIN__
-#define lne "\r\n"
+#    define lne "\r\n"
 #else
-#define lne "\n"
+#    define lne "\n"
 #endif
 
 #define println()				fprintf(destfile,lne)
@@ -78,241 +78,228 @@ static const char *p2_menu_partition_info[] = {
 	"[%2d] Empty\n"
 };
 
-void print_size(unsigned int devsize){
+void print_size(unsigned int devsize) {
 	char *devsizeunit;
-	if(devsize%(1024*1024*1024) == 0){
+	if (devsize % (1024 * 1024 * 1024) == 0) {
 		//Gigabytes
-		fprintf(destfile,"\tSize: %dGB",(devsize/1024/1024/1024));
+		fprintf(destfile, "\tSize: %dGB", (devsize / 1024 / 1024 / 1024));
 	} else {
 		//Small MTD, use Megabytes
-		fprintf(destfile,"\tSize: %dMB",(devsize/1024/1024));
+		fprintf(destfile, "\tSize: %dMB", (devsize / 1024 / 1024));
 	}
 }
 
-
-unsigned int print_minfo(void){
-	int i=0;
+unsigned int print_minfo(void) {
+	int i = 0;
 	struct m_partition_info *bi = NULL;
-	
+
 	struct m_device_info *mtdi = NULL;
 	mtdi = M_GET_DEV_INFO(0);
-	fprintf(destfile,"MTD Name: %s",mtdi->name);
+	fprintf(destfile, "MTD Name: %s", mtdi->name);
 	unsigned int devsize = mtdi->size;
 	print_size(devsize);
 	println();
-		
-	println(); fprintf(destfile, "%s", m_menu_partition_str[0]);println();println();
-	fprintf(destfile, "magic : %08x", m_partinfo.magic);println();
+
 	println();
-	fprintf(destfile,m_menu_partition_str[2], m_partinfo.cur_epk_ver); println();
-	fprintf(destfile,m_menu_partition_str[3], m_partinfo.old_epk_ver); println();
+	fprintf(destfile, "%s", m_menu_partition_str[0]);
 	println();
-	for(i=0; i<(m_partinfo.npartition); i++) {
+	println();
+	fprintf(destfile, "magic : %08x", m_partinfo.magic);
+	println();
+	println();
+	fprintf(destfile, m_menu_partition_str[2], m_partinfo.cur_epk_ver);
+	println();
+	fprintf(destfile, m_menu_partition_str[3], m_partinfo.old_epk_ver);
+	println();
+	println();
+	for (i = 0; i < (m_partinfo.npartition); i++) {
 		bi = M_GET_PART_INFO(i);
 
-		fprintf(destfile,m_menu_partition_info[0], i, bi->name,
-				bi->offset, (bi->offset+bi->size), bi->size);
+		fprintf(destfile, m_menu_partition_info[0], i, bi->name, bi->offset, (bi->offset + bi->size), bi->size);
 
-		fprintf(destfile,m_menu_partition_info[1],
-				(bi->mask_flags & PART_FLG_FIXED)	? 'F' : '-',
-				(bi->mask_flags & PART_FLG_MASTER)	? 'M' : '-',
-				(bi->mask_flags & PART_FLG_IDKEY)	? 'I' : '-',
-				(bi->mask_flags & PART_FLG_CACHE)	? 'C' : '-'
-			  );
+		fprintf(destfile, m_menu_partition_info[1], (bi->mask_flags & PART_FLG_FIXED) ? 'F' : '-', (bi->mask_flags & PART_FLG_MASTER) ? 'M' : '-', (bi->mask_flags & PART_FLG_IDKEY) ? 'I' : '-', (bi->mask_flags & PART_FLG_CACHE) ? 'C' : '-');
 
-		if(strlen(bi->filename)) {
-			fprintf(destfile,m_menu_partition_info[2],
-					bi->filename, bi->filesize, bi->sw_ver,
-					bi->used  ? 'U' : 'u',
-					bi->valid ? 'V' : 'v');
+		if (strlen(bi->filename)) {
+			fprintf(destfile, m_menu_partition_info[2], bi->filename, bi->filesize, bi->sw_ver, bi->used ? 'U' : 'u', bi->valid ? 'V' : 'v');
 			println();
-		}
-		else
+		} else
 			println();
 	}
 
 	return 0;
 }
 
-unsigned int print_p1info(void){
-	int i=0;
+unsigned int print_p1info(void) {
+	int i = 0;
 	struct p1_partition_info *p1i = NULL;
-	
+
 	struct p1_device_info *p1di = NULL;
 	p1di = P1_GET_DEV_INFO();
-	fprintf(destfile,"Flash Name: %s",p1di->name);
+	fprintf(destfile, "Flash Name: %s", p1di->name);
 	unsigned int devsize = p1di->size;
 	print_size(devsize);
 	println();
 
-	println(); fprintf(destfile, "%s", p_menu_partition_str[0]); println(); println();
-	fprintf(destfile,"magic : %08x", p1_partinfo.magic);println();
 	println();
-	fprintf(destfile,p_menu_partition_str[2], p1_partinfo.cur_epk_ver); println();
-	fprintf(destfile,p_menu_partition_str[3], p1_partinfo.old_epk_ver); println();
+	fprintf(destfile, "%s", p_menu_partition_str[0]);
+	println();
+	println();
+	fprintf(destfile, "magic : %08x", p1_partinfo.magic);
+	println();
+	println();
+	fprintf(destfile, p_menu_partition_str[2], p1_partinfo.cur_epk_ver);
+	println();
+	fprintf(destfile, p_menu_partition_str[3], p1_partinfo.old_epk_ver);
+	println();
 	println();
 
 	if (p1_partinfo.npartition > PM_PARTITION_MAX) {
-		printf ("[ERROR] Number of partition is %d\n", p1_partinfo.npartition);
+		printf("[ERROR] Number of partition is %d\n", p1_partinfo.npartition);
 		return (unsigned int)-1;
 	}
 
-	for(i=0; i<(p1_partinfo.npartition); i++) {
+	for (i = 0; i < (p1_partinfo.npartition); i++) {
 		p1i = P1_GET_PART_INFO(i);
 
-		fprintf(destfile,p1_menu_partition_info[0], i, p1i->name,
-				p1i->offset, (p1i->offset+p1i->size), p1i->size);
+		fprintf(destfile, p1_menu_partition_info[0], i, p1i->name, p1i->offset, (p1i->offset + p1i->size), p1i->size);
 
-		fprintf(destfile,p1_menu_partition_info[1],
-				(p1i->mask_flags & PART_FLG_FIXED)	? 'F' : '-',
-				(p1i->mask_flags & PART_FLG_MASTER)	? 'M' : '-',
-				(p1i->mask_flags & PART_FLG_SECURED)	? 'S' : '-',
-				(p1i->mask_flags & PART_FLG_IDKEY)	? 'I' : '-',
-				(p1i->mask_flags & PART_FLG_CACHE)	? 'C' : 
-				((p1i->mask_flags & PART_FLG_DATA)	? 'D' : '-')
-			  );
+		fprintf(destfile, p1_menu_partition_info[1], (p1i->mask_flags & PART_FLG_FIXED) ? 'F' : '-', (p1i->mask_flags & PART_FLG_MASTER) ? 'M' : '-', (p1i->mask_flags & PART_FLG_SECURED) ? 'S' : '-', (p1i->mask_flags & PART_FLG_IDKEY) ? 'I' : '-', (p1i->mask_flags & PART_FLG_CACHE) ? 'C' : ((p1i->mask_flags & PART_FLG_DATA) ? 'D' : '-')
+			);
 
-		if(p1i->mask_flags & PART_FLG_ERASE) 	fprintf(destfile,"*");
+		if (p1i->mask_flags & PART_FLG_ERASE)
+			fprintf(destfile, "*");
 
-		if(strlen(p1i->filename)) {
-			fprintf(destfile,p1_menu_partition_info[2],
-					p1i->filename, p1i->filesize, p1i->sw_ver,
-					p1i->used  ? 'U' : 'u',
-					p1i->valid ? 'V' : 'v');
+		if (strlen(p1i->filename)) {
+			fprintf(destfile, p1_menu_partition_info[2], p1i->filename, p1i->filesize, p1i->sw_ver, p1i->used ? 'U' : 'u', p1i->valid ? 'V' : 'v');
 			println();
-		}
-		else
+		} else
 			println();
 	}
 
 	return 0;
 }
 
-unsigned int print_p2info(void){
-	int i=0;
+unsigned int print_p2info(void) {
+	int i = 0;
 	struct p2_partition_info *p2i = NULL;
-	
+
 	struct p2_device_info *p2di = NULL;
 	p2di = P2_GET_DEV_INFO();
-	fprintf(destfile,"Flash Name: %s",p2di->name);
+	fprintf(destfile, "Flash Name: %s", p2di->name);
 	unsigned int devsize = p2di->size;
 	print_size(devsize);
 	println();
 
-	println(); fprintf(destfile, "%s", p_menu_partition_str[0]);println();println();
-	fprintf(destfile, "magic : %08x", p2_partinfo.magic); println();
 	println();
-	fprintf(destfile,p_menu_partition_str[2], p2_partinfo.cur_epk_ver); println();
-	fprintf(destfile,p_menu_partition_str[3], p2_partinfo.old_epk_ver); println();
+	fprintf(destfile, "%s", p_menu_partition_str[0]);
+	println();
+	println();
+	fprintf(destfile, "magic : %08x", p2_partinfo.magic);
+	println();
+	println();
+	fprintf(destfile, p_menu_partition_str[2], p2_partinfo.cur_epk_ver);
+	println();
+	fprintf(destfile, p_menu_partition_str[3], p2_partinfo.old_epk_ver);
+	println();
 	println();
 
-	if (p2_partinfo.npartition > P2_PARTITION_MAX){
-		printf ("[ERROR] Number of partition is %d\n", p2_partinfo.npartition);
+	if (p2_partinfo.npartition > P2_PARTITION_MAX) {
+		printf("[ERROR] Number of partition is %d\n", p2_partinfo.npartition);
 		return (unsigned int)-1;
 	}
 
-	for(i=0; i<(p2_partinfo.npartition); i++){
+	for (i = 0; i < (p2_partinfo.npartition); i++) {
 		p2i = P2_GET_PART_INFO(i);
 
-		fprintf(destfile,p2_menu_partition_info[0], i, p2i->name,
-				U64_UPPER(p2i->offset), U64_LOWER(p2i->offset), U64_UPPER(p2i->offset+p2i->size), U64_LOWER(p2i->offset+p2i->size), 
-				U64_UPPER(p2i->size), U64_LOWER(p2i->size));
+		fprintf(destfile, p2_menu_partition_info[0], i, p2i->name, U64_UPPER(p2i->offset), U64_LOWER(p2i->offset), U64_UPPER(p2i->offset + p2i->size), U64_LOWER(p2i->offset + p2i->size), U64_UPPER(p2i->size), U64_LOWER(p2i->size));
 
-		fprintf(destfile,p2_menu_partition_info[1],
-				(p2i->mask_flags & PART_FLG_FIXED)	? 'F' : '-',
-				(p2i->mask_flags & PART_FLG_MASTER)	? 'M' : '-',
-				(p2i->mask_flags & PART_FLG_SECURED)	? 'S' : '-',
-				(p2i->mask_flags & PART_FLG_IDKEY)	? 'I' : '-',
-				(p2i->mask_flags & PART_FLG_CACHE)	? 'C' : 
-				((p2i->mask_flags & PART_FLG_DATA)	? 'D' : '-')
-			  );
+		fprintf(destfile, p2_menu_partition_info[1], (p2i->mask_flags & PART_FLG_FIXED) ? 'F' : '-', (p2i->mask_flags & PART_FLG_MASTER) ? 'M' : '-', (p2i->mask_flags & PART_FLG_SECURED) ? 'S' : '-', (p2i->mask_flags & PART_FLG_IDKEY) ? 'I' : '-', (p2i->mask_flags & PART_FLG_CACHE) ? 'C' : ((p2i->mask_flags & PART_FLG_DATA) ? 'D' : '-')
+			);
 
-		if(p2i->mask_flags & PART_FLG_ERASE) 	fprintf(destfile,"*");
+		if (p2i->mask_flags & PART_FLG_ERASE)
+			fprintf(destfile, "*");
 
-		if(strlen(p2i->filename)) {
-			fprintf(destfile,p2_menu_partition_info[2],
-					p2i->filename, p2i->filesize, p2i->sw_ver,
-					p2i->used  ? 'U' : 'u',
-					p2i->valid ? 'V' : 'v', (unsigned long)((double) p2i->filesize/p2i->size * 100)  );
+		if (strlen(p2i->filename)) {
+			fprintf(destfile, p2_menu_partition_info[2], p2i->filename, p2i->filesize, p2i->sw_ver, p2i->used ? 'U' : 'u', p2i->valid ? 'V' : 'v', (unsigned long)((double)p2i->filesize / p2i->size * 100));
 			println();
-		}
-		else
+		} else
 			println();
 	}
 
 	return 0;
 }
 
-unsigned int do_partinfo(void){
+unsigned int do_partinfo(void) {
 	fprintf(destfile, "%s Detected", modelname);
-	println(); println();
+	println();
+	println();
 
-	switch(part_type){
-		case STRUCT_PARTINFOv2:
-			print_p2info();
-			break;
-		case STRUCT_PARTINFOv1:
-			print_p1info();
-			break;
-		case STRUCT_MTDINFO:
-			print_minfo();
-			break;
-		default:
-			err_exit("Unhandled partition table structure\n");
-			break;
+	switch (part_type) {
+	case STRUCT_PARTINFOv2:
+		print_p2info();
+		break;
+	case STRUCT_PARTINFOv1:
+		print_p1info();
+		break;
+	case STRUCT_MTDINFO:
+		print_minfo();
+		break;
+	default:
+		err_exit("Unhandled partition table structure\n");
+		break;
 	}
 	println();
-	
+
 	char buf[256];
 	rewind(destfile);
 	printf("\n");
-	while( fgets(buf,sizeof buf,destfile) ) { //print file we just wrote to stdout
-		printf( "%s", buf );
+	while (fgets(buf, sizeof buf, destfile)) {	//print file we just wrote to stdout
+		printf("%s", buf);
 	}
 	fclose(destfile);
 	return 0;
 }
 
-unsigned int load_partinfo(const char *filename){
+unsigned int load_partinfo(const char *filename) {
 	FILE *file;
 	file = fopen(filename, "rb");
-	if (file == NULL){
+	if (file == NULL) {
 		err_exit("Can't open file %s\n", filename);
 	}
-	
+
 	int ret = 0;
 	size_t size = 0;
 	unsigned char *offset = NULL;
 	unsigned char *buf = NULL;
 
-	switch(part_type){
-		case STRUCT_PARTINFOv2:
-			size = sizeof(struct p2_partmap_info);
-			pmi = (struct p2_partmap_info *)malloc(size);
-			fread(pmi, 1, size, file);
-			memcpy(&p2_partinfo, pmi, size);
-			break;
-		case STRUCT_PARTINFOv1:
-			size = sizeof(struct p1_partmap_info);
-			mpi = (struct p1_partmap_info*)malloc(size);
-			fread(mpi, 1, size, file);
-			memcpy(&p1_partinfo, mpi, size);
-			break;
-		case STRUCT_MTDINFO:
-			size = sizeof(struct m_partmap_info);
-			bmi = (struct m_partmap_info*)malloc(size);
-			fread(bmi, 1, size, file);
-			memcpy(&m_partinfo, bmi, size);
-			break;
-		default:
-			fclose(file);
-			err_exit("Unhandled partition table structure\n");
-			break;
+	switch (part_type) {
+	case STRUCT_PARTINFOv2:
+		size = sizeof(struct p2_partmap_info);
+		pmi = (struct p2_partmap_info *)malloc(size);
+		fread(pmi, 1, size, file);
+		memcpy(&p2_partinfo, pmi, size);
+		break;
+	case STRUCT_PARTINFOv1:
+		size = sizeof(struct p1_partmap_info);
+		mpi = (struct p1_partmap_info *)malloc(size);
+		fread(mpi, 1, size, file);
+		memcpy(&p1_partinfo, mpi, size);
+		break;
+	case STRUCT_MTDINFO:
+		size = sizeof(struct m_partmap_info);
+		bmi = (struct m_partmap_info *)malloc(size);
+		fread(bmi, 1, size, file);
+		memcpy(&m_partinfo, bmi, size);
+		break;
+	default:
+		fclose(file);
+		err_exit("Unhandled partition table structure\n");
+		break;
 	}
 	return 0;
 }
 
-unsigned int dump_partinfo(const char *filename, const char *outfile){
+unsigned int dump_partinfo(const char *filename, const char *outfile) {
 	destfile = fopen(outfile, "w+");
 	if (destfile == NULL)
 		err_exit("Can't open file %s for writing. Error is: %s\n", outfile, strerror(errno));

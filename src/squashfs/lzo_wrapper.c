@@ -40,42 +40,37 @@ struct lzo_stream {
 	lzo_bytep out;
 };
 
-
-static int squashfs_lzo_init(void **strm, int block_size, int flags)
-{
+static int squashfs_lzo_init(void **strm, int block_size, int flags) {
 	struct lzo_stream *stream;
 
-	if((stream = *strm = malloc(sizeof(struct lzo_stream))) == NULL)
+	if ((stream = *strm = malloc(sizeof(struct lzo_stream))) == NULL)
 		goto failed;
 	/* work memory for compression */
-	if((stream->wrkmem = malloc(LZO1X_999_MEM_COMPRESS)) == NULL)
+	if ((stream->wrkmem = malloc(LZO1X_999_MEM_COMPRESS)) == NULL)
 		goto failed2;
 	/* temporal output buffer */
-	if((stream->out = malloc(LZO_OUTPUT_BUFFER_SIZE(block_size))) == NULL)
+	if ((stream->out = malloc(LZO_OUTPUT_BUFFER_SIZE(block_size))) == NULL)
 		goto failed3;
 
 	return 0;
 
-failed3:
+ failed3:
 	free(stream->wrkmem);
-failed2:
+ failed2:
 	free(stream);
-failed:
+ failed:
 	return -1;
 }
 
-
-static int lzo_compress(void *strm, void *d, void *s, int size, int block_size,
-		int *error)
-{
+static int lzo_compress(void *strm, void *d, void *s, int size, int block_size, int *error) {
 	int res;
 	lzo_uint outlen;
 	struct lzo_stream *stream = strm;
 
 	res = lzo1x_999_compress(s, size, stream->out, &outlen, stream->wrkmem);
-	if(res != LZO_E_OK)
+	if (res != LZO_E_OK)
 		goto failed;
-	if(outlen >= size)
+	if (outlen >= size)
 		/*
 		 * Output buffer overflow. Return out of buffer space
 		 */
@@ -87,7 +82,7 @@ static int lzo_compress(void *strm, void *d, void *s, int size, int block_size,
 	memcpy(d, stream->out, outlen);
 	return outlen;
 
-failed:
+ failed:
 	/*
 	 * All other errors return failure, with the compressor
 	 * specific error code in *error
@@ -96,9 +91,7 @@ failed:
 	return -1;
 }
 
-
-static int lzo_uncompress(void *d, void *s, int size, int block_size, int *error)
-{
+static int lzo_uncompress(void *d, void *s, int size, int block_size, int *error) {
 	int res;
 	lzo_uint bytes = block_size;
 
@@ -107,7 +100,6 @@ static int lzo_uncompress(void *d, void *s, int size, int block_size, int *error
 	*error = res;
 	return res == LZO_E_OK ? bytes : -1;
 }
-
 
 struct compressor lzo_comp_ops = {
 	.init = squashfs_lzo_init,
@@ -119,4 +111,3 @@ struct compressor lzo_comp_ops = {
 	.name = "lzo",
 	.supported = 1
 };
-

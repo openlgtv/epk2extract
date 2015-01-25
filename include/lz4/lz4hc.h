@@ -33,13 +33,11 @@
 */
 #pragma once
 
-
 #if defined (__cplusplus)
 extern "C" {
 #endif
 
-
-int LZ4_compressHC (const char* source, char* dest, int isize);
+	int LZ4_compressHC(const char *source, char *dest, int isize);
 
 /*
 LZ4_compressHC :
@@ -49,11 +47,9 @@ LZ4_compressHC :
 		Worst case size evaluation is provided by function LZ4_compressBound() (see "lz4.h")
 */
 
-
 /* Note :
 Decompression functions are provided within regular LZ4 source code (see "lz4.h") (BSD license)
 */
-
 
 #if defined (__cplusplus)
 }

@@ -40,19 +40,16 @@ static char *opt_idsfile = NULL;
 
 static int DIR_GID = 0;
 
-void do_file_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen, const struct cramfs_inode* inode);
+void do_file_entry(const u8 * base, const char *dir, const char *path, const char *name, int namelen, const struct cramfs_inode *inode);
 
-void do_dir_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen, const struct cramfs_inode* inode);
+void do_dir_entry(const u8 * base, const char *dir, const char *path, const char *name, int namelen, const struct cramfs_inode *inode);
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
-u32 compressed_size(const u8* base, const u8* data, u32 size) {
-	const u32* buffs = (const u32*) (data);
+u32 compressed_size(const u8 * base, const u8 * data, u32 size) {
+	const u32 *buffs = (const u32 *)(data);
 	int nblocks = (size - 1) / blksize + 1;
-	const u8* buffend = base + *(buffs + nblocks - 1);
+	const u8 *buffend = base + *(buffs + nblocks - 1);
 
 	if (size == 0)
 		return 0;
@@ -60,11 +57,11 @@ u32 compressed_size(const u8* base, const u8* data, u32 size) {
 		return buffend - data;
 }
 
-void uncompress_data(const u8* base, const u8* data, u32 size, u8* dstdata) {
-	const u32* buffs = (const u32*) (data);
+void uncompress_data(const u8 * base, const u8 * data, u32 size, u8 * dstdata) {
+	const u32 *buffs = (const u32 *)(data);
 	int nblocks = (size - 1) / blksize + 1;
-	const u8* buff = (const u8*) (buffs + nblocks);
-	const u8* nbuff;
+	const u8 *buff = (const u8 *)(buffs + nblocks);
+	const u8 *nbuff;
 	int block = 0;
 	uLongf len = size;
 
@@ -72,8 +69,7 @@ void uncompress_data(const u8* base, const u8* data, u32 size, u8* dstdata) {
 		return;
 	}
 
-	for (; block < nblocks; ++block, buff = nbuff, dstdata += blksize, len
-			-= blksize) {
+	for (; block < nblocks; ++block, buff = nbuff, dstdata += blksize, len -= blksize) {
 		uLongf tran = (len < blksize) ? len : blksize;
 		nbuff = base + *(buffs + block);
 		if (uncompress(dstdata, &tran, buff, nbuff - buff) != Z_OK) {
@@ -123,7 +119,7 @@ void printstats() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void printmode(const struct cramfs_inode* inode) {
+void printmode(const struct cramfs_inode *inode) {
 	u16 mode = inode->mode;
 
 	// Deal with file type bitsetc
@@ -196,7 +192,7 @@ void printmode(const struct cramfs_inode* inode) {
 		printf("-");
 }
 
-void printuidgid(const struct cramfs_inode* inode) {
+void printuidgid(const struct cramfs_inode *inode) {
 	char res[14];
 
 	snprintf(res, 14, "%d/%d", inode->uid, inode->gid);
@@ -216,11 +212,10 @@ void printsize(int size, int csize) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void do_file(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode) {
+void do_file(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode) {
 	int fd;
-	u8* file_data;
-	const u8* srcdata;
+	u8 *file_data;
+	const u8 *srcdata;
 
 	// Allow for uncompressed XIP executable
 	if (mode & S_ISVTX) {
@@ -232,8 +227,7 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 		// blksize must be a power of 2 for the following to work, but it seems
 		// quite likely.
 
-		srcdata = (const u8*) (((long) (base + offset) + blksize - 1) & ~(blksize - 1));
-
+		srcdata = (const u8 *)(((long)(base + offset) + blksize - 1) & ~(blksize - 1));
 
 		//printsize(size, srcdata + size - (base + offset));
 		//printf("%s", name);
@@ -246,7 +240,6 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 	if (path[0] == '-') {
 		return;
 	}
-
 	// Make local copy
 	fd = open(path, O_CREAT | O_TRUNC | O_RDWR, mode);
 	if (fd == -1) {
@@ -266,7 +259,6 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 		close(fd);
 		return;
 	}
-
 	// Allow for uncompressed XIP executable
 	if (mode & S_ISVTX) {
 		memcpy(file_data, srcdata, size);
@@ -279,8 +271,7 @@ void do_file(const u8* base, u32 offset, u32 size, const char* path,
 
 }
 
-void do_directory(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode) {
+void do_directory(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode) {
 	//printsize(size, size);
 	//printf("%s", name);
 
@@ -288,7 +279,6 @@ void do_directory(const u8* base, u32 offset, u32 size, const char* path,
 	if (path[0] == '-') {
 		return;
 	}
-
 	// Make the local directory
 	if (mkdir(path, mode) == -1) {
 		perror(path);
@@ -296,8 +286,7 @@ void do_directory(const u8* base, u32 offset, u32 size, const char* path,
 	}
 }
 
-void do_symlink(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode) {
+void do_symlink(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode) {
 	// Allocate the uncompressed string
 	u8 link_contents[size + 1];
 
@@ -312,7 +301,6 @@ void do_symlink(const u8* base, u32 offset, u32 size, const char* path,
 	if (path[0] == '-') {
 		return;
 	}
-
 	// Make local copy
 	if (symlink((const char *)link_contents, path) == -1) {
 		perror(path);
@@ -320,8 +308,7 @@ void do_symlink(const u8* base, u32 offset, u32 size, const char* path,
 	}
 }
 
-void do_chrdev(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode, int uid, int gid) {
+void do_chrdev(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode, int uid, int gid) {
 	{
 		char s[17];
 		snprintf(s, 17, "%3d, %3d", major(size), minor(size));
@@ -332,7 +319,6 @@ void do_chrdev(const u8* base, u32 offset, u32 size, const char* path,
 	if (path[0] == '-') {
 		return;
 	}
-
 	// Make local copy
 	if (geteuid() == 0) {
 		if (mknod(path, S_IFCHR | mode, size) == -1)
@@ -359,8 +345,7 @@ void do_chrdev(const u8* base, u32 offset, u32 size, const char* path,
 	}
 }
 
-void do_blkdev(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode, int uid, int gid) {
+void do_blkdev(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode, int uid, int gid) {
 	{
 		char s[17];
 		snprintf(s, 17, "%3d, %3d", major(size), minor(size));
@@ -371,7 +356,6 @@ void do_blkdev(const u8* base, u32 offset, u32 size, const char* path,
 	if (path[0] == '-') {
 		return;
 	}
-
 	// Make local copy
 	if (geteuid() == 0) {
 		if (mknod(path, S_IFBLK | mode, size) == -1)
@@ -398,15 +382,13 @@ void do_blkdev(const u8* base, u32 offset, u32 size, const char* path,
 	}
 }
 
-void do_fifo(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode, int gid, int uid) {
+void do_fifo(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode, int gid, int uid) {
 	printf("                 %s", name);
 
 	// Check if we are actually unpacking
 	if (path[0] == '-') {
 		return;
 	}
-
 	// Make local copy
 	if (geteuid() == 0) {
 		if (mknod(path, S_IFIFO | mode, 0) == -1)
@@ -433,8 +415,7 @@ void do_fifo(const u8* base, u32 offset, u32 size, const char* path,
 	}
 }
 
-void do_socket(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode) {
+void do_socket(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode) {
 	printf("<UNIMPLEMENTED>  %s", name);
 
 	// Check if we are actually unpacking
@@ -443,15 +424,13 @@ void do_socket(const u8* base, u32 offset, u32 size, const char* path,
 	}
 }
 
-void do_unknown(const u8* base, u32 offset, u32 size, const char* path,
-		const char* name, int mode) {
+void do_unknown(const u8 * base, u32 offset, u32 size, const char *path, const char *name, int mode) {
 	printf("<UNKNOWN TYPE>   %s", name);
 }
 
-void process_directory(const u8* base, const char* dir, u32 offset, u32 size,
-		const char* path) {
-	struct cramfs_inode* de;
-	char* name;
+void process_directory(const u8 * base, const char *dir, u32 offset, u32 size, const char *path) {
+	struct cramfs_inode *de;
+	char *name;
 	int namelen;
 	u32 current = offset;
 	u32 dirend = offset + size;
@@ -460,14 +439,14 @@ void process_directory(const u8* base, const char* dir, u32 offset, u32 size,
 	while (current < dirend) {
 		u32 nextoffset;
 
-		de = (struct cramfs_inode*) (base + current);
+		de = (struct cramfs_inode *)(base + current);
 		namelen = de->namelen << 2;
 		nextoffset = current + sizeof(struct cramfs_inode) + namelen;
 
-		name = (char*) (de + 1);
+		name = (char *)(de + 1);
 
 		while (1) {
-			assert(namelen!=0);
+			assert(namelen != 0);
 
 			if (name[namelen - 1])
 				break;
@@ -484,14 +463,14 @@ void process_directory(const u8* base, const char* dir, u32 offset, u32 size,
 	while (current < dirend) {
 		u32 nextoffset;
 
-		de = (struct cramfs_inode*) (base + current);
+		de = (struct cramfs_inode *)(base + current);
 		namelen = de->namelen << 2;
 		nextoffset = current + sizeof(struct cramfs_inode) + namelen;
 
-		name = (char*) (de + 1);
+		name = (char *)(de + 1);
 
 		while (1) {
-			assert(namelen!=0);
+			assert(namelen != 0);
 
 			if (name[namelen - 1])
 				break;
@@ -506,11 +485,11 @@ void process_directory(const u8* base, const char* dir, u32 offset, u32 size,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void do_file_entry(const u8* base, const char* dir, const char* path, const char* name, int namelen, const struct cramfs_inode* inode) {
+void do_file_entry(const u8 * base, const char *dir, const char *path, const char *name, int namelen, const struct cramfs_inode *inode) {
 	int dirlen = strlen(dir);
 	int pathlen = strlen(path);
 	char pname[dirlen + pathlen + namelen + 3];
-	const char* basename;
+	const char *basename;
 	u32 gid = inode->gid;
 
 	if (dirlen) {
@@ -544,7 +523,7 @@ void do_file_entry(const u8* base, const char* dir, const char* path, const char
 
 		u32 size = inode->size;
 
-		if(gid > DIR_GID) {
+		if (gid > DIR_GID) {
 			// sirius: this is a special LG encoding of the size.
 			// misusing gid field to encode the most significant byte of the size
 			int lg = gid - DIR_GID;
@@ -553,32 +532,24 @@ void do_file_entry(const u8* base, const char* dir, const char* path, const char
 			size += (lg);
 		}
 
-		do_file(base, inode->offset << 2, size , pname, basename,
-				inode->mode);
+		do_file(base, inode->offset << 2, size, pname, basename, inode->mode);
 	} else if (S_ISDIR(inode->mode)) {
-		if(DIR_GID == 0) {
+		if (DIR_GID == 0) {
 			DIR_GID = gid;
 		}
-		do_directory(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode);
+		do_directory(base, inode->offset << 2, inode->size, pname, basename, inode->mode);
 	} else if (S_ISLNK(inode->mode)) {
-		do_symlink(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode);
+		do_symlink(base, inode->offset << 2, inode->size, pname, basename, inode->mode);
 	} else if (S_ISFIFO(inode->mode)) {
-		do_fifo(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode, inode->uid, inode->gid);
+		do_fifo(base, inode->offset << 2, inode->size, pname, basename, inode->mode, inode->uid, inode->gid);
 	} else if (S_ISSOCK(inode->mode)) {
-		do_socket(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode);
+		do_socket(base, inode->offset << 2, inode->size, pname, basename, inode->mode);
 	} else if (S_ISCHR(inode->mode)) {
-		do_chrdev(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode, inode->uid, inode->gid);
+		do_chrdev(base, inode->offset << 2, inode->size, pname, basename, inode->mode, inode->uid, inode->gid);
 	} else if (S_ISBLK(inode->mode)) {
-		do_blkdev(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode, inode->uid, inode->gid);
+		do_blkdev(base, inode->offset << 2, inode->size, pname, basename, inode->mode, inode->uid, inode->gid);
 	} else {
-		do_unknown(base, inode->offset << 2, inode->size, pname, basename,
-				inode->mode);
+		do_unknown(base, inode->offset << 2, inode->size, pname, basename, inode->mode);
 	}
 
 	if (geteuid() == 0) {
@@ -601,8 +572,7 @@ void do_file_entry(const u8* base, const char* dir, const char* path, const char
 			perror(dfp);
 			return;
 		}
-		fprintf(f, "%s,%u,%u,%08x\n", basename, inode->uid, inode->gid,
-				inode->mode);
+		fprintf(f, "%s,%u,%u,%08x\n", basename, inode->uid, inode->gid, inode->mode);
 		fclose(f);
 	}
 
@@ -617,8 +587,7 @@ void do_file_entry(const u8* base, const char* dir, const char* path, const char
 	//printf("\n");
 }
 
-void do_dir_entry(const u8* base, const char* dir, const char* path,
-		const char* name, int namelen, const struct cramfs_inode* inode) {
+void do_dir_entry(const u8 * base, const char *dir, const char *path, const char *name, int namelen, const struct cramfs_inode *inode) {
 	int pathlen = strlen(path);
 	char pname[pathlen + namelen + 2];
 
@@ -644,19 +613,18 @@ void do_dir_entry(const u8* base, const char* dir, const char* path,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-int is_cramfs_image(char const* imagefile, char *endian) {
+int is_cramfs_image(char const *imagefile, char *endian) {
 	struct stat st;
 	int fd, result;
 	size_t fslen_ub;
-	int* rom_image;
-	struct cramfs_super const* sb;
+	int *rom_image;
+	struct cramfs_super const *sb;
 
 	// Check the image file
 	if (stat(imagefile, &st) == -1) {
 		perror(imagefile);
 		exit(1);
 	}
-
 	// Map the cramfs image
 	fd = open(imagefile, O_RDONLY);
 	fslen_ub = st.st_size;
@@ -666,16 +634,14 @@ int is_cramfs_image(char const* imagefile, char *endian) {
 		exit(1);
 	}
 
-	sb = (struct cramfs_super const*) (rom_image);
-	int cram_magic=CRAMFS_MAGIC;
-	if(!memcmp(endian, "be", 2))
-	    SWAP(cram_magic);
+	sb = (struct cramfs_super const *)(rom_image);
+	int cram_magic = CRAMFS_MAGIC;
+	if (!memcmp(endian, "be", 2))
+		SWAP(cram_magic);
 	result = 0;
 	// Check cramfs magic number and signature
-	if (cram_magic == sb->magic || memcmp(endian, "be", 2) && 0 == memcmp(sb->signature,
-			CRAMFS_SIGNATURE, sizeof(sb->signature)))
+	if (cram_magic == sb->magic || memcmp(endian, "be", 2) && 0 == memcmp(sb->signature, CRAMFS_SIGNATURE, sizeof(sb->signature)))
 		result = 1;
-		
 
 	munmap(rom_image, fslen_ub);
 	close(fd);
@@ -683,13 +649,13 @@ int is_cramfs_image(char const* imagefile, char *endian) {
 	return result;
 }
 
-int uncramfs(char const* dirname, char const* imagefile) {
+int uncramfs(char const *dirname, char const *imagefile) {
 
 	struct stat st;
 	int fd;
 	size_t fslen_ub;
-	u8 const* rom_image;
-	struct cramfs_super const* sb;
+	u8 const *rom_image;
+	struct cramfs_super const *sb;
 
 	// Check the directory
 	if (access(dirname, W_OK) == -1) {
@@ -698,13 +664,11 @@ int uncramfs(char const* dirname, char const* imagefile) {
 			exit(1);
 		}
 	}
-
 	// Check the image file
 	if (stat(imagefile, &st) == -1) {
 		perror(imagefile);
 		exit(1);
 	}
-
 	// Map the cramfs image
 	fd = open(imagefile, O_RDONLY);
 	fslen_ub = st.st_size;
@@ -714,14 +678,12 @@ int uncramfs(char const* dirname, char const* imagefile) {
 		exit(1);
 	}
 
-	sb = (struct cramfs_super const*) (rom_image);
+	sb = (struct cramfs_super const *)(rom_image);
 	// Check cramfs magic number and signature
-	if (CRAMFS_MAGIC != sb->magic || 0 != memcmp(sb->signature,
-			CRAMFS_SIGNATURE, sizeof(sb->signature))) {
+	if (CRAMFS_MAGIC != sb->magic || 0 != memcmp(sb->signature, CRAMFS_SIGNATURE, sizeof(sb->signature))) {
 		fprintf(stderr, "The image file doesn't have cramfs signatures\n");
 		exit(1);
 	}
-
 	// Set umask to 0 to let the image modes shine through
 	umask(0);
 

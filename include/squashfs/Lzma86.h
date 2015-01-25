@@ -2,15 +2,13 @@
 2009-08-14 : Igor Pavlov : Public domain */
 
 #ifndef __LZMA86_H
-#define __LZMA86_H
+#    define __LZMA86_H
 
-#include "Types.h"
+#    include "Types.h"
 
 EXTERN_C_BEGIN
-
-#define LZMA86_SIZE_OFFSET (1 + 5)
-#define LZMA86_HEADER_SIZE (LZMA86_SIZE_OFFSET + 8)
-
+#    define LZMA86_SIZE_OFFSET (1 + 5)
+#    define LZMA86_HEADER_SIZE (LZMA86_SIZE_OFFSET + 8)
 /*
 It's an example for LZMA + x86 Filter use.
 You can use .lzma86 extension, if you write that stream to file.
@@ -22,7 +20,6 @@ You can use .lzma86 extension, if you write that stream to file.
     1     1    lc, lp and pb in encoded form
     2     4    dictSize (little endian)
     6     8    uncompressed size (little endian)
-
 
 Lzma86_Encode
 -------------
@@ -52,7 +49,6 @@ RAM Requirements for compressing:
      SZ_FILTER_YES      inSize
      SZ_FILTER_AUTO     inSize
 
-
 Return code:
   SZ_OK               - OK
   SZ_ERROR_MEM        - Memory allocation error
@@ -60,17 +56,13 @@ Return code:
   SZ_ERROR_OUTPUT_EOF - output buffer overflow
   SZ_ERROR_THREAD     - errors in multithreading functions (only for Mt version)
 */
-
-enum ESzFilterMode
-{
-  SZ_FILTER_NO,
-  SZ_FILTER_YES,
-  SZ_FILTER_AUTO
+	enum ESzFilterMode {
+	SZ_FILTER_NO,
+	SZ_FILTER_YES,
+	SZ_FILTER_AUTO
 };
 
-SRes Lzma86_Encode(Byte *dest, size_t *destLen, const Byte *src, size_t srcLen,
-    int level, UInt32 dictSize, int filterMode);
-
+SRes Lzma86_Encode(Byte * dest, size_t * destLen, const Byte * src, size_t srcLen, int level, UInt32 dictSize, int filterMode);
 
 /*
 Lzma86_GetUnpackSize:
@@ -84,7 +76,7 @@ Lzma86_GetUnpackSize:
     SZ_ERROR_INPUT_EOF  - Error in headers
 */
 
-SRes Lzma86_GetUnpackSize(const Byte *src, SizeT srcLen, UInt64 *unpackSize);
+SRes Lzma86_GetUnpackSize(const Byte * src, SizeT srcLen, UInt64 * unpackSize);
 
 /*
 Lzma86_Decode:
@@ -104,8 +96,7 @@ Lzma86_Decode:
     SZ_ERROR_INPUT_EOF - it needs more bytes in input buffer
 */
 
-SRes Lzma86_Decode(Byte *dest, SizeT *destLen, const Byte *src, SizeT *srcLen);
+SRes Lzma86_Decode(Byte * dest, SizeT * destLen, const Byte * src, SizeT * srcLen);
 
 EXTERN_C_END
-
 #endif

@@ -38,27 +38,27 @@
 #define IS_XATTR(a)		(a != SQUASHFS_INVALID_XATTR)
 
 struct xattr_list {
-	char			*name;
-	char			*full_name;
-	int			size;
-	int			vsize;
-	void			*value;
-	int			type;
-	long long		ool_value;
-	unsigned short		vchecksum;
-	struct xattr_list	*vnext;
+	char *name;
+	char *full_name;
+	int size;
+	int vsize;
+	void *value;
+	int type;
+	long long ool_value;
+	unsigned short vchecksum;
+	struct xattr_list *vnext;
 };
 
 struct dupl_id {
-	struct xattr_list	*xattr_list;
-	int			xattrs;
-	int			xattr_id;
-	struct dupl_id		*next;
+	struct xattr_list *xattr_list;
+	int xattrs;
+	int xattr_id;
+	struct dupl_id *next;
 };
 
 struct prefix {
-	char			*prefix;
-	int			type;
+	char *prefix;
+	int type;
 };
 
 extern int generate_xattrs(int, struct xattr_list *);
@@ -74,75 +74,57 @@ extern void write_xattr(char *, unsigned int);
 extern int read_xattrs_from_disk(int, struct squashfs_super_block *);
 extern struct xattr_list *get_xattr(int, unsigned int *);
 #else
-static inline int get_xattrs(int fd, struct squashfs_super_block *sBlk)
-{
-	if(sBlk->xattr_id_table_start != SQUASHFS_INVALID_BLK) {
-		fprintf(stderr, "Xattrs in filesystem! These are not "
-			"supported on this version of Squashfs\n");
+static inline int get_xattrs(int fd, struct squashfs_super_block *sBlk) {
+	if (sBlk->xattr_id_table_start != SQUASHFS_INVALID_BLK) {
+		fprintf(stderr, "Xattrs in filesystem! These are not " "supported on this version of Squashfs\n");
 		return 0;
 	} else
 		return SQUASHFS_INVALID_BLK;
 }
 
-
-static inline int read_xattrs(void *dir_ent)
-{
+static inline int read_xattrs(void *dir_ent) {
 	return SQUASHFS_INVALID_XATTR;
 }
 
-
-static inline long long write_xattrs()
-{
+static inline long long write_xattrs() {
 	return SQUASHFS_INVALID_BLK;
 }
 
-
-static inline int save_xattrs()
-{
+static inline int save_xattrs() {
 	return 1;
 }
 
-
-static inline void restore_xattrs()
-{
+static inline void restore_xattrs() {
 }
 
-
-static inline void write_xattr(char *pathname, unsigned int xattr)
-{
+static inline void write_xattr(char *pathname, unsigned int xattr) {
 }
 
-
-static inline int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBlk)
-{
-	if(sBlk->xattr_id_table_start != SQUASHFS_INVALID_BLK) {
-		fprintf(stderr, "Xattrs in filesystem! These are not "
-			"supported on this version of Squashfs\n");
+static inline int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBlk) {
+	if (sBlk->xattr_id_table_start != SQUASHFS_INVALID_BLK) {
+		fprintf(stderr, "Xattrs in filesystem! These are not " "supported on this version of Squashfs\n");
 		return 0;
 	} else
 		return SQUASHFS_INVALID_BLK;
 }
 
-
-static inline struct xattr_list *get_xattr(int i, unsigned int *count)
-{
+static inline struct xattr_list *get_xattr(int i, unsigned int *count) {
 	return NULL;
 }
 #endif
 
 #ifdef XATTR_SUPPORT
-#ifdef XATTR_DEFAULT
-#define NOXOPT_STR
-#define XOPT_STR " (default)"
-#define XATTR_DEF 0
+#    ifdef XATTR_DEFAULT
+#        define NOXOPT_STR
+#        define XOPT_STR " (default)"
+#        define XATTR_DEF 0
+#    else
+#        define NOXOPT_STR " (default)"
+#        define XOPT_STR
+#        define XATTR_DEF 1
+#    endif
 #else
-#define NOXOPT_STR " (default)"
-#define XOPT_STR
-#define XATTR_DEF 1
+#    define NOXOPT_STR " (default)"
+#    define XOPT_STR " (unsupported)"
+#    define XATTR_DEF 1
 #endif
-#else
-#define NOXOPT_STR " (default)"
-#define XOPT_STR " (unsupported)"
-#define XATTR_DEF 1
-#endif
-

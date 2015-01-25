@@ -58,13 +58,13 @@ int create_log(const char *fname) {
 	if (log_f == NULL)
 		goto error;
 
-	r = setvbuf(log_f, (char *) NULL, _IOLBF, 0);
+	r = setvbuf(log_f, (char *)NULL, _IOLBF, 0);
 	if (r != 0)
 		goto error;
 
 	return 0;
 
-	error: fprintf(stderr, "can't open log file `%s': %m\n", fname);
+ error:fprintf(stderr, "can't open log file `%s': %m\n", fname);
 	if (log_f)
 		fclose(log_f);
 	else if (log_fd)

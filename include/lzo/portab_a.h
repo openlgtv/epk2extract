@@ -37,61 +37,59 @@
    http://www.oberhumer.com/opensource/lzo/
  */
 
-
 /*************************************************************************
 // use the ACC library for the hard work
 **************************************************************************/
 
 #if defined(LZO_HAVE_CONFIG_H)
-#  define ACC_CONFIG_NO_HEADER 1
+#    define ACC_CONFIG_NO_HEADER 1
 #endif
 
 #define ACC_WANT_ACC_INCD_H 1
 #define ACC_WANT_ACC_INCE_H 1
 #if defined(__LZO_MMODEL_HUGE) || defined(WANT_LZO_UCLOCK) || defined(WANT_LZO_WILDARGV)
-#  define ACC_WANT_ACC_INCI_H 1
-#  define ACC_WANT_ACC_LIB_H 1
+#    define ACC_WANT_ACC_INCI_H 1
+#    define ACC_WANT_ACC_LIB_H 1
 #endif
 #include "miniacc.h"
 
 #if defined(WANT_LZO_MALLOC)
-#  if defined(__LZO_MMODEL_HUGE)
-#    define ACC_WANT_ACCLIB_HALLOC 1
-#  else
-#    define acc_halloc(a)           (malloc(a))
-#    define acc_hfree(a)            (free(a))
-#  endif
+#    if defined(__LZO_MMODEL_HUGE)
+#        define ACC_WANT_ACCLIB_HALLOC 1
+#    else
+#        define acc_halloc(a)           (malloc(a))
+#        define acc_hfree(a)            (free(a))
+#    endif
 #endif
 #if defined(WANT_LZO_FREAD)
-#  if defined(__LZO_MMODEL_HUGE)
-#    define ACC_WANT_ACCLIB_HFREAD 1
-#  else
-#    define acc_hfread(f,b,s)       (fread(b,1,s,f))
-#    define acc_hfwrite(f,b,s)      (fwrite(b,1,s,f))
-#  endif
+#    if defined(__LZO_MMODEL_HUGE)
+#        define ACC_WANT_ACCLIB_HFREAD 1
+#    else
+#        define acc_hfread(f,b,s)       (fread(b,1,s,f))
+#        define acc_hfwrite(f,b,s)      (fwrite(b,1,s,f))
+#    endif
 #endif
 #if defined(WANT_LZO_UCLOCK)
-#  define ACC_WANT_ACCLIB_PCLOCK 1
-#  if 0 && (LZO_ARCH_AMD64 || LZO_ARCH_I386)
-#    define __ACCLIB_PCLOCK_USE_RDTSC 1
-#    define ACC_WANT_ACCLIB_RDTSC 1
-#  endif
+#    define ACC_WANT_ACCLIB_PCLOCK 1
+#    if 0 && (LZO_ARCH_AMD64 || LZO_ARCH_I386)
+#        define __ACCLIB_PCLOCK_USE_RDTSC 1
+#        define ACC_WANT_ACCLIB_RDTSC 1
+#    endif
 #endif
 #if defined(WANT_LZO_WILDARGV)
-#  define ACC_WANT_ACCLIB_WILDARGV 1
+#    define ACC_WANT_ACCLIB_WILDARGV 1
 #endif
 #if defined(__ACCLIB_PCLOCK_USE_PERFCTR)
-#  include "src/fullacc.h"
-#  define lzo_uclock_flush_cpu_cache(h,flags) acc_pclock_flush_cpu_cache(h,flags)
+#    include "src/fullacc.h"
+#    define lzo_uclock_flush_cpu_cache(h,flags) acc_pclock_flush_cpu_cache(h,flags)
 #else
-#  include "miniacc.h"
+#    include "miniacc.h"
 #endif
 
 #if (__ACCLIB_REQUIRE_HMEMCPY_CH) && !defined(__ACCLIB_HMEMCPY_CH_INCLUDED)
-#  define ACC_WANT_ACCLIB_HMEMCPY 1
-#  include "src/miniacc.h"
+#    define ACC_WANT_ACCLIB_HMEMCPY 1
+#    include "src/miniacc.h"
 #endif
-
 
 /*************************************************************************
 // finally pull into the LZO namespace
@@ -102,27 +100,25 @@
 #undef lzo_fread
 #undef lzo_fwrite
 #if defined(WANT_LZO_MALLOC)
-#  define lzo_malloc(a)         acc_halloc(a)
-#  define lzo_free(a)           acc_hfree(a)
+#    define lzo_malloc(a)         acc_halloc(a)
+#    define lzo_free(a)           acc_hfree(a)
 #endif
 #if defined(WANT_LZO_FREAD)
-#  define lzo_fread(f,b,s)      acc_hfread(f,b,s)
-#  define lzo_fwrite(f,b,s)     acc_hfwrite(f,b,s)
+#    define lzo_fread(f,b,s)      acc_hfread(f,b,s)
+#    define lzo_fwrite(f,b,s)     acc_hfwrite(f,b,s)
 #endif
 #if defined(WANT_LZO_UCLOCK)
-#  define lzo_uclock_handle_t   acc_pclock_handle_t
-#  define lzo_uclock_t          acc_pclock_t
-#  define lzo_uclock_open(a)    acc_pclock_open_default(a)
-#  define lzo_uclock_close(a)   acc_pclock_close(a)
-#  define lzo_uclock_read(a,b)  acc_pclock_read(a,b)
-#  define lzo_uclock_get_elapsed(a,b,c) acc_pclock_get_elapsed(a,b,c)
+#    define lzo_uclock_handle_t   acc_pclock_handle_t
+#    define lzo_uclock_t          acc_pclock_t
+#    define lzo_uclock_open(a)    acc_pclock_open_default(a)
+#    define lzo_uclock_close(a)   acc_pclock_close(a)
+#    define lzo_uclock_read(a,b)  acc_pclock_read(a,b)
+#    define lzo_uclock_get_elapsed(a,b,c) acc_pclock_get_elapsed(a,b,c)
 #endif
 #if defined(WANT_LZO_WILDARGV)
-#  define lzo_wildargv(a,b)     acc_wildargv(a,b)
+#    define lzo_wildargv(a,b)     acc_wildargv(a,b)
 #endif
-
 
 /*
 vi:ts=4:et
 */
-

@@ -1,5 +1,5 @@
 #ifndef XZ_WRAPPER_H
-#define XZ_WRAPPER_H
+#    define XZ_WRAPPER_H
 /*
  * Squashfs
  *
@@ -24,43 +24,43 @@
  *
  */
 
-#ifndef linux
-#define __BYTE_ORDER BYTE_ORDER
-#define __BIG_ENDIAN BIG_ENDIAN
-#define __LITTLE_ENDIAN LITTLE_ENDIAN
-#else
-#include <endian.h>
-#endif
+#    ifndef linux
+#        define __BYTE_ORDER BYTE_ORDER
+#        define __BIG_ENDIAN BIG_ENDIAN
+#        define __LITTLE_ENDIAN LITTLE_ENDIAN
+#    else
+#        include <endian.h>
+#    endif
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#    if __BYTE_ORDER == __BIG_ENDIAN
 extern unsigned int inswap_le32(unsigned int);
 
-#define SQUASHFS_INSWAP_COMP_OPTS(s) { \
+#        define SQUASHFS_INSWAP_COMP_OPTS(s) { \
 	(s)->dictionary_size = inswap_le32((s)->dictionary_size); \
 	(s)->flags = inswap_le32((s)->flags); \
 }
-#else
-#define SQUASHFS_INSWAP_COMP_OPTS(s)
-#endif
+#    else
+#        define SQUASHFS_INSWAP_COMP_OPTS(s)
+#    endif
 
-#define MEMLIMIT (32 * 1024 * 1024)
+#    define MEMLIMIT (32 * 1024 * 1024)
 
 struct bcj {
-	char	 	*name;
-	lzma_vli	id;
-	int		selected;
+	char *name;
+	lzma_vli id;
+	int selected;
 };
 
 struct filter {
-	void		*buffer;
-	lzma_filter	filter[3];
-	size_t		length;
+	void *buffer;
+	lzma_filter filter[3];
+	size_t length;
 };
 
 struct xz_stream {
-	struct filter	*filter;
-	int		filters;
-	int		dictionary_size;
+	struct filter *filter;
+	int filters;
+	int dictionary_size;
 	lzma_options_lzma opt;
 };
 

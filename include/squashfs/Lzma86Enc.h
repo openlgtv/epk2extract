@@ -4,9 +4,9 @@ Igor Pavlov
 Public domain */
 
 #ifndef __LZMA86ENC_H
-#define __LZMA86ENC_H
+#    define __LZMA86ENC_H
 
-#include "../Types.h"
+#    include "../Types.h"
 
 /*
 It's an example for LZMA + x86 Filter use.
@@ -20,11 +20,9 @@ You can use .lzma86 extension, if you write that stream to file.
     2     4    dictSize (little endian)
     6     8    uncompressed size (little endian)
 
-
 Lzma86_Encode
 -------------
 level - compression level: 0 <= level <= 9, the default value for "level" is 5.
-
 
 dictSize - The dictionary size in bytes. The maximum value is
         128 MB = (1 << 27) bytes for 32-bit version
@@ -50,7 +48,6 @@ RAM Requirements for compressing:
      SZ_FILTER_YES      inSize
      SZ_FILTER_AUTO     inSize
 
-
 Return code:
   SZ_OK               - OK
   SZ_ERROR_MEM        - Memory allocation error
@@ -59,14 +56,12 @@ Return code:
   SZ_ERROR_THREAD     - errors in multithreading functions (only for Mt version)
 */
 
-enum ESzFilterMode
-{
-  SZ_FILTER_NO,
-  SZ_FILTER_YES,
-  SZ_FILTER_AUTO
+enum ESzFilterMode {
+	SZ_FILTER_NO,
+	SZ_FILTER_YES,
+	SZ_FILTER_AUTO
 };
 
-SRes Lzma86_Encode(Byte *dest, size_t *destLen, const Byte *src, size_t srcLen,
-    int level, UInt32 dictSize, int filterMode);
+SRes Lzma86_Encode(Byte * dest, size_t * destLen, const Byte * src, size_t srcLen, int level, UInt32 dictSize, int filterMode);
 
 #endif

@@ -37,13 +37,12 @@
 extern "C" {
 #endif
 
-
 //****************************
 // Simple Functions
 //****************************
 
-int LZ4_compress   (const char* source, char* dest, int isize);
-int LZ4_uncompress (const char* source, char* dest, int osize);
+	int LZ4_compress(const char *source, char *dest, int isize);
+	int LZ4_uncompress(const char *source, char *dest, int osize);
 
 /*
 LZ4_compress() :
@@ -62,12 +61,11 @@ LZ4_uncompress() :
 	note : destination buffer must be already allocated
 */
 
-
 //****************************
 // Advanced Functions
 //****************************
 
-int LZ4_compressBound(int isize);
+	int LZ4_compressBound(int isize);
 
 /*
 LZ4_compressBound() :
@@ -79,8 +77,7 @@ LZ4_compressBound() :
 	note : this function is limited by "int" range (2^31-1)
 */
 
-
-int LZ4_uncompress_unknownOutputSize (const char* source, char* dest, int isize, int maxOutputSize);
+	int LZ4_uncompress_unknownOutputSize(const char *source, char *dest, int isize, int maxOutputSize);
 
 /*
 LZ4_uncompress_unknownOutputSize() :
@@ -93,9 +90,8 @@ LZ4_uncompress_unknownOutputSize() :
 	         This version is slightly slower than LZ4_uncompress()
 */
 
-
-int LZ4_compressCtx(void** ctx, const char* source,  char* dest, int isize);
-int LZ4_compress64kCtx(void** ctx, const char* source,  char* dest, int isize);
+	int LZ4_compressCtx(void **ctx, const char *source, char *dest, int isize);
+	int LZ4_compress64kCtx(void **ctx, const char *source, char *dest, int isize);
 
 /*
 LZ4_compressCtx() :
@@ -113,7 +109,6 @@ LZ4_compress64kCtx() :
 	Use different pointers for different threads when doing multi-threading.
 
 */
-
 
 #if defined (__cplusplus)
 }

@@ -37,27 +37,25 @@
    http://www.oberhumer.com/opensource/lzo/
  */
 
-
 #include "lzo/lzoconf.h"
 
 #if (LZO_CC_MSC && (_MSC_VER >= 1000 && _MSC_VER < 1200))
    /* avoid `-W4' warnings in system header files */
-#  pragma warning(disable: 4201 4214 4514)
+#    pragma warning(disable: 4201 4214 4514)
 #endif
 #if (LZO_CC_MSC && (_MSC_VER >= 1300))
    /* avoid `-Wall' warnings in system header files */
-#  pragma warning(disable: 4163 4255 4820)
+#    pragma warning(disable: 4163 4255 4820)
    /* avoid warnings about inlining */
-#  pragma warning(disable: 4710 4711)
+#    pragma warning(disable: 4710 4711)
 #endif
 #if (LZO_CC_MSC && (_MSC_VER >= 1400))
    /* avoid warnings when using "deprecated" POSIX functions */
-#  pragma warning(disable: 4996)
+#    pragma warning(disable: 4996)
 #endif
 #if (LZO_CC_PELLESC && (__POCC__ >= 290))
-#  pragma warn(disable:2002)
+#    pragma warn(disable:2002)
 #endif
-
 
 /*************************************************************************
 //
@@ -65,7 +63,7 @@
 
 #if defined(__LZO_MMODEL_HUGE) || !(defined(LZO_LIBC_ISOC90) || defined(LZO_LIBC_ISOC99))
 
-#include "portab_a.h"
+#    include "portab_a.h"
 
 #else
 
@@ -77,38 +75,37 @@
  *   following pure ANSI-C code instead.
  */
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
-#if defined(CLK_TCK) && !defined(CLOCKS_PER_SEC)
-#  define CLOCKS_PER_SEC CLK_TCK
-#endif
+#    include <stddef.h>
+#    include <stdlib.h>
+#    include <stdio.h>
+#    include <string.h>
+#    include <ctype.h>
+#    include <time.h>
+#    if defined(CLK_TCK) && !defined(CLOCKS_PER_SEC)
+#        define CLOCKS_PER_SEC CLK_TCK
+#    endif
 
-#if defined(WANT_LZO_MALLOC)
-#  define lzo_malloc(a)         (malloc(a))
-#  define lzo_free(a)           (free(a))
-#endif
-#if defined(WANT_LZO_FREAD)
-#  define lzo_fread(f,b,s)      (fread(b,1,s,f))
-#  define lzo_fwrite(f,b,s)     (fwrite(b,1,s,f))
-#endif
-#if defined(WANT_LZO_UCLOCK)
-#  define lzo_uclock_handle_t   int
-#  define lzo_uclock_t          double
-#  define lzo_uclock_open(a)    ((void)(a))
-#  define lzo_uclock_close(a)   ((void)(a))
-#  define lzo_uclock_read(a,b)  *(b) = (clock() / (double)(CLOCKS_PER_SEC))
-#  define lzo_uclock_get_elapsed(a,b,c) (*(c) - *(b))
-#endif
-#if defined(WANT_LZO_WILDARGV)
-#  define lzo_wildargv(a,b)     ((void)0)
-#endif
+#    if defined(WANT_LZO_MALLOC)
+#        define lzo_malloc(a)         (malloc(a))
+#        define lzo_free(a)           (free(a))
+#    endif
+#    if defined(WANT_LZO_FREAD)
+#        define lzo_fread(f,b,s)      (fread(b,1,s,f))
+#        define lzo_fwrite(f,b,s)     (fwrite(b,1,s,f))
+#    endif
+#    if defined(WANT_LZO_UCLOCK)
+#        define lzo_uclock_handle_t   int
+#        define lzo_uclock_t          double
+#        define lzo_uclock_open(a)    ((void)(a))
+#        define lzo_uclock_close(a)   ((void)(a))
+#        define lzo_uclock_read(a,b)  *(b) = (clock() / (double)(CLOCKS_PER_SEC))
+#        define lzo_uclock_get_elapsed(a,b,c) (*(c) - *(b))
+#    endif
+#    if defined(WANT_LZO_WILDARGV)
+#        define lzo_wildargv(a,b)     ((void)0)
+#    endif
 
 #endif
-
 
 /*************************************************************************
 // misc
@@ -127,7 +124,6 @@
 #undef xgetc
 #undef xread32
 #undef xwrite32
-
 
 #if defined(WANT_LZO_UCLOCK)
 
@@ -149,14 +145,12 @@
  * virtual clock ticks.
  */
 
-#if !defined(lzo_uclock_flush_cpu_cache)
-#  define lzo_uclock_flush_cpu_cache(h,flags)  ((void)(h))
-#endif
+#    if !defined(lzo_uclock_flush_cpu_cache)
+#        define lzo_uclock_flush_cpu_cache(h,flags)  ((void)(h))
+#    endif
 
 #endif
-
 
 /*
 vi:ts=4:et
 */
-

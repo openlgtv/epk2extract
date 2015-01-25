@@ -21,14 +21,14 @@
  */
 
 struct compressor {
-	int (*init)(void **, int, int);
-	int (*compress)(void *, void *, void *, int, int, int *);
-	int (*uncompress)(void *, void *, int, int, int *);
-	int (*options)(char **, int);
-	int (*options_post)(int);
-	void *(*dump_options)(int, int *);
-	int (*extract_options)(int, void *, int);
-	void (*usage)();
+	int (*init) (void **, int, int);
+	int (*compress) (void *, void *, void *, int, int, int *);
+	int (*uncompress) (void *, void *, int, int, int *);
+	int (*options) (char **, int);
+	int (*options_post) (int);
+	void *(*dump_options) (int, int *);
+	int (*extract_options) (int, void *, int);
+	void (*usage) ();
 	int id;
 	char *name;
 	int supported;
@@ -39,60 +39,41 @@ extern struct compressor *lookup_compressor_id(int);
 extern void display_compressors(char *, char *);
 extern void display_compressor_usage(char *);
 
-static inline int compressor_init(struct compressor *comp, void **stream,
-	int block_size, int datablock)
-{
-	if(comp->init == NULL)
+static inline int compressor_init(struct compressor *comp, void **stream, int block_size, int datablock) {
+	if (comp->init == NULL)
 		return 0;
 	return comp->init(stream, block_size, datablock);
 }
 
-
-static inline int compressor_compress(struct compressor *comp, void *strm,
-	void *dest, void *src, int size, int block_size, int *error)
-{
+static inline int compressor_compress(struct compressor *comp, void *strm, void *dest, void *src, int size, int block_size, int *error) {
 	return comp->compress(strm, dest, src, size, block_size, error);
 }
 
-
-static inline int compressor_uncompress(struct compressor *comp, void *dest,
-	void *src, int size, int block_size, int *error)
-{
+static inline int compressor_uncompress(struct compressor *comp, void *dest, void *src, int size, int block_size, int *error) {
 	return comp->uncompress(dest, src, size, block_size, error);
 }
 
-
-static inline int compressor_options(struct compressor *comp, char *argv[],
-	int argc)
-{
-	if(comp->options == NULL)
+static inline int compressor_options(struct compressor *comp, char *argv[], int argc) {
+	if (comp->options == NULL)
 		return -1;
 
 	return comp->options(argv, argc);
 }
 
-
-static inline int compressor_options_post(struct compressor *comp, int block_size)
-{
-	if(comp->options_post == NULL)
+static inline int compressor_options_post(struct compressor *comp, int block_size) {
+	if (comp->options_post == NULL)
 		return 0;
 	return comp->options_post(block_size);
 }
 
-
-static inline void *compressor_dump_options(struct compressor *comp,
-	int block_size, int *size)
-{
-	if(comp->dump_options == NULL)
+static inline void *compressor_dump_options(struct compressor *comp, int block_size, int *size) {
+	if (comp->dump_options == NULL)
 		return NULL;
 	return comp->dump_options(block_size, size);
 }
 
-
-static inline int compressor_extract_options(struct compressor *comp,
-	int block_size, void *buffer, int size)
-{
-	if(comp->extract_options == NULL)
+static inline int compressor_extract_options(struct compressor *comp, int block_size, void *buffer, int size) {
+	if (comp->extract_options == NULL)
 		return size ? -1 : 0;
 	return comp->extract_options(block_size, buffer, size);
 }

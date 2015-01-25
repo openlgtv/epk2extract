@@ -1,5 +1,5 @@
 #ifndef _LOG_H_
-#define _LOG_H_
+#    define _LOG_H_
 /*
 * Copyright (c) 2011 Roman Tokarev <roman.s.tokarev@gmail.com>
 * All rights reserved.
@@ -29,18 +29,15 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define error_level 0
-#define info_level 1
-#define debug_level 2
+#    define error_level 0
+#    define info_level 1
+#    define debug_level 2
 
-
-#define say_error(format, args...) say(error_level, "error: "format, ##args)
-#define say_info(format, args...) say(info_level, "info: "format, ##args)
-#define say_debug(format, args...) say(debug_level, "debug: "format, ##args)
-
+#    define say_error(format, args...) say(error_level, "error: "format, ##args)
+#    define say_info(format, args...) say(info_level, "info: "format, ##args)
+#    define say_debug(format, args...) say(debug_level, "debug: "format, ##args)
 
 extern unsigned verbose;
-
 
 int create_log(const char *fname);
 void say(unsigned level, const char *format, ...);

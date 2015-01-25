@@ -2,24 +2,23 @@
 2009-02-07 : Igor Pavlov : Public domain */
 
 #ifndef __LZMA2_ENC_H
-#define __LZMA2_ENC_H
+#    define __LZMA2_ENC_H
 
-#include "LzmaEnc.h"
+#    include "LzmaEnc.h"
 
-#ifdef __cplusplus
+#    ifdef __cplusplus
 extern "C" {
-#endif
+#    endif
 
-typedef struct
-{
-  CLzmaEncProps lzmaProps;
-  size_t blockSize;
-  int numBlockThreads;
-  int numTotalThreads;
-} CLzma2EncProps;
+	typedef struct {
+		CLzmaEncProps lzmaProps;
+		size_t blockSize;
+		int numBlockThreads;
+		int numTotalThreads;
+	} CLzma2EncProps;
 
-void Lzma2EncProps_Init(CLzma2EncProps *p);
-void Lzma2EncProps_Normalize(CLzma2EncProps *p);
+	void Lzma2EncProps_Init(CLzma2EncProps * p);
+	void Lzma2EncProps_Normalize(CLzma2EncProps * p);
 
 /* ---------- CLzmaEnc2Handle Interface ---------- */
 
@@ -33,14 +32,13 @@ Returns:
   SZ_ERROR_THREAD - errors in multithreading functions (only for Mt version)
 */
 
-typedef void * CLzma2EncHandle;
+	typedef void *CLzma2EncHandle;
 
-CLzma2EncHandle Lzma2Enc_Create(ISzAlloc *alloc, ISzAlloc *allocBig);
-void Lzma2Enc_Destroy(CLzma2EncHandle p);
-SRes Lzma2Enc_SetProps(CLzma2EncHandle p, const CLzma2EncProps *props);
-Byte Lzma2Enc_WriteProperties(CLzma2EncHandle p);
-SRes Lzma2Enc_Encode(CLzma2EncHandle p,
-    ISeqOutStream *outStream, ISeqInStream *inStream, ICompressProgress *progress);
+	CLzma2EncHandle Lzma2Enc_Create(ISzAlloc * alloc, ISzAlloc * allocBig);
+	void Lzma2Enc_Destroy(CLzma2EncHandle p);
+	SRes Lzma2Enc_SetProps(CLzma2EncHandle p, const CLzma2EncProps * props);
+	Byte Lzma2Enc_WriteProperties(CLzma2EncHandle p);
+	SRes Lzma2Enc_Encode(CLzma2EncHandle p, ISeqOutStream * outStream, ISeqInStream * inStream, ICompressProgress * progress);
 
 /* ---------- One Call Interface ---------- */
 
@@ -59,8 +57,7 @@ SRes Lzma2Encode(Byte *dest, SizeT *destLen, const Byte *src, SizeT srcLen,
     ICompressProgress *progress, ISzAlloc *alloc, ISzAlloc *allocBig);
 */
 
-#ifdef __cplusplus
+#    ifdef __cplusplus
 }
-#endif
-
+#    endif
 #endif

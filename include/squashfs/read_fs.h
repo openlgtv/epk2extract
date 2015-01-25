@@ -1,5 +1,5 @@
 #ifndef READ_FS_H
-#define READ_FS_H
+#    define READ_FS_H
 /*
  * Squashfs
  *
@@ -24,19 +24,19 @@
  *
  */
 
-#if __BYTE_ORDER == __BIG_ENDIAN
-#define SQUASHFS_SWAP_SHORTS(d, s, n) swap_le16_num(s, d, n)
-#define SQUASHFS_SWAP_INTS(d, s, n) swap_le32_num(s, d, n)
-#define SQUASHFS_SWAP_LONG_LONGS(d, s, n) swap_le64_num(s, d, n)
+#    if __BYTE_ORDER == __BIG_ENDIAN
+#        define SQUASHFS_SWAP_SHORTS(d, s, n) swap_le16_num(s, d, n)
+#        define SQUASHFS_SWAP_INTS(d, s, n) swap_le32_num(s, d, n)
+#        define SQUASHFS_SWAP_LONG_LONGS(d, s, n) swap_le64_num(s, d, n)
 
-#define SWAP_LE16(d, s)		swap_le16(s, d)
-#define SWAP_LE32(d, s)		swap_le32(s, d)
-#define SWAP_LE64(d, s)		swap_le64(s, d)
-#else
-#define SQUASHFS_MEMCPY(d, s, n)	memcpy(d, s, n)
-#define SQUASHFS_SWAP_SHORTS(d, s, n)	memcpy(d, s, n * sizeof(short))
-#define SQUASHFS_SWAP_INTS(d, s, n)	memcpy(d, s, n * sizeof(int))
-#define SQUASHFS_SWAP_LONG_LONGS(d, s, n) \
+#        define SWAP_LE16(d, s)		swap_le16(s, d)
+#        define SWAP_LE32(d, s)		swap_le32(s, d)
+#        define SWAP_LE64(d, s)		swap_le64(s, d)
+#    else
+#        define SQUASHFS_MEMCPY(d, s, n)	memcpy(d, s, n)
+#        define SQUASHFS_SWAP_SHORTS(d, s, n)	memcpy(d, s, n * sizeof(short))
+#        define SQUASHFS_SWAP_INTS(d, s, n)	memcpy(d, s, n * sizeof(int))
+#        define SQUASHFS_SWAP_LONG_LONGS(d, s, n) \
 					memcpy(d, s, n * sizeof(long long))
-#endif
+#    endif
 #endif

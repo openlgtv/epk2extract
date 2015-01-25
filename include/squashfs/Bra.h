@@ -2,13 +2,13 @@
 2009-02-07 : Igor Pavlov : Public domain */
 
 #ifndef __BRA_H
-#define __BRA_H
+#    define __BRA_H
 
-#include "Types.h"
+#    include "Types.h"
 
-#ifdef __cplusplus
+#    ifdef __cplusplus
 extern "C" {
-#endif
+#    endif
 
 /*
 These functions convert relative addresses to absolute addresses
@@ -53,16 +53,15 @@ in CALL instructions to increase the compression ratio.
     }
 */
 
-#define x86_Convert_Init(state) { state = 0; }
-SizeT x86_Convert(Byte *data, SizeT size, UInt32 ip, UInt32 *state, int encoding);
-SizeT ARM_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT ARMT_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT PPC_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT SPARC_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT IA64_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
+#    define x86_Convert_Init(state) { state = 0; }
+	SizeT x86_Convert(Byte * data, SizeT size, UInt32 ip, UInt32 * state, int encoding);
+	SizeT ARM_Convert(Byte * data, SizeT size, UInt32 ip, int encoding);
+	SizeT ARMT_Convert(Byte * data, SizeT size, UInt32 ip, int encoding);
+	SizeT PPC_Convert(Byte * data, SizeT size, UInt32 ip, int encoding);
+	SizeT SPARC_Convert(Byte * data, SizeT size, UInt32 ip, int encoding);
+	SizeT IA64_Convert(Byte * data, SizeT size, UInt32 ip, int encoding);
 
-#ifdef __cplusplus
+#    ifdef __cplusplus
 }
-#endif
-
+#    endif
 #endif

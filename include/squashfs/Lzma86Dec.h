@@ -4,9 +4,9 @@ Igor Pavlov
 Public domain */
 
 #ifndef __LZMA86DEC_H
-#define __LZMA86DEC_H
+#    define __LZMA86DEC_H
 
-#include "../Types.h"
+#    include "../Types.h"
 
 /*
 Lzma86_GetUnpackSize:
@@ -20,7 +20,7 @@ Lzma86_GetUnpackSize:
     SZ_ERROR_INPUT_EOF  - Error in headers
 */
 
-SRes Lzma86_GetUnpackSize(const Byte *src, SizeT srcLen, UInt64 *unpackSize);
+SRes Lzma86_GetUnpackSize(const Byte * src, SizeT srcLen, UInt64 * unpackSize);
 
 /*
 Lzma86_Decode:
@@ -40,6 +40,6 @@ Lzma86_Decode:
     SZ_ERROR_INPUT_EOF - it needs more bytes in input buffer
 */
 
-SRes Lzma86_Decode(Byte *dest, SizeT *destLen, const Byte *src, SizeT *srcLen);
+SRes Lzma86_Decode(Byte * dest, SizeT * destLen, const Byte * src, SizeT * srcLen);
 
 #endif

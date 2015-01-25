@@ -1,5 +1,5 @@
 #ifndef _SYMFILE_H_
-#define _SYMFILE_H_
+#    define _SYMFILE_H_
 /*
  * Copyright (c) 2011 Roman Tokarev <roman.s.tokarev@gmail.com>
  * All rights reserved.
@@ -29,8 +29,8 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdint.h>
-#include <unistd.h>
+#    include <stdint.h>
+#    include <unistd.h>
 
 struct sym_entry {
 	uint32_t addr;
@@ -46,7 +46,7 @@ struct sym_table {
 	struct {
 		uint32_t d1;
 		uint32_t d2;
-	}*dwarf_lst;
+	} *dwarf_lst;
 	unsigned char *dwarf_data;
 	char *sym_name;
 };

@@ -26,26 +26,25 @@
 #include <mini_inflate.h>
 
 /* The order that the code lengths in section 3.2.7 are in */
-static unsigned char huffman_order[] = {16, 17, 18,  0,  8,  7,  9,  6, 10,  5,
-					11,  4, 12,  3, 13,  2, 14,  1, 15};
+static unsigned char huffman_order[] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5,
+	11, 4, 12, 3, 13, 2, 14, 1, 15
+};
 
-inline void cramfs_memset(int *s, const int c, size n)
-{
+inline void cramfs_memset(int *s, const int c, size n) {
 	n--;
-	for (;n > 0; n--) s[n] = c;
+	for (; n > 0; n--)
+		s[n] = c;
 	s[0] = c;
 }
 
 /* associate a stream with a block of data and reset the stream */
-static void init_stream(struct bitstream *stream, unsigned char *data,
-			void *(*inflate_memcpy)(void *, const void *, size))
-{
+static void init_stream(struct bitstream *stream, unsigned char *data, void *(*inflate_memcpy) (void *, const void *, size)) {
 	stream->error = NO_ERROR;
 	stream->memcpy = inflate_memcpy;
 	stream->decoded = 0;
 	stream->data = data;
-	stream->bit = 0;	/* The first bit of the stream is the lsb of the
-				 * first byte */
+	stream->bit = 0;			/* The first bit of the stream is the lsb of the
+								 * first byte */
 
 	/* really sorry about all this initialization, think of a better way,
 	 * let me know and it will get cleaned up */
@@ -78,9 +77,7 @@ static void init_stream(struct bitstream *stream, unsigned char *data,
 /* pull 'bits' bits out of the stream. The last bit pulled it returned as the
  * msb. (section 3.1.1)
  */
-inline unsigned long pull_bits(struct bitstream *stream,
-			       const unsigned int bits)
-{
+inline unsigned long pull_bits(struct bitstream *stream, const unsigned int bits) {
 	unsigned long ret;
 	int i;
 
@@ -98,8 +95,7 @@ inline unsigned long pull_bits(struct bitstream *stream,
 	return ret;
 }
 
-inline int pull_bit(struct bitstream *stream)
-{
+inline int pull_bit(struct bitstream *stream) {
 	int ret = ((*(stream->data) >> stream->bit) & 1);
 	if (stream->bit++ == 7) {
 		stream->bit = 0;
@@ -109,8 +105,7 @@ inline int pull_bit(struct bitstream *stream)
 }
 
 /* discard bits up to the next whole byte */
-static void discard_bits(struct bitstream *stream)
-{
+static void discard_bits(struct bitstream *stream) {
 	if (stream->bit != 0) {
 		stream->bit = 0;
 		stream->data++;
@@ -118,14 +113,13 @@ static void discard_bits(struct bitstream *stream)
 }
 
 /* No decompression, the data is all literals (section 3.2.4) */
-static void decompress_none(struct bitstream *stream, unsigned char *dest)
-{
+static void decompress_none(struct bitstream *stream, unsigned char *dest) {
 	unsigned int length;
 
 	discard_bits(stream);
 	length = *(stream->data++);
 	length += *(stream->data++) << 8;
-	pull_bits(stream, 16);	/* throw away the inverse of the size */
+	pull_bits(stream, 16);		/* throw away the inverse of the size */
 
 	stream->decoded += length;
 	stream->memcpy(dest, stream->data, length);
@@ -133,12 +127,10 @@ static void decompress_none(struct bitstream *stream, unsigned char *dest)
 }
 
 /* Read in a symbol from the stream (section 3.2.2) */
-static int read_symbol(struct bitstream *stream, struct huffman_set *set)
-{
+static int read_symbol(struct bitstream *stream, struct huffman_set *set) {
 	int bits = 0;
 	int code = 0;
-	while (!(set->count[bits] && code < set->first[bits] +
-					     set->count[bits])) {
+	while (!(set->count[bits] && code < set->first[bits] + set->count[bits])) {
 		code = (code << 1) + pull_bit(stream);
 		if (++bits > set->bits) {
 			/* error decoding (corrupted data?) */
@@ -151,34 +143,36 @@ static int read_symbol(struct bitstream *stream, struct huffman_set *set)
 
 /* decompress a stream of data encoded with the passed length and distance
  * huffman codes */
-static void decompress_huffman(struct bitstream *stream, unsigned char *dest)
-{
+static void decompress_huffman(struct bitstream *stream, unsigned char *dest) {
 	struct huffman_set *lengths = &(stream->lengths);
 	struct huffman_set *distance = &(stream->distance);
 
 	int symbol, length, dist, i;
 
 	do {
-		if ((symbol = read_symbol(stream, lengths)) < 0) return;
+		if ((symbol = read_symbol(stream, lengths)) < 0)
+			return;
 		if (symbol < 256) {
-			*(dest++) = symbol; /* symbol is a literal */
+			*(dest++) = symbol;	/* symbol is a literal */
 			stream->decoded++;
 		} else if (symbol > 256) {
 			/* Determine the length of the repitition
 			 * (section 3.2.5) */
-			if (symbol < 265) length = symbol - 254;
-			else if (symbol == 285) length = 258;
+			if (symbol < 265)
+				length = symbol - 254;
+			else if (symbol == 285)
+				length = 258;
 			else {
 				length = pull_bits(stream, (symbol - 261) >> 2);
 				length += (4 << ((symbol - 261) >> 2)) + 3;
-				length += ((symbol - 1) % 4) <<
-					  ((symbol - 261) >> 2);
+				length += ((symbol - 1) % 4) << ((symbol - 261) >> 2);
 			}
 
 			/* Determine how far back to go */
 			if ((symbol = read_symbol(stream, distance)) < 0)
 				return;
-			if (symbol < 4) dist = symbol + 1;
+			if (symbol < 4)
+				dist = symbol + 1;
 			else {
 				dist = pull_bits(stream, (symbol - 2) >> 1);
 				dist += (2 << ((symbol - 2) >> 1)) + 1;
@@ -190,12 +184,11 @@ static void decompress_huffman(struct bitstream *stream, unsigned char *dest)
 				dest++;
 			}
 		}
-	} while (symbol != 256); /* 256 is the end of the data block */
+	} while (symbol != 256);	/* 256 is the end of the data block */
 }
 
 /* Fill the lookup tables (section 3.2.2) */
-static void fill_code_tables(struct huffman_set *set)
-{
+static void fill_code_tables(struct huffman_set *set) {
 	int code = 0, i, length;
 
 	/* fill in the first code of each bit length, and the pos pointer */
@@ -213,19 +206,18 @@ static void fill_code_tables(struct huffman_set *set)
 	}
 
 	/* reset the pos pointer */
-	for (i = 1; i < set->bits; i++) set->pos[i] -= set->count[i];
+	for (i = 1; i < set->bits; i++)
+		set->pos[i] -= set->count[i];
 }
 
-static void init_code_tables(struct huffman_set *set)
-{
+static void init_code_tables(struct huffman_set *set) {
 	cramfs_memset(set->lengths, 0, set->num_symbols);
 	cramfs_memset(set->count, 0, set->bits);
 	cramfs_memset(set->first, 0, set->bits);
 }
 
 /* read in the huffman codes for dynamic decoding (section 3.2.7) */
-static void decompress_dynamic(struct bitstream *stream, unsigned char *dest)
-{
+static void decompress_dynamic(struct bitstream *stream, unsigned char *dest) {
 	/* I tried my best to minimize the memory footprint here, while still
 	 * keeping up performance. I really dislike the _lengths[] tables, but
 	 * I see no way of eliminating them without a sizable performance
@@ -256,7 +248,8 @@ static void decompress_dynamic(struct bitstream *stream, unsigned char *dest)
 	for (i = 0; i < hclen; i++) {
 		length = pull_bits(stream, 3);
 		codes->lengths[huffman_order[i]] = length;
-		if (length) codes->count[length]++;
+		if (length)
+			codes->count[length]++;
 
 	}
 	fill_code_tables(codes);
@@ -265,31 +258,30 @@ static void decompress_dynamic(struct bitstream *stream, unsigned char *dest)
 	 * to the distance table */
 	curr_code = 0;
 	while (curr_code < hlit) {
-		if ((symbol = read_symbol(stream, codes)) < 0) return;
+		if ((symbol = read_symbol(stream, codes)) < 0)
+			return;
 		if (symbol == 0) {
 			curr_code++;
 			last_code = 0;
-		} else if (symbol < 16) { /* Literal length */
-			lengths->lengths[curr_code] =  last_code = symbol;
+		} else if (symbol < 16) {	/* Literal length */
+			lengths->lengths[curr_code] = last_code = symbol;
 			lengths->count[symbol]++;
 			curr_code++;
-		} else if (symbol == 16) { /* repeat the last symbol 3 - 6
-					    * times */
+		} else if (symbol == 16) {	/* repeat the last symbol 3 - 6
+									 * times */
 			length = 3 + pull_bits(stream, 2);
-			for (;length; length--, curr_code++)
+			for (; length; length--, curr_code++)
 				if (curr_code < hlit) {
-					lengths->lengths[curr_code] =
-						last_code;
+					lengths->lengths[curr_code] = last_code;
 					lengths->count[last_code]++;
-				} else { /* wrap to the distance table */
-					distance->lengths[curr_code - hlit] =
-						last_code;
+				} else {		/* wrap to the distance table */
+					distance->lengths[curr_code - hlit] = last_code;
 					distance->count[last_code]++;
 				}
-		} else if (symbol == 17) { /* repeat a bit length 0 */
+		} else if (symbol == 17) {	/* repeat a bit length 0 */
 			curr_code += 3 + pull_bits(stream, 3);
 			last_code = 0;
-		} else { /* same, but more times */
+		} else {				/* same, but more times */
 			curr_code += 11 + pull_bits(stream, 7);
 			last_code = 0;
 		}
@@ -300,7 +292,8 @@ static void decompress_dynamic(struct bitstream *stream, unsigned char *dest)
 	 * here */
 	curr_code -= hlit;
 	while (curr_code < hdist) {
-		if ((symbol = read_symbol(stream, codes)) < 0) return;
+		if ((symbol = read_symbol(stream, codes)) < 0)
+			return;
 		if (symbol == 0) {
 			curr_code++;
 			last_code = 0;
@@ -310,9 +303,8 @@ static void decompress_dynamic(struct bitstream *stream, unsigned char *dest)
 			curr_code++;
 		} else if (symbol == 16) {
 			length = 3 + pull_bits(stream, 2);
-			for (;length; length--, curr_code++) {
-				distance->lengths[curr_code] =
-					last_code;
+			for (; length; length--, curr_code++) {
+				distance->lengths[curr_code] = last_code;
 				distance->count[last_code]++;
 			}
 		} else if (symbol == 17) {
@@ -330,8 +322,7 @@ static void decompress_dynamic(struct bitstream *stream, unsigned char *dest)
 
 /* fill in the length and distance huffman codes for fixed encoding
  * (section 3.2.6) */
-static void decompress_fixed(struct bitstream *stream, unsigned char *dest)
-{
+static void decompress_fixed(struct bitstream *stream, unsigned char *dest) {
 	/* let gcc fill in the initial values */
 	struct huffman_set *lengths = &(stream->lengths);
 	struct huffman_set *distance = &(stream->distance);
@@ -351,10 +342,8 @@ static void decompress_fixed(struct bitstream *stream, unsigned char *dest)
 	cramfs_memset(distance->lengths, 5, 32);
 	distance->count[5] = 32;
 
-
 	fill_code_tables(lengths);
 	fill_code_tables(distance);
-
 
 	decompress_huffman(stream, dest);
 }
@@ -362,9 +351,7 @@ static void decompress_fixed(struct bitstream *stream, unsigned char *dest)
 /* returns the number of bytes decoded, < 0 if there was an error. Note that
  * this function assumes that the block starts on a byte boundry
  * (non-compliant, but I don't see where this would happen). section 3.2.3 */
-long decompress_block(unsigned char *dest, unsigned char *source,
-		      void *(*inflate_memcpy)(void *, const void *, size))
-{
+long decompress_block(unsigned char *dest, unsigned char *source, void *(*inflate_memcpy) (void *, const void *, size)) {
 	int bfinal, btype;
 	struct bitstream stream;
 
@@ -372,20 +359,22 @@ long decompress_block(unsigned char *dest, unsigned char *source,
 	do {
 		bfinal = pull_bit(&stream);
 		btype = pull_bits(&stream, 2);
-		if (btype == NO_COMP) decompress_none(&stream, dest + stream.decoded);
+		if (btype == NO_COMP)
+			decompress_none(&stream, dest + stream.decoded);
 		else if (btype == DYNAMIC_COMP)
 			decompress_dynamic(&stream, dest + stream.decoded);
-		else if (btype == FIXED_COMP) decompress_fixed(&stream, dest + stream.decoded);
-		else stream.error = COMP_UNKNOWN;
+		else if (btype == FIXED_COMP)
+			decompress_fixed(&stream, dest + stream.decoded);
+		else
+			stream.error = COMP_UNKNOWN;
 	} while (!bfinal && !stream.error);
 
 #if 0
 	putstr("decompress_block start\r\n");
-	putLabeledWord("stream.error = ",stream.error);
-	putLabeledWord("stream.decoded = ",stream.decoded);
-	putLabeledWord("dest = ",dest);
+	putLabeledWord("stream.error = ", stream.error);
+	putLabeledWord("stream.decoded = ", stream.decoded);
+	putLabeledWord("dest = ", dest);
 	putstr("decompress_block end\r\n");
 #endif
 	return stream.error ? -stream.error : stream.decoded;
 }
-
