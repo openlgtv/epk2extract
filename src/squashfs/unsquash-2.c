@@ -2,8 +2,8 @@
  * Unsquash a squashfs filesystem.  This is a highly compressed read only
  * filesystem.
  *
- * Copyright (c) 2009, 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2009, 2010, 2013
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,16 +38,20 @@ void read_block_list_2(unsigned int *block_list, char *block_ptr, int blocks) {
 		memcpy(block_list, block_ptr, blocks * sizeof(unsigned int));
 }
 
-int read_fragment_table_2() {
-	int res, i, indexes = SQUASHFS_FRAGMENT_INDEXES_2(sBlk.s.fragments);
+int read_fragment_table_2(long long *directory_table_end) {
+	int res, i;
+	int bytes = SQUASHFS_FRAGMENT_BYTES_2(sBlk.s.fragments);
+	int indexes = SQUASHFS_FRAGMENT_INDEXES_2(sBlk.s.fragments);
 	unsigned int fragment_table_index[indexes];
 
 	TRACE("read_fragment_table: %d fragments, reading %d fragment indexes " "from 0x%llx\n", sBlk.s.fragments, indexes, sBlk.s.fragment_table_start);
 
-	if (sBlk.s.fragments == 0)
+	if (sBlk.s.fragments == 0) {
+		*directory_table_end = sBlk.s.fragment_table_start;
 		return TRUE;
+	}
 
-	fragment_table = malloc(sBlk.s.fragments * sizeof(squashfs_fragment_entry_2));
+	fragment_table = malloc(bytes);
 	if (fragment_table == NULL)
 		EXIT_UNSQUASH("read_fragment_table: failed to allocate " "fragment table\n");
 
@@ -69,8 +73,9 @@ int read_fragment_table_2() {
 	}
 
 	for (i = 0; i < indexes; i++) {
+		int expected = (i + 1) != indexes ? SQUASHFS_METADATA_SIZE : bytes & (SQUASHFS_METADATA_SIZE - 1);
 		int length = read_block(fd, fragment_table_index[i], NULL,
-								((char *)fragment_table) + (i * SQUASHFS_METADATA_SIZE));
+								expected, ((char *)fragment_table) + (i * SQUASHFS_METADATA_SIZE));
 		TRACE("Read fragment table block %d, from 0x%x, length %d\n", i, fragment_table_index[i], length);
 		if (length == FALSE) {
 			ERROR("read_fragment_table: failed to read fragment " "table block\n");
@@ -86,6 +91,7 @@ int read_fragment_table_2() {
 		}
 	}
 
+	*directory_table_end = fragment_table_index[0];
 	return TRUE;
 }
 

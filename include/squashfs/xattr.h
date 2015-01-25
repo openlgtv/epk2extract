@@ -1,9 +1,11 @@
+#ifndef XATTR_H
+#    define XATTR_H
 /*
  * Create a squashfs filesystem.  This is a highly compressed read only
  * filesystem.
  *
- * Copyright (c) 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2010, 2012, 2013, 2014
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,20 +24,20 @@
  * xattr.h
  */
 
-#define XATTR_VALUE_OOL		SQUASHFS_XATTR_VALUE_OOL
-#define XATTR_PREFIX_MASK	SQUASHFS_XATTR_PREFIX_MASK
+#    define XATTR_VALUE_OOL		SQUASHFS_XATTR_VALUE_OOL
+#    define XATTR_PREFIX_MASK	SQUASHFS_XATTR_PREFIX_MASK
 
-#define XATTR_VALUE_OOL_SIZE	sizeof(long long)
+#    define XATTR_VALUE_OOL_SIZE	sizeof(long long)
 
 /* maximum size of xattr value data that will be inlined */
-#define XATTR_INLINE_MAX 	128
+#    define XATTR_INLINE_MAX 	128
 
 /* the target size of an inode's xattr name:value list.  If it
  * exceeds this, then xattr value data will be successively out of lined
  * until it meets the target */
-#define XATTR_TARGET_MAX	65536
+#    define XATTR_TARGET_MAX	65536
 
-#define IS_XATTR(a)		(a != SQUASHFS_INVALID_XATTR)
+#    define IS_XATTR(a)		(a != SQUASHFS_INVALID_XATTR)
 
 struct xattr_list {
 	char *name;
@@ -63,17 +65,18 @@ struct prefix {
 
 extern int generate_xattrs(int, struct xattr_list *);
 
-#ifdef XATTR_SUPPORT
+#    ifdef XATTR_SUPPORT
 extern int get_xattrs(int, struct squashfs_super_block *);
 extern int read_xattrs(void *);
 extern long long write_xattrs();
-extern int save_xattrs();
+extern void save_xattrs();
 extern void restore_xattrs();
 extern unsigned int xattr_bytes, total_xattr_bytes;
 extern void write_xattr(char *, unsigned int);
 extern int read_xattrs_from_disk(int, struct squashfs_super_block *);
-extern struct xattr_list *get_xattr(int, unsigned int *);
-#else
+extern struct xattr_list *get_xattr(int, unsigned int *, int);
+extern void free_xattr(struct xattr_list *, int);
+#    else
 static inline int get_xattrs(int fd, struct squashfs_super_block *sBlk) {
 	if (sBlk->xattr_id_table_start != SQUASHFS_INVALID_BLK) {
 		fprintf(stderr, "Xattrs in filesystem! These are not " "supported on this version of Squashfs\n");
@@ -90,8 +93,7 @@ static inline long long write_xattrs() {
 	return SQUASHFS_INVALID_BLK;
 }
 
-static inline int save_xattrs() {
-	return 1;
+static inline void save_xattrs() {
 }
 
 static inline void restore_xattrs() {
@@ -108,23 +110,24 @@ static inline int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBl
 		return SQUASHFS_INVALID_BLK;
 }
 
-static inline struct xattr_list *get_xattr(int i, unsigned int *count) {
+static inline struct xattr_list *get_xattr(int i, unsigned int *count, int j) {
 	return NULL;
 }
-#endif
+#    endif
 
-#ifdef XATTR_SUPPORT
-#    ifdef XATTR_DEFAULT
-#        define NOXOPT_STR
-#        define XOPT_STR " (default)"
-#        define XATTR_DEF 0
+#    ifdef XATTR_SUPPORT
+#        ifdef XATTR_DEFAULT
+#            define NOXOPT_STR
+#            define XOPT_STR " (default)"
+#            define XATTR_DEF 0
+#        else
+#            define NOXOPT_STR " (default)"
+#            define XOPT_STR
+#            define XATTR_DEF 1
+#        endif
 #    else
 #        define NOXOPT_STR " (default)"
-#        define XOPT_STR
+#        define XOPT_STR " (unsupported)"
 #        define XATTR_DEF 1
 #    endif
-#else
-#    define NOXOPT_STR " (default)"
-#    define XOPT_STR " (unsupported)"
-#    define XATTR_DEF 1
 #endif

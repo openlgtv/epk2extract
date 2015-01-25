@@ -1,9 +1,11 @@
+#ifndef PSEUDO_H
+#    define PSEUDO_H
 /*
  * Create a squashfs filesystem.  This is a highly compressed read only
  * filesystem.
  *
- * Copyright (c) 2009
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2009, 2010, 2014
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,11 +31,7 @@ struct pseudo_dev {
 	unsigned int major;
 	unsigned int minor;
 	int pseudo_id;
-	int fd;
-	int child;
-#ifdef USE_TMP_FILE
-	char *filename;
-#endif
+	char *command;
 };
 
 struct pseudo_entry {
@@ -49,9 +47,12 @@ struct pseudo {
 	struct pseudo_entry *name;
 };
 
-extern int read_pseudo_def(struct pseudo **, char *);
-extern int read_pseudo_file(struct pseudo **, char *);
+extern int read_pseudo_def(char *);
+extern int read_pseudo_file(char *);
 extern struct pseudo *pseudo_subdir(char *, struct pseudo *);
 extern struct pseudo_entry *pseudo_readdir(struct pseudo *);
 extern struct pseudo_dev *get_pseudo_file(int);
-extern void delete_pseudo_files();
+extern int pseudo_exec_file(struct pseudo_dev *, int *);
+extern struct pseudo *get_pseudo();
+extern void dump_pseudos();
+#endif

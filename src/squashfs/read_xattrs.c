@@ -2,8 +2,8 @@
  * Read a squashfs filesystem.  This is a highly compressed read only
  * filesystem.
  *
- * Copyright (c) 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2010, 2012, 2013
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,27 +41,13 @@
 
 #include "squashfs_fs.h"
 #include "squashfs_swap.h"
-#include "read_fs.h"
 #include "xattr.h"
+#include "error.h"
 
 #include <stdlib.h>
 
-#ifdef SQUASHFS_TRACE
-#    define TRACE(s, args...) \
-		do { \
-			printf("read_xattrs: "s, ## args); \
-		} while(0)
-#else
-#    define TRACE(s, args...)
-#endif
-
-#define ERROR(s, args...) \
-		do { \
-			fprintf(stderr, s, ## args); \
-		} while(0)
-
 extern int read_fs_bytes(int, long long, int, void *);
-extern int read_block(int, long long, long long *, void *);
+extern int read_block(int, long long, long long *, int, void *);
 
 static struct hash_entry {
 	long long start;
@@ -87,23 +73,19 @@ struct prefix prefix_table[] = {
  * store mapping from location of compressed block in fs ->
  * location of uncompressed block in memory
  */
-static int save_xattr_block(long long start, int offset) {
+static void save_xattr_block(long long start, int offset) {
 	struct hash_entry *hash_entry = malloc(sizeof(*hash_entry));
 	int hash = start & 0xffff;
 
 	TRACE("save_xattr_block: start %lld, offset %d\n", start, offset);
 
-	if (hash_entry == NULL) {
-		ERROR("Failed to allocate hash entry\n");
-		return -1;
-	}
+	if (hash_entry == NULL)
+		MEM_ERROR();
 
 	hash_entry->start = start;
 	hash_entry->offset = offset;
 	hash_entry->next = hash_table[hash];
 	hash_table[hash] = hash_entry;
-
-	return 1;
 }
 
 /*
@@ -141,10 +123,9 @@ static int read_xattr_entry(struct xattr_list *xattr, struct squashfs_xattr_entr
 
 	len = strlen(prefix_table[i].prefix);
 	xattr->full_name = malloc(len + entry->size + 1);
-	if (xattr->full_name == NULL) {
-		ERROR("Out of memory in read_xattr_entry\n");
-		return -1;
-	}
+	if (xattr->full_name == NULL)
+		MEM_ERROR();
+
 	memcpy(xattr->full_name, prefix_table[i].prefix, len);
 	memcpy(xattr->full_name + len, name, entry->size);
 	xattr->full_name[len + entry->size] = '\0';
@@ -188,10 +169,8 @@ int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBlk) {
 	index_bytes = SQUASHFS_XATTR_BLOCK_BYTES(ids);
 	indexes = SQUASHFS_XATTR_BLOCKS(ids);
 	index = malloc(index_bytes);
-	if (index == NULL) {
-		ERROR("Failed to allocate index array\n");
-		return 0;
-	}
+	if (index == NULL)
+		MEM_ERROR();
 
 	res = read_fs_bytes(fd, sBlk->xattr_id_table_start + sizeof(id_table), index_bytes, index);
 	if (res == 0)
@@ -205,13 +184,12 @@ int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBlk) {
 	 */
 	bytes = SQUASHFS_XATTR_BYTES(ids);
 	xattr_ids = malloc(bytes);
-	if (xattr_ids == NULL) {
-		ERROR("Failed to allocate xattr id table\n");
-		goto failed1;
-	}
+	if (xattr_ids == NULL)
+		MEM_ERROR();
 
 	for (i = 0; i < indexes; i++) {
-		int length = read_block(fd, index[i], NULL,
+		int expected = (i + 1) != indexes ? SQUASHFS_METADATA_SIZE : bytes & (SQUASHFS_METADATA_SIZE - 1);
+		int length = read_block(fd, index[i], NULL, expected,
 								((unsigned char *)xattr_ids) + (i * SQUASHFS_METADATA_SIZE));
 		TRACE("Read xattr id table block %d, from 0x%llx, length " "%d\n", i, index[i], length);
 		if (length == 0) {
@@ -231,23 +209,30 @@ int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBlk) {
 	end = index[0];
 	for (i = 0; start < end; i++) {
 		int length;
-		void *x = realloc(xattrs, (i + 1) * SQUASHFS_METADATA_SIZE);
-		if (x == NULL) {
-			ERROR("Failed to realloc xattr data\n");
-			goto failed3;
-		}
-		xattrs = x;
+		xattrs = realloc(xattrs, (i + 1) * SQUASHFS_METADATA_SIZE);
+		if (xattrs == NULL)
+			MEM_ERROR();
 
 		/* store mapping from location of compressed block in fs ->
 		 * location of uncompressed block in memory */
-		res = save_xattr_block(start, i * SQUASHFS_METADATA_SIZE);
-		if (res == -1)
-			goto failed3;
+		save_xattr_block(start, i * SQUASHFS_METADATA_SIZE);
 
-		length = read_block(fd, start, &start, ((unsigned char *)xattrs) + (i * SQUASHFS_METADATA_SIZE));
+		length = read_block(fd, start, &start, 0, ((unsigned char *)xattrs) + (i * SQUASHFS_METADATA_SIZE));
 		TRACE("Read xattr block %d, length %d\n", i, length);
 		if (length == 0) {
 			ERROR("Failed to read xattr block %d\n", i);
+			goto failed3;
+		}
+
+		/*
+		 * If this is not the last metadata block in the xattr metadata
+		 * then it should be SQUASHFS_METADATA_SIZE in size.
+		 * Note, we can't use expected in read_block() above for this
+		 * because we don't know if this is the last block until
+		 * after reading.
+		 */
+		if (start != end && length != SQUASHFS_METADATA_SIZE) {
+			ERROR("Xattr block %d should be %d bytes in length, " "it is %d bytes\n", i, SQUASHFS_METADATA_SIZE, length);
 			goto failed3;
 		}
 	}
@@ -270,16 +255,42 @@ int read_xattrs_from_disk(int fd, struct squashfs_super_block *sBlk) {
 	return 0;
 }
 
+void free_xattr(struct xattr_list *xattr_list, int count) {
+	int i;
+
+	for (i = 0; i < count; i++)
+		free(xattr_list[i].full_name);
+
+	free(xattr_list);
+}
+
 /*
  * Construct and return the list of xattr name:value pairs for the passed xattr
  * id
+ *
+ * There are two users for get_xattr(), Mksquashfs uses it to read the
+ * xattrs from the filesystem on appending, and Unsquashfs uses it
+ * to retrieve the xattrs for writing to disk.
+ *
+ * Unfortunately, the two users disagree on what to do with unknown
+ * xattr prefixes, Mksquashfs wants to treat this as fatal otherwise
+ * this will cause xattrs to be be lost on appending.  Unsquashfs
+ * on the otherhand wants to retrieve the xattrs which are known and
+ * to ignore the rest, this allows Unsquashfs to cope more gracefully
+ * with future versions which may have unknown xattrs, as long as the
+ * general xattr structure is adhered to, Unsquashfs should be able
+ * to safely ignore unknown xattrs, and to write the ones it knows about,
+ * this is better than completely refusing to retrieve all the xattrs.
+ *
+ * If ignore is TRUE then don't treat unknown xattr prefixes as
+ * a failure to read the xattr.  
  */
-struct xattr_list *get_xattr(int i, unsigned int *count) {
+struct xattr_list *get_xattr(int i, unsigned int *count, int ignore) {
 	long long start;
 	struct xattr_list *xattr_list = NULL;
 	unsigned int offset;
 	void *xptr;
-	int j;
+	int j = 0, res = 1;
 
 	TRACE("get_xattr\n");
 
@@ -290,22 +301,29 @@ struct xattr_list *get_xattr(int i, unsigned int *count) {
 
 	TRACE("get_xattr: xattr_id %d, count %d, start %lld, offset %d\n", i, *count, start, offset);
 
-	for (j = 0; j < *count; j++) {
+	while (j < *count) {
 		struct squashfs_xattr_entry entry;
 		struct squashfs_xattr_val val;
-		int res;
 
-		xattr_list = realloc(xattr_list, (j + 1) * sizeof(struct xattr_list));
-		if (xattr_list == NULL) {
-			ERROR("Out of memory in get_xattrs\n");
-			goto failed;
+		if (res != 0) {
+			xattr_list = realloc(xattr_list, (j + 1) * sizeof(struct xattr_list));
+			if (xattr_list == NULL)
+				MEM_ERROR();
 		}
 
-		SQUASHFS_SWAP_XATTR_ENTRY(&entry, xptr);
+		SQUASHFS_SWAP_XATTR_ENTRY(xptr, &entry);
 		xptr += sizeof(entry);
+
 		res = read_xattr_entry(&xattr_list[j], &entry, xptr);
+		if (ignore && res == 0) {
+			/* unknown prefix, but ignore flag is set */
+			(*count)--;
+			continue;
+		}
+
 		if (res != 1)
 			goto failed;
+
 		xptr += entry.size;
 
 		TRACE("get_xattr: xattr %d, type %d, size %d, name %s\n", j, entry.type, entry.size, xattr_list[j].full_name);
@@ -315,28 +333,31 @@ struct xattr_list *get_xattr(int i, unsigned int *count) {
 			void *ool_xptr;
 
 			xptr += sizeof(val);
-			SQUASHFS_SWAP_LONG_LONGS(&xattr, xptr, 1);
+			SQUASHFS_SWAP_LONG_LONGS(xptr, &xattr, 1);
 			xptr += sizeof(xattr);
 			start = SQUASHFS_XATTR_BLK(xattr) + xattr_table_start;
 			offset = SQUASHFS_XATTR_OFFSET(xattr);
 			ool_xptr = xattrs + get_xattr_block(start) + offset;
-			SQUASHFS_SWAP_XATTR_VAL(&val, ool_xptr);
+			SQUASHFS_SWAP_XATTR_VAL(ool_xptr, &val);
 			xattr_list[j].value = ool_xptr + sizeof(val);
 		} else {
-			SQUASHFS_SWAP_XATTR_VAL(&val, xptr);
+			SQUASHFS_SWAP_XATTR_VAL(xptr, &val);
 			xattr_list[j].value = xptr + sizeof(val);
 			xptr += sizeof(val) + val.vsize;
 		}
 
 		TRACE("get_xattr: xattr %d, vsize %d\n", j, val.vsize);
 
-		xattr_list[j].vsize = val.vsize;
+		xattr_list[j++].vsize = val.vsize;
 	}
+
+	if (*count == 0)
+		goto failed;
 
 	return xattr_list;
 
  failed:
-	free(xattr_list);
+	free_xattr(xattr_list, j);
 
 	return NULL;
 }

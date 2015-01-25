@@ -2,8 +2,8 @@
  * Create a squashfs filesystem.  This is a highly compressed read only
  * filesystem.
  *
- * Copyright (c) 2008, 2009, 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2008, 2009, 2010, 2012, 2014
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,20 +40,8 @@
 #include "squashfs_swap.h"
 #include "mksquashfs.h"
 #include "xattr.h"
-
-#ifdef SQUASHFS_TRACE
-#    define TRACE(s, args...) \
-		do { \
-			printf("mksquashfs: "s, ## args); \
-		} while(0)
-#else
-#    define TRACE(s, args...)
-#endif
-
-#define ERROR(s, args...) \
-		do { \
-			fprintf(stderr, s, ## args); \
-		} while(0)
+#include "error.h"
+#include "progressbar.h"
 
 /* compressed xattr table */
 static char *xattr_table = NULL;
@@ -78,7 +66,7 @@ static int scache_bytes = 0;
 static int sxattr_ids = 0;
 
 /* xattr hash table for value duplicate detection */
-static struct xattr_list *dupl[65536];
+static struct xattr_list *dupl_value[65536];
 
 /* xattr hash table for id duplicate detection */
 static struct dupl_id *dupl_id[65536];
@@ -94,10 +82,11 @@ extern unsigned short get_checksum(char *, int, unsigned short);
 extern void write_destination(int, long long, int, void *);
 extern long long generic_write_table(int, void *, int, void *, int);
 extern int mangle(char *, char *, int, int, int, int);
+extern char *pathname(struct dir_ent *);
 
 /* helper functions and definitions from read_xattrs.c */
 extern int read_xattrs_from_disk(int, struct squashfs_super_block *);
-extern struct xattr_list *get_xattr(int, unsigned int *);
+extern struct xattr_list *get_xattr(int, unsigned int *, int);
 extern struct prefix prefix_table[];
 
 static int get_prefix(struct xattr_list *xattr, char *name) {
@@ -128,16 +117,16 @@ static int read_xattrs_from_system(char *filename, struct xattr_list **xattrs) {
 	while (1) {
 		size = llistxattr(filename, NULL, 0);
 		if (size <= 0) {
-			if (size < 0 && errno != ENOTSUP)
-				ERROR("llistxattr for %s failed in read_attrs," " because %s\n", filename, strerror(errno));
+			if (size < 0 && errno != ENOTSUP) {
+				ERROR_START("llistxattr for %s failed in " "read_attrs, because %s", filename, strerror(errno));
+				ERROR_EXIT(".  Ignoring");
+			}
 			return 0;
 		}
 
 		xattr_names = malloc(size);
-		if (xattr_names == NULL) {
-			ERROR("Out of memory in read_attrs\n");
-			return 0;
-		}
+		if (xattr_names == NULL)
+			MEM_ERROR();
 
 		size = llistxattr(filename, xattr_names, size);
 		if (size < 0) {
@@ -146,7 +135,8 @@ static int read_xattrs_from_system(char *filename, struct xattr_list **xattrs) {
 				/* xattr list grew?  Try again */
 				continue;
 			else {
-				ERROR("llistxattr for %s failed in read_attrs," " because %s\n", filename, strerror(errno));
+				ERROR_START("llistxattr for %s failed in " "read_attrs, because %s", filename, strerror(errno));
+				ERROR_EXIT(".  Ignoring");
 				return 0;
 			}
 		}
@@ -156,11 +146,9 @@ static int read_xattrs_from_system(char *filename, struct xattr_list **xattrs) {
 
 	for (i = 0, p = xattr_names; p < xattr_names + size; i++) {
 		struct xattr_list *x = realloc(xattr_list, (i + 1) * sizeof(struct xattr_list));
-		if (x == NULL) {
-			ERROR("Out of memory in read_attrs\n");
-			goto failed;
-		} else
-			xattr_list = x;
+		if (x == NULL)
+			MEM_ERROR();
+		xattr_list = x;
 
 		xattr_list[i].type = get_prefix(&xattr_list[i], p);
 		p += strlen(p) + 1;
@@ -174,17 +162,15 @@ static int read_xattrs_from_system(char *filename, struct xattr_list **xattrs) {
 		while (1) {
 			vsize = lgetxattr(filename, xattr_list[i].full_name, NULL, 0);
 			if (vsize < 0) {
-				ERROR("lgetxattr failed for %s in read_attrs," " because %s\n", filename, strerror(errno));
+				ERROR_START("lgetxattr failed for %s in " "read_attrs, because %s", filename, strerror(errno));
+				ERROR_EXIT(".  Ignoring");
 				free(xattr_list[i].full_name);
 				goto failed;
 			}
 
 			xattr_list[i].value = malloc(vsize);
-			if (xattr_list[i].value == NULL) {
-				ERROR("Out of memory in read_attrs\n");
-				free(xattr_list[i].full_name);
-				goto failed;
-			}
+			if (xattr_list[i].value == NULL)
+				MEM_ERROR();
 
 			vsize = lgetxattr(filename, xattr_list[i].full_name, xattr_list[i].value, vsize);
 			if (vsize < 0) {
@@ -193,7 +179,8 @@ static int read_xattrs_from_system(char *filename, struct xattr_list **xattrs) {
 					/* xattr grew?  Try again */
 					continue;
 				else {
-					ERROR("lgetxattr failed for %s in " "read_attrs, because %s\n", filename, strerror(errno));
+					ERROR_START("lgetxattr failed for %s " "in read_attrs, because %s", filename, strerror(errno));
+					ERROR_EXIT(".  Ignoring");
 					free(xattr_list[i].full_name);
 					goto failed;
 				}
@@ -240,9 +227,8 @@ static void *get_xattr_space(unsigned int req_size, long long *disk) {
 	while (cache_bytes >= SQUASHFS_METADATA_SIZE) {
 		if ((xattr_size - xattr_bytes) < ((SQUASHFS_METADATA_SIZE << 1)) + 2) {
 			xattr_table = realloc(xattr_table, xattr_size + (SQUASHFS_METADATA_SIZE << 1) + 2);
-			if (xattr_table == NULL) {
-				goto failed;
-			}
+			if (xattr_table == NULL)
+				MEM_ERROR();
 			xattr_size += (SQUASHFS_METADATA_SIZE << 1) + 2;
 		}
 
@@ -261,9 +247,8 @@ static void *get_xattr_space(unsigned int req_size, long long *disk) {
 	if (data_space < req_size) {
 		int realloc_size = req_size - data_space;
 		data_cache = realloc(data_cache, cache_size + realloc_size);
-		if (data_cache == NULL) {
-			goto failed;
-		}
+		if (data_cache == NULL)
+			MEM_ERROR();
 		cache_size += realloc_size;
 	}
 
@@ -271,10 +256,6 @@ static void *get_xattr_space(unsigned int req_size, long long *disk) {
 		*disk = ((long long)xattr_bytes << 16) | cache_bytes;
 	cache_bytes += req_size;
 	return data_cache + cache_bytes - req_size;
-
- failed:
-	ERROR("Out of memory in inode table reallocation!\n");
-	return NULL;
 }
 
 static struct dupl_id *check_id_dupl(struct xattr_list *xattr_list, int xattrs) {
@@ -312,10 +293,8 @@ static struct dupl_id *check_id_dupl(struct xattr_list *xattr_list, int xattrs) 
 	if (entry == NULL) {
 		/* no duplicate exists */
 		entry = malloc(sizeof(*entry));
-		if (entry == NULL) {
-			ERROR("malloc failed in check_ip_dupl\n");
-			return NULL;
-		}
+		if (entry == NULL)
+			MEM_ERROR();
 		entry->xattrs = xattrs;
 		entry->xattr_list = xattr_list;
 		entry->xattr_id = SQUASHFS_INVALID_XATTR;
@@ -334,7 +313,7 @@ static void check_value_dupl(struct xattr_list *xattr) {
 
 	/* Check if this is a duplicate of an existing value */
 	xattr->vchecksum = get_checksum(xattr->value, xattr->vsize, 0);
-	for (entry = dupl[xattr->vchecksum]; entry; entry = entry->vnext) {
+	for (entry = dupl_value[xattr->vchecksum]; entry; entry = entry->vnext) {
 		if (entry->vsize != xattr->vsize)
 			continue;
 
@@ -347,8 +326,8 @@ static void check_value_dupl(struct xattr_list *xattr) {
 		 * No duplicate exists, add to hash table, and mark as
 		 * requiring writing
 		 */
-		xattr->vnext = dupl[xattr->vchecksum];
-		dupl[xattr->vchecksum] = xattr;
+		xattr->vnext = dupl_value[xattr->vchecksum];
+		dupl_value[xattr->vchecksum] = xattr;
 		xattr->ool_value = SQUASHFS_INVALID_BLK;
 	} else {
 		/*
@@ -371,10 +350,8 @@ static int get_xattr_id(int xattrs, struct xattr_list *xattr_list, long long xat
 	struct squashfs_xattr_id *xattr_id;
 
 	xattr_id_table = realloc(xattr_id_table, (xattr_ids + 1) * sizeof(struct squashfs_xattr_id));
-	if (xattr_id_table == NULL) {
-		ERROR("Out of memory in xattr_id_table reallocation!\n");
-		return -1;
-	}
+	if (xattr_id_table == NULL)
+		MEM_ERROR();
 
 	/* get total uncompressed size of xattr data, needed for stat */
 	for (i = 0; i < xattrs; i++)
@@ -411,9 +388,8 @@ long long write_xattrs() {
 	while (cache_bytes) {
 		if ((xattr_size - xattr_bytes) < ((SQUASHFS_METADATA_SIZE << 1)) + 2) {
 			xattr_table = realloc(xattr_table, xattr_size + (SQUASHFS_METADATA_SIZE << 1) + 2);
-			if (xattr_table == NULL) {
-				goto failed;
-			}
+			if (xattr_table == NULL)
+				MEM_ERROR();
 			xattr_size += (SQUASHFS_METADATA_SIZE << 1) + 2;
 		}
 
@@ -443,10 +419,6 @@ long long write_xattrs() {
 	SQUASHFS_INSWAP_XATTR_TABLE(&header);
 
 	return generic_write_table(xattr_ids * sizeof(struct squashfs_xattr_id), xattr_id_table, sizeof(header), &header, noX);
-
- failed:
-	ERROR("Out of memory in xattr_table reallocation!\n");
-	return -1;
 }
 
 int generate_xattrs(int xattrs, struct xattr_list *xattr_list) {
@@ -461,8 +433,6 @@ int generate_xattrs(int xattrs, struct xattr_list *xattr_list) {
 	 * id
 	 */
 	xattr_dupl = check_id_dupl(xattr_list, xattrs);
-	if (xattr_dupl == NULL)
-		return SQUASHFS_INVALID_XATTR;
 	if (xattr_dupl->xattr_id != SQUASHFS_INVALID_XATTR)
 		return xattr_dupl->xattr_id;
 
@@ -584,7 +554,7 @@ int generate_xattrs(int xattrs, struct xattr_list *xattr_list) {
 int read_xattrs(void *d) {
 	struct dir_ent *dir_ent = d;
 	struct inode_info *inode = dir_ent->inode;
-	char *filename = dir_ent->pathname;
+	char *filename = pathname(dir_ent);
 	struct xattr_list *xattr_list;
 	int xattrs;
 
@@ -620,7 +590,7 @@ int get_xattrs(int fd, struct squashfs_super_block *sBlk) {
 	 * name:value pairs, and add them to the in-memory xattr cache
 	 */
 	for (i = 0; i < ids; i++) {
-		struct xattr_list *xattr_list = get_xattr(i, &count);
+		struct xattr_list *xattr_list = get_xattr(i, &count, 0);
 		if (xattr_list == NULL) {
 			res = 0;
 			goto done;
@@ -646,7 +616,7 @@ int get_xattrs(int fd, struct squashfs_super_block *sBlk) {
  * Save current state of xattrs, needed for restoring state in the event of an
  * abort in appending
  */
-int save_xattrs() {
+void save_xattrs() {
 	/* save the current state of the compressed xattr data */
 	sxattr_bytes = xattr_bytes;
 	stotal_xattr_bytes = total_xattr_bytes;
@@ -658,19 +628,13 @@ int save_xattrs() {
 	 */
 	sdata_cache = malloc(cache_bytes);
 	if (sdata_cache == NULL)
-		goto failed;
+		MEM_ERROR();
 
 	memcpy(sdata_cache, data_cache, cache_bytes);
 	scache_bytes = cache_bytes;
 
 	/* save the current state of the xattr id table */
 	sxattr_ids = xattr_ids;
-
-	return TRUE;
-
- failed:
-	ERROR("Out of memory in save_xattrs\n");
-	return FALSE;
 }
 
 /*

@@ -1,7 +1,7 @@
 /*
  *
- * Copyright (c) 2009, 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2009, 2010, 2011
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,12 +20,6 @@
  * compressor.c
  */
 
-#define GZIP_SUPPORT
-#define LZO_SUPPORT
-//#define LZMA_SUPPORT
-//#define XZ_SUPPORT
-#define COMP_DEFAULT "gzip"
-
 #include <stdio.h>
 #include <string.h>
 #include "compressor.h"
@@ -33,7 +27,7 @@
 
 #ifndef GZIP_SUPPORT
 static struct compressor gzip_comp_ops = {
-	NULL, NULL, NULL, NULL, NULL, NULL, ZLIB_COMPRESSION, "gzip", 0
+	ZLIB_COMPRESSION, "gzip"
 };
 #else
 extern struct compressor gzip_comp_ops;
@@ -41,8 +35,7 @@ extern struct compressor gzip_comp_ops;
 
 #ifndef LZMA_SUPPORT
 static struct compressor lzma_comp_ops = {
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, LZMA_COMPRESSION,
-	"lzma", 0
+	LZMA_COMPRESSION, "lzma"
 };
 #else
 extern struct compressor lzma_comp_ops;
@@ -50,29 +43,37 @@ extern struct compressor lzma_comp_ops;
 
 #ifndef LZO_SUPPORT
 static struct compressor lzo_comp_ops = {
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, LZO_COMPRESSION, "lzo",
-	0
+	LZO_COMPRESSION, "lzo"
 };
 #else
 extern struct compressor lzo_comp_ops;
 #endif
 
+#ifndef LZ4_SUPPORT
+static struct compressor lz4_comp_ops = {
+	LZ4_COMPRESSION, "lz4"
+};
+#else
+extern struct compressor lz4_comp_ops;
+#endif
+
 #ifndef XZ_SUPPORT
 static struct compressor xz_comp_ops = {
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, XZ_COMPRESSION, "xz", 0
+	XZ_COMPRESSION, "xz"
 };
 #else
 extern struct compressor xz_comp_ops;
 #endif
 
 static struct compressor unknown_comp_ops = {
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, "unknown", 0
+	0, "unknown"
 };
 
 struct compressor *compressor[] = {
 	&gzip_comp_ops,
 	&lzma_comp_ops,
 	&lzo_comp_ops,
+	&lz4_comp_ops,
 	&xz_comp_ops,
 	&unknown_comp_ops
 };

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2010, 2013
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -93,7 +93,7 @@ static int lzma_compress(void *dummy, void *dest, void *src, int size, int block
 	return -1;
 }
 
-static int lzma_uncompress(void *dest, void *src, int size, int block_size, int *error) {
+static int lzma_uncompress(void *dest, void *src, int size, int outsize, int *error) {
 	lzma_stream strm = LZMA_STREAM_INIT;
 	int uncompressed_size = 0, res;
 	unsigned char lzma_header[LZMA_HEADER_SIZE];
@@ -106,10 +106,16 @@ static int lzma_uncompress(void *dest, void *src, int size, int block_size, int 
 
 	memcpy(lzma_header, src, LZMA_HEADER_SIZE);
 	uncompressed_size = lzma_header[LZMA_PROPS_SIZE] | (lzma_header[LZMA_PROPS_SIZE + 1] << 8) | (lzma_header[LZMA_PROPS_SIZE + 2] << 16) | (lzma_header[LZMA_PROPS_SIZE + 3] << 24);
+
+	if (uncompressed_size > outsize) {
+		res = 0;
+		goto failed;
+	}
+
 	memset(lzma_header + LZMA_PROPS_SIZE, 255, LZMA_UNCOMP_SIZE);
 
 	strm.next_out = dest;
-	strm.avail_out = block_size;
+	strm.avail_out = outsize;
 	strm.next_in = lzma_header;
 	strm.avail_in = LZMA_HEADER_SIZE;
 

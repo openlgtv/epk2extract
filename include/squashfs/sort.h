@@ -4,8 +4,8 @@
 /*
  * Squashfs
  *
- * Copyright (c) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
- * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * Copyright (c) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2013
+ * Phillip Lougher <phillip@squashfs.org.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,4 +28,9 @@ struct priority_entry {
 	struct dir_ent *dir;
 	struct priority_entry *next;
 };
+
+extern int read_sort_file(char *, int, char *[]);
+extern void sort_files_and_write(struct dir_info *);
+extern void generate_file_priorities(struct dir_info *, int priority, struct stat *);
+extern struct priority_entry *priority_list[65536];
 #endif
