@@ -211,9 +211,9 @@ int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 #include <list>
 #include <vector>
 
-std::map < int, std::string > inodes;
-std::map < int, int >node_type;
-std::map < int, std::list < int >>childs;
+std::map <int, std::string> inodes;
+std::map <int, int> node_type;
+std::map <int, std::list <int> > childs;
 
 struct nodedata_s {
 	unsigned char *data;
@@ -244,7 +244,7 @@ struct nodedata_s {
 	}
 };
 
-std::map < int, std::map < int, struct nodedata_s >>nodedata;
+std::map <int, std::map <int, struct nodedata_s> > nodedata;
 
 int whine = 0;
 std::string prefix;
