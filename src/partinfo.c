@@ -25,10 +25,6 @@ struct m_partmap_info m_partinfo;
 struct p1_partmap_info p1_partinfo;
 struct p2_partmap_info p2_partinfo;
 
-struct m_partmap_info *bmi = NULL;
-struct p1_partmap_info *mpi = NULL;
-struct p2_partmap_info *pmi = NULL;
-
 const char *m_menu_partition_str[] = {
 	"MTD Partition Information ---------------------------------------------------------------------------------",
 	"index[%d] - ",
@@ -275,21 +271,15 @@ unsigned int load_partinfo(const char *filename) {
 	switch (part_type) {
 	case STRUCT_PARTINFOv2:
 		size = sizeof(struct p2_partmap_info);
-		pmi = (struct p2_partmap_info *)malloc(size);
-		fread(pmi, 1, size, file);
-		memcpy(&p2_partinfo, pmi, size);
+		fread(&p2_partinfo, 1, size, file);
 		break;
 	case STRUCT_PARTINFOv1:
 		size = sizeof(struct p1_partmap_info);
-		mpi = (struct p1_partmap_info *)malloc(size);
-		fread(mpi, 1, size, file);
-		memcpy(&p1_partinfo, mpi, size);
+		fread(&p1_partinfo, 1, size, file);
 		break;
 	case STRUCT_MTDINFO:
 		size = sizeof(struct m_partmap_info);
-		bmi = (struct m_partmap_info *)malloc(size);
-		fread(bmi, 1, size, file);
-		memcpy(&m_partinfo, bmi, size);
+		fread(&m_partinfo, 1, size, file);
 		break;
 	default:
 		fclose(file);

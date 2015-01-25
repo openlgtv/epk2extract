@@ -445,7 +445,7 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	else if (isbcm2)
 		model = "BCM 2011 - BCM35230";
 	else if (ismstar)
-		model = "Mstar Saturn/LM1";
+		model = "Mstar Saturn/M1/LM1";
 	else
 		return part_type;
 
