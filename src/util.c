@@ -472,22 +472,18 @@ int isPartPakfile(const char *filename) {
 
 	struct p2_partmap_info partinfo;
 
-	struct p2_partmap_info *pi = (struct p2_partmap_info *)malloc(sizeof(struct p2_partmap_info));
-
 	size_t size = sizeof(struct p2_partmap_info);
-	fread(pi, 1, size, file);
-
-	memcpy(&partinfo, pi, sizeof(struct p2_partmap_info));
+	fread(&partinfo, 1, size, file);
 
 	int result = 0;
 	char cmagic[4];
-	sprintf(cmagic, "%x", pi->magic);
+	sprintf(cmagic, "%x", partinfo.magic);
 
 	if (isdatetime((char *)cmagic)) {
-		printf("Found valid partpak magic 0x%x in %s\n", pi->magic, filename);
+		printf("Found valid partpak magic 0x%x in %s\n", partinfo.magic, filename);
 	}
 
-	detect_model(&(pi->dev));
+	detect_model(&(partinfo.dev));
 	if (part_type != STRUCT_INVALID)
 		result = 1;
 	fclose(file);
