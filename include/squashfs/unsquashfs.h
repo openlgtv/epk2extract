@@ -47,7 +47,11 @@
 #    include <sys/ioctl.h>
 #    include <sys/time.h>
 
-#    ifndef linux
+#    if defined(__CYGWIN__) || defined(__APPLE__)
+#        define FNM_EXTMATCH  (1 << 5)
+#    endif
+
+#    if !defined(linux) && !defined(__CYGWIN__)
 #        define __BYTE_ORDER BYTE_ORDER
 #        define __BIG_ENDIAN BIG_ENDIAN
 #        define __LITTLE_ENDIAN LITTLE_ENDIAN

@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <ctype.h>
-#define __USE_XOPEN_EXTENDED
 #include <ftw.h>
 #include <stdlib.h>
 #include <string.h>

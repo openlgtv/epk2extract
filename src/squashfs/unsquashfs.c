@@ -31,7 +31,16 @@
 #include "unsquashfs_info.h"
 #include "stdarg.h"
 
-#include <sys/sysinfo.h>
+#ifdef __CYGWIN__
+#    include <sys/termios.h>
+#endif
+
+#ifdef __APPLE__
+#    include <sys/sysctl.h>
+#else
+#    include <sys/sysinfo.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -2206,8 +2215,34 @@ int parse_number(char *arg, int *res) {
 	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"\
 		"\n");\
 	printf("GNU General Public License for more details.\n");
-int main(int argc, char *argv[]) {
-	char *dest = "squashfs-root";
+
+int is_squashfs(char *filename) {
+	if ((fd = open(filename, O_RDONLY)) == -1) {
+		ERROR("Could not open %s, because %s\n", filename, strerror(errno));
+		return FALSE;
+	}
+	char *buffer = (char *)malloc(sizeof(char) * 0x67);
+	if (buffer == NULL) {
+		printf("Memory allocation error!\n");
+		return FALSE;
+	}
+	int result = read(fd, buffer, 0x67);
+	if (result != 0x67) {
+		printf("File reading error!\n");
+		return FALSE;
+	}
+	result = memcmp(&buffer[0x64], "cdx", 3);
+	free(buffer);
+
+	if (!result)
+		return FALSE;
+
+	result = read_super(filename);
+	close(fd);
+	return result;
+}
+
+int unsquashfs(char *squashfs, char *dest) {
 	int i, stat_sys = FALSE, version = FALSE;
 	int n;
 	struct pathnames *paths = NULL;
@@ -2221,83 +2256,6 @@ int main(int argc, char *argv[]) {
 	if (root_process)
 		umask(0);
 
-	for (i = 1; i < argc; i++) {
-		if (*argv[i] != '-')
-			break;
-		if (strcmp(argv[i], "-version") == 0 || strcmp(argv[i], "-v") == 0) {
-			VERSION();
-			version = TRUE;
-		} else if (strcmp(argv[i], "-info") == 0 || strcmp(argv[i], "-i") == 0)
-			info = TRUE;
-		else if (strcmp(argv[i], "-ls") == 0 || strcmp(argv[i], "-l") == 0)
-			lsonly = TRUE;
-		else if (strcmp(argv[i], "-no-progress") == 0 || strcmp(argv[i], "-n") == 0)
-			progress = FALSE;
-		else if (strcmp(argv[i], "-no-xattrs") == 0 || strcmp(argv[i], "-no") == 0)
-			no_xattrs = TRUE;
-		else if (strcmp(argv[i], "-xattrs") == 0 || strcmp(argv[i], "-x") == 0)
-			no_xattrs = FALSE;
-		else if (strcmp(argv[i], "-user-xattrs") == 0 || strcmp(argv[i], "-u") == 0) {
-			user_xattrs = TRUE;
-			no_xattrs = FALSE;
-		} else if (strcmp(argv[i], "-dest") == 0 || strcmp(argv[i], "-d") == 0) {
-			if (++i == argc) {
-				fprintf(stderr, "%s: -dest missing filename\n", argv[0]);
-				exit(1);
-			}
-			dest = argv[i];
-		} else if (strcmp(argv[i], "-processors") == 0 || strcmp(argv[i], "-p") == 0) {
-			if ((++i == argc) || !parse_number(argv[i], &processors)) {
-				ERROR("%s: -processors missing or invalid " "processor number\n", argv[0]);
-				exit(1);
-			}
-			if (processors < 1) {
-				ERROR("%s: -processors should be 1 or larger\n", argv[0]);
-				exit(1);
-			}
-		} else if (strcmp(argv[i], "-data-queue") == 0 || strcmp(argv[i], "-da") == 0) {
-			if ((++i == argc) || !parse_number(argv[i], &data_buffer_size)) {
-				ERROR("%s: -data-queue missing or invalid " "queue size\n", argv[0]);
-				exit(1);
-			}
-			if (data_buffer_size < 1) {
-				ERROR("%s: -data-queue should be 1 Mbyte or " "larger\n", argv[0]);
-				exit(1);
-			}
-		} else if (strcmp(argv[i], "-frag-queue") == 0 || strcmp(argv[i], "-fr") == 0) {
-			if ((++i == argc) || !parse_number(argv[i], &fragment_buffer_size)) {
-				ERROR("%s: -frag-queue missing or invalid " "queue size\n", argv[0]);
-				exit(1);
-			}
-			if (fragment_buffer_size < 1) {
-				ERROR("%s: -frag-queue should be 1 Mbyte or " "larger\n", argv[0]);
-				exit(1);
-			}
-		} else if (strcmp(argv[i], "-force") == 0 || strcmp(argv[i], "-f") == 0)
-			force = TRUE;
-		else if (strcmp(argv[i], "-stat") == 0 || strcmp(argv[i], "-s") == 0)
-			stat_sys = TRUE;
-		else if (strcmp(argv[i], "-lls") == 0 || strcmp(argv[i], "-ll") == 0) {
-			lsonly = TRUE;
-			short_ls = FALSE;
-		} else if (strcmp(argv[i], "-linfo") == 0 || strcmp(argv[i], "-li") == 0) {
-			info = TRUE;
-			short_ls = FALSE;
-		} else if (strcmp(argv[i], "-ef") == 0 || strcmp(argv[i], "-e") == 0) {
-			if (++i == argc) {
-				fprintf(stderr, "%s: -ef missing filename\n", argv[0]);
-				exit(1);
-			}
-			path = process_extract_files(path, argv[i]);
-		} else if (strcmp(argv[i], "-regex") == 0 || strcmp(argv[i], "-r") == 0)
-			use_regex = TRUE;
-		else
-			goto options;
-	}
-
-	if (lsonly || info)
-		progress = FALSE;
-
 #ifdef SQUASHFS_TRACE
 	/*
 	 * Disable progress bar if full debug tracing is enabled.
@@ -2307,50 +2265,16 @@ int main(int argc, char *argv[]) {
 	progress = FALSE;
 #endif
 
-	if (i == argc) {
-		if (!version) {
- options:
-			ERROR("SYNTAX: %s [options] filesystem [directories or " "files to extract]\n", argv[0]);
-			ERROR("\t-v[ersion]\t\tprint version, licence and " "copyright information\n");
-			ERROR("\t-d[est] <pathname>\tunsquash to <pathname>, " "default \"squashfs-root\"\n");
-			ERROR("\t-n[o-progress]\t\tdon't display the progress " "bar\n");
-			ERROR("\t-no[-xattrs]\t\tdon't extract xattrs in file system" NOXOPT_STR "\n");
-			ERROR("\t-x[attrs]\t\textract xattrs in file system" XOPT_STR "\n");
-			ERROR("\t-u[ser-xattrs]\t\tonly extract user xattrs in " "file system.\n\t\t\t\tEnables extracting " "xattrs\n");
-			ERROR("\t-p[rocessors] <number>\tuse <number> " "processors.  By default will use\n");
-			ERROR("\t\t\t\tnumber of processors available\n");
-			ERROR("\t-i[nfo]\t\t\tprint files as they are " "unsquashed\n");
-			ERROR("\t-li[nfo]\t\tprint files as they are " "unsquashed with file\n");
-			ERROR("\t\t\t\tattributes (like ls -l output)\n");
-			ERROR("\t-l[s]\t\t\tlist filesystem, but don't unsquash" "\n");
-			ERROR("\t-ll[s]\t\t\tlist filesystem with file " "attributes (like\n");
-			ERROR("\t\t\t\tls -l output), but don't unsquash\n");
-			ERROR("\t-f[orce]\t\tif file already exists then " "overwrite\n");
-			ERROR("\t-s[tat]\t\t\tdisplay filesystem superblock " "information\n");
-			ERROR("\t-e[f] <extract file>\tlist of directories or " "files to extract.\n\t\t\t\tOne per line\n");
-			ERROR("\t-da[ta-queue] <size>\tSet data queue to " "<size> Mbytes.  Default %d\n\t\t\t\tMbytes\n", DATA_BUFFER_DEFAULT);
-			ERROR("\t-fr[ag-queue] <size>\tSet fragment queue to " "<size> Mbytes.  Default\n\t\t\t\t%d Mbytes\n", FRAGMENT_BUFFER_DEFAULT);
-			ERROR("\t-r[egex]\t\ttreat extract names as POSIX " "regular expressions\n");
-			ERROR("\t\t\t\trather than use the default shell " "wildcard\n\t\t\t\texpansion (globbing)\n");
-			ERROR("\nDecompressors available:\n");
-			display_compressors("", "");
-		}
+	if ((fd = open(squashfs, O_RDONLY)) == -1) {
+		ERROR("Could not open %s, because %s\n", squashfs, strerror(errno));
 		exit(1);
 	}
 
-	for (n = i + 1; n < argc; n++)
-		path = add_path(path, argv[n], argv[n]);
-
-	if ((fd = open(argv[i], O_RDONLY)) == -1) {
-		ERROR("Could not open %s, because %s\n", argv[i], strerror(errno));
-		exit(1);
-	}
-
-	if (read_super(argv[i]) == FALSE)
+	if (read_super(squashfs) == FALSE)
 		exit(1);
 
 	if (stat_sys) {
-		squashfs_stat(argv[i]);
+		squashfs_stat(squashfs);
 		exit(0);
 	}
 
