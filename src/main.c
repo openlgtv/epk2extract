@@ -97,10 +97,10 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		handle_file(dest_file, config_opts);
 	} else if (is_mtk_boot(file)) {
-		sprintf(dest_file, "%s/mtk_pbl.bin", dest_dir);
-		printf("Extracting primary bootloader to mtk_pbl.bin...\n");
+		sprintf(dest_file, "%s/mtk_1bl.bin", dest_dir);
+		printf("[MTK] Extracting primary bootloader to %s...\n", dest_file);
 		extract_mtk_boot(file, dest_file);
-		printf("Extracting embedded LZHS files...\n");
+		printf("[MTK] Extracting embedded LZHS files...\n");
 		extract_lzhs(file);
 	} else if (is_cramfs_image(file, "be")) {
 		sprintf(dest_file, "%s/%s.cramswap", dest_dir, file_name);
@@ -114,7 +114,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		uncramfs(dest_file, file);
 	} else if (is_kernel(file)) {
 		sprintf(dest_file, "%s/%s.unpaked", dest_dir, file_name);
-		printf("Extracting boot image to: %s\n", dest_file);
+		printf("Extracting boot image (kernel) to: %s\n", dest_file);
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (isPartPakfile(file)) {

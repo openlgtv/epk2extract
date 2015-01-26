@@ -31,10 +31,6 @@
 #include "unsquashfs_info.h"
 #include "stdarg.h"
 
-#ifdef __CYGWIN__
-#    include <sys/termios.h>
-#endif
-
 #ifdef __APPLE__
 #    include <sys/sysctl.h>
 #else
@@ -1932,7 +1928,7 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 		EXIT_UNSQUASH("Failed to set signal mask in initialise_threads" "\n");
 
 	if (processors == -1) {
-#ifndef linux
+#if !defined(linux) && !defined(__CYGWIN__)
 		int mib[2];
 		size_t len = sizeof(processors);
 

@@ -26,14 +26,16 @@ part_struct_type part_type;
 //lzhs
 #include <lzhs/lzhs.h>
 
-#include <elf.h>
-
 //kernel
 #include <u-boot/image.h>
 #include <arpa/inet.h>
 
 //minigzip
 #include <minigzip.h>
+
+//book and tzfw
+#include <elf.h>
+#define MTK_PBL_SIZE 0x9FFF
 
 void SwapBytes(void *pv, size_t n) {
 	char *p = pv;
@@ -47,12 +49,11 @@ void SwapBytes(void *pv, size_t n) {
 
 void getch(void) {
 	struct termios oldattr, newattr;
-	int ch;
 	tcgetattr(STDIN_FILENO, &oldattr);
 	newattr = oldattr;
 	newattr.c_lflag &= ~(ICANON | ECHO);
 	tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
-	ch = getchar();
+	getchar();
 	tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
 }
 
@@ -214,10 +215,8 @@ void unnfsb(char *filename, char *extractedFile) {
 	close(fdin);
 }
 
-size_t mtk_pbl_size = 0x9FFF;
-
 void extract_mtk_boot(const char *filename, const char *outname) {
-	char buf[mtk_pbl_size];
+	char buf[MTK_PBL_SIZE];
 	int n;
 
 	FILE *in = fopen(filename, "rb");
@@ -228,14 +227,14 @@ void extract_mtk_boot(const char *filename, const char *outname) {
 	if (out == NULL)
 		err_exit("Can't open file %s for writing\n", outname);
 
-	n = fread(&buf, 1, mtk_pbl_size, in);
-	if (n != mtk_pbl_size) {
+	n = fread(&buf, 1, MTK_PBL_SIZE, in);
+	if (n != MTK_PBL_SIZE) {
 		fclose(in);
 		err_exit("Error: PBL size mismatch!\n");
 	}
 
 	fclose(in);
-	fwrite(&buf, 1, mtk_pbl_size, out);
+	fwrite(&buf, 1, MTK_PBL_SIZE, out);
 	fclose(out);
 }
 
@@ -266,7 +265,7 @@ void split_mtk_tz(const char *filename, const char *destdir) {
 		fclose(out);
 		err_exit("Error, env.o size mismatch\n");
 	}
-	printf("Extracting env.o ...\n");
+	printf("Extracting env.o... (%d bytes)\n", env_size);
 	fwrite(buf, 1, env_size, out);
 	memset(dest, 0x00, strlen(dest));
 	sprintf(dest, "%s/tz.bin", destdir);
@@ -284,7 +283,7 @@ void split_mtk_tz(const char *filename, const char *destdir) {
 		fclose(out);
 		err_exit("Error, tz.bin size mismatch!\n");
 	}
-	printf("Extracting tz.bin ...\n");
+	printf("Extracting tz.bin... (%d bytes)\n", tz_size);
 	fwrite(buf, 1, tz_size, out);
 	free(buf);
 }
@@ -296,7 +295,7 @@ int is_mtk_boot(const char *filename) {
 	}
 	fseek(in, 0, SEEK_END);
 	int fsize = ftell(in);
-	if (fsize < mtk_pbl_size) {
+	if (fsize < MTK_PBL_SIZE) {
 		fclose(in);
 		return 0;
 	}
@@ -512,16 +511,18 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 	fseek(file, 0, SEEK_END);
 	int fileLength = ftell(file);
 	rewind(file);
-	unsigned char buffer[fileLength];
-	int read = fread(&buffer, 1, fileLength, file);
+	unsigned char *buffer = malloc(fileLength);
+	int read = fread(buffer, 1, fileLength, file);
 	if (read != fileLength) {
 		err_exit("Error reading file. read %d bytes from %d.\n", read, fileLength);
+		free(buffer);
 	}
 	fclose(file);
 
 	struct image_header *image_header = (struct image_header *)(&buffer);
 	FILE *out = fopen(destination_file, "wb");
 	int header_size = sizeof(struct image_header);
-	fwrite(&buffer[header_size], 1, read - header_size, out);
+	fwrite(buffer + header_size, 1, read - header_size, out);
+	free(buffer);
 	fclose(out);
 }

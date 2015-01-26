@@ -610,8 +610,8 @@ void extract_lzhs(const char *filename) {
 		exit(1);
 	}
 
-	sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
-	printf("Extracting to %s\n", outname);
+	sprintf(outname, "%s/mtkloader.lzhs", dirname(strdup(filename)));
+	printf("[MTK] Extracting mtkloader to %s...\n", outname);
 	out = fopen(outname, "wb");
 	if (out == NULL) {
 		printf("Cannot open file %s for writing\n", outname);
@@ -626,11 +626,12 @@ void extract_lzhs(const char *filename) {
 	fwrite(buf, 1, header.compressedSize, out);
 	fclose(out);
 	free(buf);
-	sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count++);
+	sprintf(outdecode, "%s/%s.unlzhs", dirname(strdup(filename)), basename(outname));
+	printf("[MTK] UnLZHS %s => %s\n", basename(outname), basename(outdecode));
 	lzhs_decode(outname, outdecode);
 
-	sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
-	printf("Extracting to %s\n", outname);
+	sprintf(outname, "%s/uboot.lzhs", dirname(strdup(filename)));
+	printf("[MTK] Extracting uboot to %s...\n", outname);
 	out = fopen(outname, "wb");
 	if (out == NULL) {
 		printf("Cannot open file %s for writing\n", outname);
@@ -645,14 +646,15 @@ void extract_lzhs(const char *filename) {
 	fwrite(buf, 1, header.compressedSize, out);
 	fclose(out);
 	free(buf);
-	sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count++);
+	sprintf(outdecode, "%s/%s.unlzhs", dirname(strdup(filename)), basename(outname));
+	printf("[MTK] UnLZHS %s => %s\n", basename(outname), basename(outdecode));
 	lzhs_decode(outname, outdecode);
 
 	fseek(file, 0, SEEK_END);
 	fsize = ftell(file);
 	if (0x80000 + 0x10 + header.compressedSize + (16 - header.compressedSize % 16) + 0x200 < fsize) {
-		sprintf(outname, "%s/%s_file%d.lzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
-		printf("Extracting to %s\n", outname);
+		sprintf(outname, "%s/tz.lzhs", dirname(strdup(filename)));
+		printf("[MTK] Extracting tz backup to %s...\n", outname);
 		out = fopen(outname, "wb");
 		if (out == NULL) {
 			printf("Cannot open file %s for writing\n", outname);
@@ -667,7 +669,8 @@ void extract_lzhs(const char *filename) {
 		fwrite(buf, 1, header.compressedSize, out);
 		fclose(out);
 		free(buf);
-		sprintf(outdecode, "%s/%s_file%d.unlzhs", dirname(strdup(filename)), basename(strdup(filename)), count);
+		sprintf(outdecode, "%s/%s.unlzhs", dirname(strdup(filename)), basename(outname));
+		printf("[MTK] UnLZHS %s => %s\n", basename(outname), basename(outdecode));
 		lzhs_decode(outname, outdecode);
 	}
 }

@@ -41,6 +41,10 @@
 #include "unsquashfs.h"
 #include "error.h"
 
+#ifdef __CYGWIN__
+#	define sigtimedwait(a,b,c) sigwaitinfo(a,b)
+#endif
+
 static int silent = 0;
 char *pathname = NULL;
 

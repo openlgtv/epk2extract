@@ -156,11 +156,12 @@ int writePAKsegment(struct pak2_t *pak, const char *filename) {
 	for (index = 0; index < pak->segment_count; index++) {
 		struct pak2segment_t *PAKsegment = pak->segments[index];
 		int content_len = PAKsegment->content_len;
-		unsigned char decrypted[content_len];
-		memset(&decrypted, 0xFF, content_len);
-		decryptImage(PAKsegment->content, content_len, &decrypted);
-		fwrite(&decrypted, 1, content_len, outfile);
+		unsigned char *decrypted = malloc(content_len);
+		memset(decrypted, 0xFF, content_len);
+		decryptImage(PAKsegment->content, content_len, decrypted);
+		fwrite(decrypted, 1, content_len, outfile);
 		length += content_len;
+		free(decrypted);
 	}
 	fclose(outfile);
 	return length;
