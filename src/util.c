@@ -217,7 +217,7 @@ void unnfsb(char *filename, char *extractedFile) {
 size_t mtk_pbl_size = 0x9FFF;
 
 void extract_mtk_boot(const char *filename, const char *outname) {
-	char *buf = malloc(mtk_pbl_size);
+	char buf[mtk_pbl_size];
 	int n;
 
 	FILE *in = fopen(filename, "rb");
@@ -228,28 +228,27 @@ void extract_mtk_boot(const char *filename, const char *outname) {
 	if (out == NULL)
 		err_exit("Can't open file %s for writing\n", outname);
 
-	n = fread(buf, 1, mtk_pbl_size, in);
+	n = fread(&buf, 1, mtk_pbl_size, in);
 	if (n != mtk_pbl_size) {
 		fclose(in);
 		err_exit("Error: PBL size mismatch!\n");
 	}
 
 	fclose(in);
-	fwrite(buf, 1, mtk_pbl_size, out);
+	fwrite(&buf, 1, mtk_pbl_size, out);
 	fclose(out);
 }
 
 void split_mtk_tz(const char *filename, const char *destdir) {
 	unsigned int tz_off = 0x20000;
 	unsigned char *buf;
-	char *dest = malloc(strlen(destdir) + strlen(filename) + 10);
+	char *dest = calloc(1, strlen(destdir) + strlen(filename) + 10);
 	int n;
 	size_t fileSize, env_size, tz_size;
 	FILE *in = fopen(filename, "rb");
 	if (in == NULL) {
 		err_exit("Can't open file %s\n", filename);
 	}
-	memset(dest, 0x00, sizeof(dest));
 	sprintf(dest, "%s/env.o", destdir);
 	FILE *out = fopen(dest, "wb");
 	if (out == NULL)
@@ -280,12 +279,14 @@ void split_mtk_tz(const char *filename, const char *destdir) {
 	fseek(in, tz_off, SEEK_SET);
 	n = fread(buf, 1, tz_size, in);
 	if (n != tz_size) {
+		free(buf);
 		fclose(in);
 		fclose(out);
 		err_exit("Error, tz.bin size mismatch!\n");
 	}
 	printf("Extracting tz.bin ...\n");
 	fwrite(buf, 1, tz_size, out);
+	free(buf);
 }
 
 int is_mtk_boot(const char *filename) {
@@ -358,13 +359,12 @@ int is_gzip(const char *filename) {
 		err_exit("Can't open file %s\n", filename);
 	}
 	size_t headerSize = 0x3;
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * headerSize);
+	unsigned char buffer[sizeof(char) * headerSize];
 	int read = fread(buffer, 1, headerSize, file);
 	int result = 0;
 	if (read == headerSize) {
 		result = !memcmp(&buffer[0x0], "\x1F\x8B\x08", 3);	//gzip magic check
 	}
-	free(buffer);
 	fclose(file);
 	return result;
 }
@@ -376,8 +376,8 @@ int is_jffs2(const char *filename) {
 	}
 	size_t headerSize = 0x2;
 	unsigned short magic = JFFS2_MAGIC_BITMASK;
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * headerSize);
-	int read = fread(buffer, 1, headerSize, file);
+	unsigned char buffer[headerSize];
+	int read = fread(&buffer, 1, headerSize, file);
 	int result = 0;
 	if (read == headerSize) {
 		result = !memcmp(&buffer[0x0], &magic, 2);
@@ -387,7 +387,6 @@ int is_jffs2(const char *filename) {
 		}
 	}
 	fclose(file);
-	free(buffer);
 	return result;
 }
 
@@ -397,13 +396,12 @@ int isSTRfile(const char *filename) {
 		err_exit("Can't open file %s\n", filename);
 	}
 	size_t headerSize = 0xC0 * 4;
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * headerSize);
-	int read = fread(buffer, 1, headerSize, file);
+	unsigned char buffer[headerSize];
+	int read = fread(&buffer, 1, headerSize, file);
 	int result = 0;
 	if (read == headerSize && buffer[4] == 0x47 && buffer[0xC0 + 4] == 0x47 && buffer[0xC0 * 2 + 4] == 0x47 && buffer[0xC0 * 3 + 4] == 0x47)
 		result = 1;
 	fclose(file);
-	free(buffer);
 	return result;
 }
 
@@ -496,14 +494,13 @@ int is_kernel(const char *image_file) {
 		err_exit("Can't open file %s", image_file);
 
 	size_t header_size = sizeof(struct image_header);
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * header_size);
-	int read = fread(buffer, 1, header_size, file);
+	unsigned char buffer[header_size];
+	int read = fread(&buffer, 1, header_size, file);
 	if (read != header_size)
 		return 0;
 	fclose(file);
-	struct image_header *image_header = (struct image_header *)buffer;
+	struct image_header *image_header = (struct image_header *)(&buffer);
 	int result = image_header->ih_magic == ntohl(IH_MAGIC);
-	free(buffer);
 	return result;
 }
 
@@ -515,18 +512,16 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 	fseek(file, 0, SEEK_END);
 	int fileLength = ftell(file);
 	rewind(file);
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * fileLength);
-	int read = fread(buffer, 1, fileLength, file);
+	unsigned char buffer[fileLength];
+	int read = fread(&buffer, 1, fileLength, file);
 	if (read != fileLength) {
-		free(buffer);
 		err_exit("Error reading file. read %d bytes from %d.\n", read, fileLength);
 	}
 	fclose(file);
 
-	struct image_header *image_header = (struct image_header *)buffer;
+	struct image_header *image_header = (struct image_header *)(&buffer);
 	FILE *out = fopen(destination_file, "wb");
 	int header_size = sizeof(struct image_header);
-	fwrite(buffer + header_size, 1, read - header_size, out);
+	fwrite(&buffer[header_size], 1, read - header_size, out);
 	fclose(out);
-	free(buffer);
 }

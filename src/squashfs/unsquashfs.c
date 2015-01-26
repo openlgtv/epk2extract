@@ -1600,7 +1600,7 @@ int read_super(char *source) {
 			memcpy(&sBlk_3, &sblk, sizeof(squashfs_super_block_3));
 			swap = 1;
 		} else {
-			ERROR("Can't find a SQUASHFS superblock on %s\n", source);
+			//ERROR("Can't find a SQUASHFS superblock on %s\n", source);
 			goto failed_mount;
 		}
 	}

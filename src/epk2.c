@@ -41,21 +41,19 @@ void SWU_CryptoInit_AES(const unsigned char *AES_KEY) {
 }
 
 int API_SWU_VerifyImage(unsigned char *image, unsigned int imageSize) {
-	unsigned char *md_value;
+	unsigned char md_value[0x40];
 	unsigned int md_len = 0;
-	md_value = malloc(0x40);
 	EVP_MD_CTX ctx1, ctx2;
 	EVP_DigestInit(&ctx1, EVP_get_digestbyname("sha1"));
 	EVP_DigestUpdate(&ctx1, image + SIGNATURE_SIZE, imageSize - SIGNATURE_SIZE);
-	EVP_DigestFinal(&ctx1, md_value, &md_len);
+	EVP_DigestFinal(&ctx1, &md_value, &md_len);
 	EVP_DigestInit(&ctx2, EVP_sha1());
-	EVP_DigestUpdate(&ctx2, md_value, md_len);
+	EVP_DigestUpdate(&ctx2, &md_value, md_len);
 	int result = 0;
 	if (EVP_VerifyFinal(&ctx2, image, SIGNATURE_SIZE, _gpPubKey) == 1)
 		result = 1;
 	EVP_MD_CTX_cleanup(&ctx1);
 	EVP_MD_CTX_cleanup(&ctx2);
-	free(md_value);
 	return result;
 }
 
@@ -81,10 +79,10 @@ void printPAKinfo(struct pak2_t *pak) {
 	for (index = 0; index < pak->segment_count; index++) {
 		struct pak2segment_t *PAKsegment = pak->segments[index];
 		int headerSize = sizeof(struct pak2segmentHeader_t);
-		unsigned char *decrypted = malloc(headerSize);
-		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
+		unsigned char decrypted[headerSize];
+		decryptImage(PAKsegment->header->signature, headerSize, &decrypted);
 		//hexdump(decrypted, headerSize);
-		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)decrypted;
+		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)(&decrypted);
 		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x', size='%u bytes', ", index + 1, pak->header->name, decryptedSegmentHeader->version[3], decryptedSegmentHeader->version[2], decryptedSegmentHeader->version[1], decryptedSegmentHeader->version[0], decryptedSegmentHeader->platform, PAKsegment->content_file_offset, PAKsegment->content_len);
 		switch ((build_type_t) decryptedSegmentHeader->devmode) {
 		case RELEASE:
@@ -100,7 +98,6 @@ void printPAKinfo(struct pak2_t *pak) {
 			printf("build=UNKNOWN %0x%x\n", decryptedSegmentHeader->devmode);
 		}
 		printf(")\n");
-		free(decrypted);
 	}
 }
 
@@ -116,7 +113,7 @@ void SelectAESkey(struct pak2_t *pak, struct config_opts_t *config_opts) {
 	}
 
 	int headerSize = sizeof(struct pak2segmentHeader_t);
-	unsigned char *decrypted = malloc(headerSize);
+	unsigned char decrypted[headerSize];
 	char *line = NULL;
 	size_t len, count;
 	ssize_t read;
@@ -134,14 +131,13 @@ void SelectAESkey(struct pak2_t *pak, struct config_opts_t *config_opts) {
 			printf("%02X", aes_key[i]);
 		printf(") for PAK segment decryption...");
 		struct pak2segment_t *PAKsegment = pak->segments[0];
-		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
-		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)decrypted;
+		decryptImage(PAKsegment->header->signature, headerSize, &decrypted);
+		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)(&decrypted);
 		if (!memcmp(decryptedSegmentHeader->pakMagic, "MPAK", 4)) {
 			printf("Success!\n");
 			fclose(fp);
 			if (line)
 				free(line);
-			free(decrypted);
 			return;
 		} else {
 			printf("Failed\n");
@@ -150,7 +146,6 @@ void SelectAESkey(struct pak2_t *pak, struct config_opts_t *config_opts) {
 	fclose(fp);
 	if (line)
 		free(line);
-	free(decrypted);
 	err_exit("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n\n");
 }
 
@@ -161,11 +156,10 @@ int writePAKsegment(struct pak2_t *pak, const char *filename) {
 	for (index = 0; index < pak->segment_count; index++) {
 		struct pak2segment_t *PAKsegment = pak->segments[index];
 		int content_len = PAKsegment->content_len;
-		unsigned char *decrypted = malloc(content_len);
-		memset(decrypted, 0xFF, content_len);
-		decryptImage(PAKsegment->content, content_len, decrypted);
-		fwrite(decrypted, 1, content_len, outfile);
-		free(decrypted);
+		unsigned char decrypted[content_len];
+		memset(&decrypted, 0xFF, content_len);
+		decryptImage(PAKsegment->content, content_len, &decrypted);
+		fwrite(&decrypted, 1, content_len, outfile);
 		length += content_len;
 	}
 	fclose(outfile);
@@ -178,14 +172,13 @@ int isFileEPK2(const char *epk_file) {
 		err_exit("Can't open file %s\n\n", epk_file);
 	}
 	size_t headerSize = 0x650 + SIGNATURE_SIZE;
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * headerSize);
-	if (fread(buffer, 1, headerSize, file) != headerSize)
+	unsigned char buffer[headerSize];
+	if (fread(&buffer, 1, headerSize, file) != headerSize)
 		return 0;
 	fclose(file);
 	int result = !memcmp(&buffer[0x8C], EPK2_MAGIC, 4);	//old EPK2
 	if (!result)
 		result = (buffer[0x630 + SIGNATURE_SIZE] == 0 && buffer[0x638 + SIGNATURE_SIZE] == 0x2E && buffer[0x63D + SIGNATURE_SIZE] == 0x2E);	//new EPK2
-	free(buffer);
 	return result;
 }
 
@@ -194,13 +187,12 @@ int isFileEPK3(const char *epk_file) {
 	if (!file)
 		err_exit("Can't open file %s\n\n", epk_file);
 	size_t headerSize = 0x6BD;
-	unsigned char *buffer = (unsigned char *)malloc(sizeof(char) * headerSize);
-	if (fread(buffer, 1, headerSize, file) != headerSize)
+	unsigned char buffer[headerSize];
+	if (fread(&buffer, 1, headerSize, file) != headerSize)
 		return 0;
 	fclose(file);
 	int result = (buffer[0x6B0] == 0 && buffer[0x6B5] == 0x2E && buffer[0x6B7] == 0x2E);
 	//if (!result) result = (buffer[0x6B0] == 0 && buffer[0x6B8] == 0x2E && buffer[0x6BD] == 0x2E);
-	free(buffer);
 	return result;
 }
 
@@ -360,12 +352,11 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 
 			printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', offset='0x%lx', size='%u bytes')\n", index + 1, segment.name, segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], offset + SIGNATURE_SIZE, realSegmentSize);
 
-			unsigned char *decrypted = malloc(realSegmentSize);
-			decryptImage(buffer + offset + SIGNATURE_SIZE, realSegmentSize, decrypted);
-			fwrite(decrypted, 1, realSegmentSize, outfile);
+			unsigned char decrypted[realSegmentSize];
+			decryptImage(buffer + offset + SIGNATURE_SIZE, realSegmentSize, &decrypted);
+			fwrite(&decrypted, 1, realSegmentSize, outfile);
 			size += realSegmentSize;
 			offset += realSegmentSize + SIGNATURE_SIZE;
-			free(decrypted);
 		}
 		fclose(outfile);
 		handle_file(filename, config_opts);
