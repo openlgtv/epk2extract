@@ -56,7 +56,7 @@ To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
 
 ## 2. Get sources
 
-    git clone https://github.com/lprot/epk2extract
+    git clone https://github.com/openlgtv/epk2extract
 
 ## 3. Run building
 
@@ -81,15 +81,10 @@ To compile on Cygwin:
     git clone https://github.com/lprot/epk2extract
 
 ## 3. Run building
-
     cd epk2extract ; ./build.sh
 
-After compilation epk2extract and Cygwin *.dll libs can be found in ./build_cygwin/
-The build script automatically copies Cygwin shared libraries to the ./build_cygwin/ folder, so you can use epk2extract without having to install Cygwin
-
-To change default editor for commits to nano:
-	
-	git config --global core.editor "nano"
+After compilation epk2extract and Cygwin *.dll libs can be found in ./build_cygwin (or ./build_linux or ./build_osx)
+The build script automatically copies Cygwin shared libraries to the ./build_cygwin/ folder, so you can use epk2extract standalone without having to install Cygwin.
 
 ## To use:
 
@@ -108,11 +103,11 @@ In Mandriva or Mageia, run:
     su
     ./epk2extract file
 
-## To to get IDC from SYM run:
+## To get IDC from SYM run:
 
     ./epk2extract xxxxxxxx.sym
     
-## To to decode part.pak or mtdi.pak do:
+## To decode part.pak or mtdi.pak do:
 
     ./epk2extract part.pak
 
