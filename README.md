@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/openlgtv/epk2extract.svg?branch=master)](https://travis-ci.org/openlgtv/epk2extract)
+
 epk2extract
 ===========
 epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TV sets.
