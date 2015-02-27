@@ -640,7 +640,7 @@ int is_cramfs_image(char const *imagefile, char *endian) {
 		SWAP(cram_magic);
 	result = 0;
 	// Check cramfs magic number and signature
-	if (cram_magic == sb->magic || memcmp(endian, "be", 2) && 0 == memcmp(sb->signature, CRAMFS_SIGNATURE, sizeof(sb->signature)))
+	if (cram_magic == sb->magic || (memcmp(endian, "be", 2) && 0 == memcmp(sb->signature, CRAMFS_SIGNATURE, sizeof(sb->signature))))
 		result = 1;
 
 	munmap(rom_image, fslen_ub);

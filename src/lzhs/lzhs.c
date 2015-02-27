@@ -9,11 +9,14 @@
 
 //globals
 unsigned long int textsize = 0, codesize = 0;
-unsigned char text_buf[N + F - 1];
-int match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
+uint8_t text_buf[N + F - 1];
+int32_t match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 t_code(*huff_char)[1] = (void *)&char_table;
 t_code(*huff_len)[1] = (void *)&len_table;
 t_code(*huff_pos)[1] = (void *)&pos_table;
+uint32_t i, j, k, c, code = 0, len = 0, code_buf_ptr;
+uint8_t code_buf[32], mask, bitno = 8;
+uint32_t preno = 0, precode = 0;
 
 void InitTree(void) {
 	int i;
@@ -239,25 +242,25 @@ void unlzss(FILE * in, FILE * out) {
 	}
 }
 
-void huff(FILE * in, FILE * out) {
-	uint32_t preno = 0, precode = 0;
-	void putChar(uint32_t code, uint32_t no) {
-		uint32_t tmpno, tmpcode;
-		if (preno + no > 7) {
-			do {
-				no -= tmpno = 8 - preno;
-				tmpcode = code >> no;
-				fputc(tmpcode | (precode << tmpno), out);
-				code -= tmpcode << no;
-				preno = precode = 0;
-			} while (no > 7);
-			preno = no;
-			precode = code;
-		} else {
-			preno += no;
-			precode = code | (precode << no);
-		}
+void putChar(uint32_t code, uint32_t no, FILE *out) {
+	uint32_t tmpno, tmpcode;
+	if (preno + no > 7) {
+		do {
+			no -= tmpno = 8 - preno;
+			tmpcode = code >> no;
+			fputc(tmpcode | (precode << tmpno), out);
+			code -= tmpcode << no;
+			preno = precode = 0;
+		} while (no > 7);
+		preno = no;
+		precode = code;
+	} else {
+		preno += no;
+		precode = code | (precode << no);
 	}
+}
+
+void huff(FILE * in, FILE * out) {
 	textsize = codesize;
 	codesize = 0;
 	int c, i, j, k, m, flags = 0;
@@ -270,7 +273,7 @@ void huff(FILE * in, FILE * out) {
 		if (flags & 1) {
 			if ((c = getc(in)) == EOF)
 				break;
-			putChar(huff_char[c]->code, huff_char[c]->len);	// lookup in char table
+			putChar(huff_char[c]->code, huff_char[c]->len, out);	// lookup in char table
 		} else {
 			if ((j = getc(in)) == EOF)
 				break;			// match length
@@ -278,10 +281,10 @@ void huff(FILE * in, FILE * out) {
 				break;			// byte1 of match position
 			if ((m = getc(in)) == EOF)
 				break;			// byte0 of match position
-			putChar(huff_len[j]->code, huff_len[j]->len);	// lookup in len table
+			putChar(huff_len[j]->code, huff_len[j]->len, out);	// lookup in len table
 			i = m | (i << 8);
-			putChar(huff_pos[(i >> 7)]->code, huff_pos[(i >> 7)]->len);	// lookup in pos table
-			putChar(i - (i >> 7 << 7), 7);
+			putChar(huff_pos[(i >> 7)]->code, huff_pos[(i >> 7)]->len, out);	// lookup in pos table
+			putChar(i - (i >> 7 << 7), 7, out);
 		}
 	}
 	putc(precode << (8 - preno), out);
@@ -289,30 +292,25 @@ void huff(FILE * in, FILE * out) {
 	printf("LZHS Out(%ld)/In(%ld): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
 
+int getData(FILE *in) {
+	if (bitno > 7) {
+		bitno = 0;
+		if ((c = getc(in)) == EOF) {
+			return 0;
+		}
+	}
+	code = (code << 1) | (c >> 7 - bitno++) & 1;	// get bit msb - index
+	len++;
+	return 1;
+}
+
 void unhuff(FILE * in, FILE * out) {
-	uint32_t i, j, k, c, code = 0, index = 8, len = 0, code_buf_ptr;
-	unsigned char code_buf[32], mask;
 	code_buf[0] = 0;
 	code_buf_ptr = mask = 1;
 
-	int getData() {
-		if (index > 7) {
-			index = 0;
-			if ((c = getc(in)) == EOF) {
-				if (code_buf_ptr > 1)	// flushing buffer
-					for (i = 0; i < code_buf_ptr; i++)
-						putc(code_buf[i], out);
-				return 0;
-			}
-		}
-		code = (code << 1) | (c >> 7 - index++) & 1;	// get bit msb - index
-		len++;
-		return 1;
-	}
-
 	while (1) {
-		if (!getData())
-			return;
+		if (!getData(in))
+			goto flush_ret;
 		if (len < 4)
 			continue;			// len in code_len table should be min 4
 		for (i = 0; i < 288; i++) {
@@ -321,8 +319,8 @@ void unhuff(FILE * in, FILE * out) {
 					code_buf[code_buf_ptr++] = i - 256;
 					code = len = 0;
 					while (1) {
-						if (!getData())
-							return;
+						if (!getData(in))
+							goto flush_ret;
 						if (len < 2)
 							continue;	// len in pos table should be min 2
 						for (j = 0; j < 32; j++) {
@@ -337,8 +335,8 @@ void unhuff(FILE * in, FILE * out) {
 					}
 					code = 0;
 					for (k = 0; k < 7; k++)
-						if (!getData())
-							return;
+						if (!getData(in))
+							goto flush_ret;
 					code_buf[code_buf_ptr++] = code | (j << 7);
 					code = len = 0;
 				} else {
@@ -356,6 +354,12 @@ void unhuff(FILE * in, FILE * out) {
 			}
 		}
 	}
+	
+	flush_ret:
+	if (code_buf_ptr > 1)	// flushing buffer
+		for (i = 0; i < code_buf_ptr; i++)
+			putc(code_buf[i], out);
+	return;
 }
 
 void ARMThumb_Convert(unsigned char *data, uint32_t size, uint32_t nowPos, int encoding) {
@@ -481,7 +485,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 
 	freopen(outtmp, "rb", in);
 	if (!in) {
-		printf("Cannot open file conv\n", infile);
+		printf("Cannot open file conv\n");
 		exit(1);
 	}
 
@@ -498,7 +502,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 
 	freopen(outtmp, "rb", in);
 	if (!in) {
-		printf("Cannot open file tmp.lzs\n", infile);
+		printf("Cannot open file tmp.lzs\n");
 		exit(1);
 	}
 	freopen(outfile, "wb", out);
@@ -675,15 +679,15 @@ void extract_lzhs(const char *filename) {
 	}
 }
 
-void scan_lzhs(const char *filename, int extract) {
-	int is_lzhs_mem(struct lzhs_header *header) {
-		if ((header->compressedSize <= 0xFFFFFF) && (header->uncompressedSize >= 0x1FFFFFF))
-			return 0;
-		if (header->compressedSize && header->uncompressedSize && (header->compressedSize <= header->uncompressedSize) && !memcmp(&header->spare, "\0\0\0\0\0\0\0", sizeof(header->spare)))
-			return 1;
+int is_lzhs_mem(struct lzhs_header *header) {
+	if ((header->compressedSize <= 0xFFFFFF) && (header->uncompressedSize >= 0x1FFFFFF))
 		return 0;
-	}
+	if (header->compressedSize && header->uncompressedSize && (header->compressedSize <= header->uncompressedSize) && !memcmp(&header->spare, "\0\0\0\0\0\0\0", sizeof(header->spare)))
+		return 1;
+	return 0;
+}
 
+void scan_lzhs(const char *filename, int extract) {
 	int fsize, i, n, pos;
 	int count = 0;
 	struct lzhs_header header;

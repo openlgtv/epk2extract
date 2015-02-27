@@ -269,7 +269,7 @@ void processPIF(const char *filename, char *dest_file) {
 	rewind(file);
 
 	int append = 0;
-	unsigned char *buffer = (unsigned char *)malloc(filesize);
+	char *buffer = malloc(filesize);
 	int read = fread(buffer, 1, filesize, file);
 	if (read == filesize) {
 		int i;

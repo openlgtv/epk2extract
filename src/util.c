@@ -266,7 +266,7 @@ void split_mtk_tz(const char *filename, const char *destdir) {
 		fclose(out);
 		err_exit("Error, env.o size mismatch\n");
 	}
-	printf("Extracting env.o... (%d bytes)\n", env_size);
+	printf("Extracting env.o... (%zu bytes)\n", env_size);
 	fwrite(buf, 1, env_size, out);
 	memset(dest, 0x00, strlen(dest));
 	sprintf(dest, "%s/tz.bin", destdir);
@@ -284,7 +284,7 @@ void split_mtk_tz(const char *filename, const char *destdir) {
 		fclose(out);
 		err_exit("Error, tz.bin size mismatch!\n");
 	}
-	printf("Extracting tz.bin... (%d bytes)\n", tz_size);
+	printf("Extracting tz.bin... (%zu bytes)\n", tz_size);
 	fwrite(buf, 1, tz_size, out);
 	free(buf);
 }
@@ -344,7 +344,7 @@ int is_lzhs(const char *filename) {
 	if (read == sizeof(header)) {
 		fseek(file, 0, SEEK_END);
 		size_t diff = ftell(file) - sizeof(header) - header.compressedSize;
-		if (diff <= threshold && diff >= 0 && (memcmp(&header.spare, "\0\0\0\0\0\0\0", sizeof(header.spare)) == 0)) {
+		if (diff <= threshold && (memcmp(&header.spare, "\0\0\0\0\0\0\0", sizeof(header.spare)) == 0)) {
 			fclose(file);
 			return 1;
 		}
@@ -406,15 +406,18 @@ int isSTRfile(const char *filename) {
 }
 
 int isdatetime(char *datetime) {
-	time_t rawtime;
+	time_t rawtime = time(NULL);
 	struct tm time_val;
-	struct tm *systime;
-	systime = localtime(&rawtime);
+	struct tm *systime = localtime(&rawtime);
+	
 	// datetime format is YYYYMMDD
-	if (strptime(datetime, "%Y%m%d", &time_val) != 0 && (time_val.tm_year > 2005 && time_val.tm_year <= systime->tm_year))
+	if (strptime(datetime, "%Y%m%d", &time_val) != 0
+		&& (systime->tm_year >= time_val.tm_year)
+		&& ((time_val.tm_year+1900) > 2005)) {
 		return 1;
-	else
+	} else {
 		return 0;
+	}
 }
 
 /* detect_model - detect model and corresponding part struct */
@@ -458,7 +461,7 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	mtdname = pid->name;
 	modelname = model;
 	/*printf("\nMTD name -> %s\n",mtdname);
-	   printf("%s Detected\n\n", modelname); */
+	   printf("%s Detected\n\n", modelname);*/
 
 	return part_type;
 }
@@ -473,19 +476,21 @@ int isPartPakfile(const char *filename) {
 	size_t size = sizeof(struct p2_partmap_info);
 	fread(&partinfo, 1, size, file);
 
-	int result = 0;
 	char cmagic[4];
 	sprintf(cmagic, "%x", partinfo.magic);
 
 	if (isdatetime((char *)cmagic)) {
 		printf("Found valid partpak magic 0x%x in %s\n", partinfo.magic, filename);
+	} else {
+		return 0;
 	}
 
 	detect_model(&(partinfo.dev));
-	if (part_type != STRUCT_INVALID)
-		result = 1;
 	fclose(file);
-	return result;
+	if (part_type == STRUCT_INVALID)
+		return 0;
+	else
+		return 1;
 }
 
 int is_kernel(const char *image_file) {

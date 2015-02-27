@@ -59,9 +59,8 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	char *file_name = basename(strdup(file));
 	char *file_base = remove_ext(strdup(file_name));
 	//char *file_ext = get_ext(strdup(file_name));
-	char *dest_file = malloc(strlen(file) + 50);
+	char *dest_file = calloc(1, strlen(file) + 50);
 
-	memset(dest_file, 0, sizeof(dest_file));
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
 	} else if (isFileEPK2(file)) {

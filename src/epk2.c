@@ -610,7 +610,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		char filename[1024] = "";
 		char name[4];
 		sprintf(name, "%.4s", pakArray[index]->header->name);
-		sprintf(filename, "%s/%s.pak", config_opts->dest_dir, name);
+		sprintf(filename, "%s/%.4s.pak", config_opts->dest_dir, name);
 		printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, fwInfo->pakCount, name, filename);
 		int length = writePAKsegment(pakArray[index], filename);
 		free(pakArray[index]);
