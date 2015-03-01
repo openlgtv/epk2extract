@@ -15,41 +15,44 @@
 #    include <epk.h>
 #    include <string.h>
 
-struct pakRec_t {
+typedef struct {
 	uint32_t offset;
 	uint32_t size;
-};
+} pakRec_t __attribute__((packed));
 
+/*
+The big endian header has a non-fixed size, so we have to get some members at runtime
+fwVer is -4 bytes from first pak location
+For otaID we use the PAK platform, since this header lacks a proper one
+*/
 struct epk1BEHeader_t {
-	unsigned char epakMagic[4];
+	char epakMagic[4];
 	uint32_t fileSize;
 	uint32_t pakCount;
-	uint32_t offset;
-	uint32_t size;
-};
+} __attribute__((packed));
 
 struct epk1Header_t {
-	unsigned char epakMagic[4];
+	char epakMagic[4];
 	uint32_t fileSize;
 	uint32_t pakCount;
-	struct pakRec_t pakRecs[20];
-	unsigned char fwVer[4];
+	pakRec_t pakRecs[20];
+	uint32_t fwVer[4];
 	unsigned char otaID[32];
 };
 
 struct epk1NewHeader_t {
-	unsigned char epakMagic[4];
+	char epakMagic[4];
 	uint32_t fileSize;
 	uint32_t pakCount;
 	unsigned char fwVer[4];
 	unsigned char otaID[32];
-	struct pakRec_t pakRecs[26];
+	pakRec_t pakRecs[26];
 };
 
 struct pakHeader_t {
-	unsigned char pakName[4];
+	char pakName[4];
 	uint32_t pakSize;
-	unsigned char platform[15];
+	char platform[15];
 	unsigned char unknown[105];
 };
 

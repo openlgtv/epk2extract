@@ -2,6 +2,8 @@
 #    define	BYTESWAP_H
 
 #    define SWAP(x) SwapBytes(&x, sizeof(x))
+#    define IS_BE(x) x >> 8 != 0
+#    define IS_LE(x) !IS_BE(x)
 
 #    ifdef __APPLE__
 #        include <libkern/OSByteOrder.h>
