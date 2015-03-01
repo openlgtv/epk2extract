@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <getopt.h>
 #ifdef __CYGWIN__
@@ -22,6 +23,8 @@
 #include <epk2.h>
 #include <symfile.h>
 #include <minigzip.h>
+
+char *exe_dir;
 
 char *remove_ext(const char *mystr) {
 	char *retstr, *lastdot;
@@ -52,18 +55,45 @@ char *get_ext(const char *mystr) {
 	return retstr;
 }
 
-struct config_opts_t config_opts;
+int handle_file(const char *filepath, char *dest_dir) {
+	char *dup_fname = strdup(filepath);
+	//char *dup_fdir  = strdup(filepath);
 
-int handle_file(const char *file, struct config_opts_t *config_opts) {
-	char *dest_dir = config_opts->dest_dir;
-	char *file_name = basename(strdup(file));
-	char *file_base = remove_ext(strdup(file_name));
-	//char *file_ext = get_ext(strdup(file_name));
-	char *dest_file = calloc(1, strlen(file) + 50);
+	//char *file_dir = dirname(dup_fdir);
+	char *file_name = basename(dup_fname);
+	char *file_base = remove_ext(file_name);
+	char *file_ext = calloc(1, strlen(file_name)-strlen(file_base));
+	file_ext = strncpy(file_ext, file_name + strlen(file_base) + 1, strlen(file_name) - strlen(file_base) - 1);
+
+	char *dest_file = calloc(1, strlen(filepath) + 50);
+
+	file_t *file = calloc(1, sizeof(file_t));
+
+	int fd = open(filepath, O_RDONLY);
+	if(!fd){
+		err_exit("Cannot open file %s (%s)\n", filepath, strerror(errno));
+	}
+	struct stat *fileInfo = malloc(sizeof(struct stat));
+	if(fstat(fd, fileInfo) < 0){
+		err_exit("fstat failed (%s)\n", strerror(errno));
+	}
+	void *map = mmap(0, fileInfo->st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	if(map == MAP_FAILED){
+		err_exit("Can't map input file: %s\n", strerror(errno));
+	}
+	uint8_t *data = (uint8_t *)map;
+
+	file->fd = fd;
+	file->info = fileInfo;
+	file->data = data;
+	file->in_path = filepath;
+	file->in_filename = file_base;
+	file->in_ext = file_ext;
+	file->out_dir = dest_dir;
 
 	if (isFileEPK1(file)) {
-		extract_epk1_file(file, config_opts);
-	} else if (isFileEPK2(file)) {
+		extractEPK1file(file);
+	}/* else if (isFileEPK2(file)) {
 		extractEPK2file(file, config_opts);
 	} else if (isFileEPK3(file)) {
 		extractEPK3file(file, config_opts);
@@ -149,6 +179,11 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else
 		return EXIT_FAILURE;
 	return EXIT_SUCCESS;
+	*/
+	free(fileInfo);
+	//free(dup_fdir);
+	free(dup_fname);
+	free(file_base);
 }
 
 int main(int argc, char *argv[]) {
@@ -161,19 +196,19 @@ int main(int argc, char *argv[]) {
 		return err_ret("");
 	}
 
-	char exe_dir[PATH_MAX];
-	char *current_dir = malloc(PATH_MAX);
-	getcwd(current_dir, PATH_MAX);
+	char *arg0, *argfile;
+
+	arg0 = strdup(argv[0]);
+	exe_dir = realpath(dirname(arg0), NULL);
+	char *current_dir = get_current_dir_name();
+	char *dest_dir = NULL;
 	printf("Current directory: %s\n", current_dir);
-	readlink("/proc/self/exe", exe_dir, PATH_MAX);
-	config_opts.config_dir = dirname(exe_dir);
-	config_opts.dest_dir = NULL;
 
 	int opt;
 	while ((opt = getopt(argc, argv, "c")) != -1) {
 		switch (opt) {
 		case 'c':{
-				config_opts.dest_dir = current_dir;
+				dest_dir = current_dir;
 				break;
 			}
 		case ':':{
@@ -196,12 +231,19 @@ int main(int argc, char *argv[]) {
 	char *input_file = argv[optind];
 #endif
 	printf("Input file: %s\n", input_file);
-	if (config_opts.dest_dir == NULL)
-		config_opts.dest_dir = dirname(strdup(input_file));
-	if (strlen(config_opts.dest_dir) == 1 && config_opts.dest_dir[0] == '.')
-		config_opts.dest_dir = strdup(exe_dir);
-	printf("Destination directory: %s\n", config_opts.dest_dir);
-	int exit_code = handle_file(input_file, &config_opts);
+	if (dest_dir == NULL){
+		argfile = strdup(input_file);
+		dest_dir = realpath(dirname(argfile), NULL);
+	}
+	if (strlen(dest_dir) == 1 && *dest_dir == '.')
+		dest_dir = current_dir;
+	printf("Destination directory: %s\n", dest_dir);
+	int exit_code = handle_file(input_file, dest_dir);
+
+	free(argfile);
+	free(arg0);
+	free(current_dir);
+
 	if (exit_code == EXIT_FAILURE)
 		return err_ret("Unsupported input file format: %s\n\n", input_file);
 
