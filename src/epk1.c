@@ -53,7 +53,7 @@ void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) 
 	if ((buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED) {
 		err_exit("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
 	}
-	char verString[1024];
+	char verString[12];
 	int index;
 	uint32_t pakcount = ((struct epk1Header_t *)buffer)->pakCount;
 	if (pakcount >> 8 != 0) {
