@@ -70,10 +70,9 @@ if [ ! "$1" == "clean" ]; then
 
 		cd ..
 		if [ -d "keys" ]; then
-			keys=($(ls -1 keys/))
-			for key in ${keys[@]}; do
-				$lblue; echo "Installing $key"; $normal
-				cp keys/$key $rel/
+			for key in $(find ${sourcedir}/keys -iname "*.pem" -or -iname "*.key" | sort); do
+				$lblue; echo "Installing $(basename $key)"; $normal
+				cp $key $rel/
 			done
 		fi
 		$lgreen; echo "Build completed!"; $normal
