@@ -67,10 +67,10 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
-	} else if (isFileEPK2(file, config_opts)) {
-		extractEPKfile(file, config_opts, EPK_V2);
+	} else if (isFileEPK2(file)) {
+		extractEPK2file(file, config_opts);
 	} else if (isFileEPK3(file)) {
-		extractEPKfile(file, config_opts, EPK_V3);
+		extractEPK3file(file, config_opts);
 	} else if (is_lz4(file)) {
 		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);
 		printf("UnLZ4 file to: %s\n", dest_file);
