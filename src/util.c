@@ -12,6 +12,7 @@
 #include <openssl/aes.h>
 #include <inttypes.h>
 #include <libgen.h>
+#include <errno.h>
 
 //partinfo
 #include <time.h>
@@ -34,9 +35,26 @@ part_struct_type part_type;
 //minigzip
 #include <minigzip.h>
 
-//book and tzfw
+//boot and tzfw
 #include <elf.h>
 #define MTK_PBL_SIZE 0x9FFF
+
+
+char *my_basename(const char *path){
+	char *cpy = strdup(path);
+	char *ret = basename(cpy);
+	ret = strdup(ret);
+	free(cpy);
+	return ret;
+}
+
+char *my_dirname(const char *path){
+	char *cpy = strdup(path);
+	char *ret = dirname(cpy);
+	ret = strdup(ret);
+	free(cpy);
+	return ret;
+}
 
 void SwapBytes(void *pv, size_t n) {
 	char *p = pv;
@@ -140,8 +158,9 @@ void err_exit(const char *format, ...) {
 void createFolder(const char *directory) {
 	struct stat st;
 	if (stat(directory, &st) != 0) {
-		if (mkdir((const char *)directory, 0744) != 0)
-			err_exit("FATAL: Can't create directory '%s'\n\n", directory);
+		if (mkdir((const char *)directory, 0744) != 0){
+			err_exit("FATAL: Can't create directory '%s' (%s)\n\n", directory, strerror(errno));
+		}
 	}
 }
 
@@ -479,8 +498,8 @@ int isPartPakfile(const char *filename) {
 	size_t size = sizeof(struct p2_partmap_info);
 	fread(&partinfo, 1, size, file);
 
-	char cmagic[4];
-	sprintf(cmagic, "%x", partinfo.magic);
+	char *cmagic;
+	asprintf(&cmagic, "%x", partinfo.magic);
 
 	if (isdatetime((char *)cmagic)) {
 		printf("Found valid partpak magic 0x%x in %s\n", partinfo.magic, filename);

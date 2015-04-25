@@ -41,8 +41,12 @@
 #include "unsquashfs.h"
 #include "error.h"
 
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(__APPLE__)
 #	define sigtimedwait(a,b,c) sigwaitinfo(a,b)
+#endif
+
+#ifdef __APPLE__
+#	define sigwaitinfo(a,b) sigwait(a, b)
 #endif
 
 static int silent = 0;

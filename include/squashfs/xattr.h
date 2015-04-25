@@ -131,3 +131,12 @@ static inline struct xattr_list *get_xattr(int i, unsigned int *count, int j) {
 #        define XATTR_DEF 1
 #    endif
 #endif
+
+#ifdef __APPLE__
+#define llistxattr(path, list, size) \
+(listxattr(path, list, size, XATTR_NOFOLLOW))
+#define lgetxattr(path, name, value, size) \
+(getxattr(path, name, value, size, 0, XATTR_NOFOLLOW))
+#define lsetxattr(path, name, value, size, flags) \
+(setxattr(path, name, value, size, 0, flags | XATTR_NOFOLLOW))
+#endif

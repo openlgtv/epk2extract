@@ -22,6 +22,7 @@
 #include <epk2.h>
 #include <symfile.h>
 #include <minigzip.h>
+#include <util.h>
 
 char *remove_ext(const char *mystr) {
 	char *retstr, *lastdot;
@@ -56,99 +57,107 @@ struct config_opts_t config_opts;
 
 int handle_file(const char *file, struct config_opts_t *config_opts) {
 	char *dest_dir = config_opts->dest_dir;
-	char *file_name = basename(strdup(file));
-	char *file_base = remove_ext(strdup(file_name));
+	char *file_name = my_basename(file);
+	
+	char *file_base = remove_ext(file_name);
 	//char *file_ext = get_ext(strdup(file_name));
-	char *dest_file = calloc(1, strlen(file) + 50);
+	char *dest_file = NULL;
+
+	int result = EXIT_SUCCESS;
 
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
-	} else if (isFileEPK2(file)) {
-		extractEPK2file(file, config_opts);
+	} else if (isFileEPK2(file, config_opts)) {
+		extractEPKfile(file, config_opts, EPK_V2);
 	} else if (isFileEPK3(file)) {
-		extractEPK3file(file, config_opts);
+		extractEPKfile(file, config_opts, EPK_V3);
 	} else if (is_lz4(file)) {
-		sprintf(dest_file, "%s/%s.unlz4", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);
 		printf("UnLZ4 file to: %s\n", dest_file);
 		if (!decode_file(file, dest_file))
 			handle_file(dest_file, config_opts);
 	} else if (check_lzo_header(file)) {
 		if (!strcmp(file_name, "logo.pak"))
-			sprintf(dest_file, "%s/%s.bmp", dest_dir, file_name);
+			asprintf(&dest_file, "%s/%s.bmp", dest_dir, file_name);
 		else
-			sprintf(dest_file, "%s/%s.unlzo", dest_dir, file_name);
+			asprintf(&dest_file, "%s/%s.unlzo", dest_dir, file_name);
 		printf("UnLZO file to: %s\n", dest_file);
 		if (!lzo_unpack(file, dest_file))
 			handle_file(dest_file, config_opts);
 	} else if (is_nfsb(file)) {
-		sprintf(dest_file, "%s/%s.unnfsb", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.unnfsb", dest_dir, file_name);
 		printf("UnNFSB file to: %s\n", dest_file);
 		unnfsb(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (is_squashfs(file)) {
-		sprintf(dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
 		printf("UnSQUASHFS file to: %s\n", dest_file);
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
 	} else if (is_gzip(file)) {
-		sprintf(dest_file, "%s/", dest_dir);
+		asprintf(&dest_file, "%s/", dest_dir);
 		printf("UnGZIP %s to folder %s\n", file, dest_file);
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		handle_file(dest_file, config_opts);
 	} else if (is_mtk_boot(file)) {
-		sprintf(dest_file, "%s/mtk_1bl.bin", dest_dir);
+		asprintf(&dest_file, "%s/mtk_1bl.bin", dest_dir);
 		printf("[MTK] Extracting primary bootloader to %s...\n", dest_file);
 		extract_mtk_boot(file, dest_file);
 		printf("[MTK] Extracting embedded LZHS files...\n");
 		extract_lzhs(file);
 	} else if (is_cramfs_image(file, "be")) {
-		sprintf(dest_file, "%s/%s.cramswap", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.cramswap", dest_dir, file_name);
 		printf("Swapping cramfs endian for file %s\n", file);
 		cramswap(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (is_cramfs_image(file, "le")) {
-		sprintf(dest_file, "%s/%s.uncramfs", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.uncramfs", dest_dir, file_name);
 		printf("UnCRAMFS %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 	} else if (is_kernel(file)) {
-		sprintf(dest_file, "%s/%s.unpaked", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.unpaked", dest_dir, file_name);
 		printf("Extracting boot image (kernel) to: %s\n", dest_file);
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
 	} else if (isPartPakfile(file)) {
-		sprintf(dest_file, "%s/%s.txt", dest_dir, file_base);
+		asprintf(&dest_file, "%s/%s.txt", dest_dir, file_base);
 		printf("Saving partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
 	} else if (is_jffs2(file)) {
-		sprintf(dest_file, "%s/%s.unjffs2", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.unjffs2", dest_dir, file_name);
 		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		jffs2extract(file, dest_file, "1234");
 	} else if (isSTRfile(file)) {
-		sprintf(dest_file, "%s/%s.ts", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		setKey();
 		printf("\nConverting %s file to TS: %s\n", file, dest_file);
 		convertSTR2TS(file, dest_file, 0);
 	} else if (!memcmp(&file[strlen(file) - 3], "PIF", 3)) {
-		sprintf(dest_file, "%s/%s.ts", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		setKey();
 		printf("\nProcessing PIF file: %s\n", file);
 		processPIF(file, dest_file);
 	} else if (symfile_load(file) == 0) {
-		sprintf(dest_file, "%s/%s.idc", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.idc", dest_dir, file_name);
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
 	} else if (is_lzhs(file)) {
-		sprintf(dest_file, "%s/%s.unlzhs", dest_dir, file_name);
+		asprintf(&dest_file, "%s/%s.unlzhs", dest_dir, file_name);
 		printf("UnLZHS %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
 		printf("Splitting mtk tzfw...\n");
 		split_mtk_tz(file, dest_dir);
-	} else
-		return EXIT_FAILURE;
-	return EXIT_SUCCESS;
+	} else {
+		result = EXIT_FAILURE;
+		goto ret;
+	}
+	ret:
+	free(file_name);
+	free(file_base);
+	return result;
 }
 
 int main(int argc, char *argv[]) {
@@ -161,19 +170,32 @@ int main(int argc, char *argv[]) {
 		return err_ret("");
 	}
 
-	char exe_dir[PATH_MAX];
-	char *current_dir = malloc(PATH_MAX);
+	char *exe_dir = calloc(1, PATH_MAX);
+	char *current_dir = calloc(1, PATH_MAX);
+	
+	#ifdef __APPLE__
+	uint32_t pathsz = PATH_MAX;
+	if (_NSGetExecutablePath(exe_dir, &pathsz) == 0){
+		printf("Executable path is %s\n", exe_dir);
+	} else {
+		printf("Buffer too small; need size %u\n", PATH_MAX);
+		return EXIT_FAILURE;
+	}
+	config_opts.config_dir = my_dirname(exe_dir);
+	#else
 	getcwd(current_dir, PATH_MAX);
 	printf("Current directory: %s\n", current_dir);
 	readlink("/proc/self/exe", exe_dir, PATH_MAX);
-	config_opts.config_dir = dirname(exe_dir);
-	config_opts.dest_dir = NULL;
+	#endif
+	
+	config_opts.config_dir = my_dirname(exe_dir);
+	config_opts.dest_dir = calloc(1, PATH_MAX);
 
 	int opt;
 	while ((opt = getopt(argc, argv, "c")) != -1) {
 		switch (opt) {
 		case 'c':{
-				config_opts.dest_dir = current_dir;
+				strcpy(config_opts.dest_dir, current_dir);
 				break;
 			}
 		case ':':{
@@ -196,12 +218,23 @@ int main(int argc, char *argv[]) {
 	char *input_file = argv[optind];
 #endif
 	printf("Input file: %s\n", input_file);
-	if (config_opts.dest_dir == NULL)
-		config_opts.dest_dir = dirname(strdup(input_file));
-	if (strlen(config_opts.dest_dir) == 1 && config_opts.dest_dir[0] == '.')
-		config_opts.dest_dir = strdup(exe_dir);
+	if (strlen(config_opts.dest_dir) == 0){
+			char *dname = my_dirname(input_file);
+			strcpy(config_opts.dest_dir, dname);
+			free(dname);
+	}
+	if (strlen(config_opts.dest_dir) == 0 && config_opts.dest_dir[0] == '.'){
+		char *dname = my_dirname(exe_dir);
+		strcpy(config_opts.dest_dir, dname);
+	}
+
 	printf("Destination directory: %s\n", config_opts.dest_dir);
+	
+	free(exe_dir);
+	free(current_dir);
+
 	int exit_code = handle_file(input_file, &config_opts);
+	
 	if (exit_code == EXIT_FAILURE)
 		return err_ret("Unsupported input file format: %s\n\n", input_file);
 
