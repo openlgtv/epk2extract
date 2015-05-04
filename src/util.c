@@ -16,7 +16,6 @@
 
 //partinfo
 #include <time.h>
-#include <fnmatch.h>
 #include <partinfo.h>
 char *modelname;
 char *mtdname;
@@ -444,14 +443,14 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	part_struct_type retval;
 	char *model;
 	part_type = STRUCT_INVALID;
-	int ismtk1 = !fnmatch("mtk3569-emmc", pid->name, FNM_NOMATCH);	//match mtk2012
-	int ismtk2 = !fnmatch("mtk3598-emmc", pid->name, FNM_NOMATCH);	//match mtk2013
-	int is1152 = !fnmatch("l9_emmc", pid->name, FNM_NOMATCH);	//match 1152
-	int is1154 = !fnmatch("h13_emmc", pid->name, FNM_NOMATCH);	//match 1154
-	int isbcm1 = !fnmatch("bcm35xx_map0", pid->name, FNM_NOMATCH);	//match broadcom
-	int isbcm2 = !fnmatch("bcm35230_map0", pid->name, FNM_NOMATCH);	//match broadcom
-	int ismstar = !fnmatch("mstar_map0", pid->name, FNM_NOMATCH);	//match mstar
-	int islm14 = !fnmatch("mstar-emmc", pid->name, FNM_NOMATCH); //match lm14
+	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
+	int ismtk2 = !strcmp("mtk3598-emmc", pid->name);  //match mtk2013
+	int is1152 = !strcmp("l9_emmc", pid->name);       //match 1152
+	int is1154 = !strcmp("h13_emmc", pid->name);      //match 1154
+	int isbcm1 = !strcmp("bcm35xx_map0", pid->name);  //match broadcom
+	int isbcm2 = !strcmp("bcm35230_map0", pid->name); //match broadcom
+	int ismstar = !strcmp("mstar_map0", pid->name);   //match mstar
+	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
 
 	if (ismtk1)
 		model = "Mtk 2012 - MTK5369";
