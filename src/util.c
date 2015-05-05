@@ -446,7 +446,7 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
 	int ismtk2 = !strcmp("mtk3598-emmc", pid->name);  //match mtk2013
 	int is1152 = !strcmp("l9_emmc", pid->name);       //match 1152
-	int is1154 = !strcmp("h13_emmc", pid->name);      //match 1154
+	int is1154 = !strcmp("h13_emmc", pid->name);      //match 1154/lg1311
 	int isbcm1 = !strcmp("bcm35xx_map0", pid->name);  //match broadcom
 	int isbcm2 = !strcmp("bcm35230_map0", pid->name); //match broadcom
 	int ismstar = !strcmp("mstar_map0", pid->name);   //match mstar
@@ -455,17 +455,17 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	if (ismtk1)
 		model = "Mtk 2012 - MTK5369";
 	else if (ismtk2)
-		model = "Mtk 2012 - MTK5398";
+		model = "Mtk 2013 - MTK5398";
 	else if (is1152)
-		model = "LG1152";
+		model = "LG1152 (L9)";
 	else if (is1154)
-		model = "LG1154";
+		model = "LG1154 (H13) / LG1311 (M14)";
 	else if (isbcm1)
 		model = "BCM 2010 - BCM35XX";
 	else if (isbcm2)
 		model = "BCM 2011 - BCM35230";
 	else if (ismstar)
-		model = "Mstar Saturn/M1/LM1";
+		model = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
 	else if (islm14)
 		model = "Mstar LM14";
 	else
