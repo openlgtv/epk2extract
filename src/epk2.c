@@ -79,10 +79,10 @@ void printPAKinfo(struct pak2_t *pak) {
 	for (index = 0; index < pak->segment_count; index++) {
 		struct pak2segment_t *PAKsegment = pak->segments[index];
 		int headerSize = sizeof(struct pak2segmentHeader_t);
-		unsigned char decrypted[headerSize];
-		decryptImage(PAKsegment->header->signature, headerSize, &decrypted);
+		unsigned char *decrypted = calloc(1, headerSize);
+		decryptImage(PAKsegment->header->signature, headerSize, decrypted);
 		//hexdump(decrypted, headerSize);
-		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)(&decrypted);
+		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)decrypted;
 		printf("  segment #%u (name='%.4s', version='%02x.%02x.%02x.%02x', platform='%s', offset='0x%x', size='%u bytes', ", index + 1, pak->header->name, decryptedSegmentHeader->version[3], decryptedSegmentHeader->version[2], decryptedSegmentHeader->version[1], decryptedSegmentHeader->version[0], decryptedSegmentHeader->platform, PAKsegment->content_file_offset, PAKsegment->content_len);
 		switch ((build_type_t) decryptedSegmentHeader->devmode) {
 		case RELEASE:
@@ -98,6 +98,7 @@ void printPAKinfo(struct pak2_t *pak) {
 			printf("build=UNKNOWN %0x%x\n", decryptedSegmentHeader->devmode);
 		}
 		printf(")\n");
+		free(decrypted);
 	}
 }
 
@@ -353,9 +354,10 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 
 			printf("  segment #%u (name='%s', version='%02x.%02x.%02x.%02x', offset='0x%lx', size='%u bytes')\n", index + 1, segment.name, segment.unknown1[3], segment.unknown1[2], segment.unknown1[1], segment.unknown1[0], offset + SIGNATURE_SIZE, realSegmentSize);
 
-			unsigned char decrypted[realSegmentSize];
-			decryptImage(buffer + offset + SIGNATURE_SIZE, realSegmentSize, &decrypted);
-			fwrite(&decrypted, 1, realSegmentSize, outfile);
+			unsigned char *decrypted = calloc(1, realSegmentSize);
+			decryptImage(buffer + offset + SIGNATURE_SIZE, realSegmentSize, decrypted);
+			fwrite(decrypted, 1, realSegmentSize, outfile);
+			free(decrypted);
 			size += realSegmentSize;
 			offset += realSegmentSize + SIGNATURE_SIZE;
 		}
