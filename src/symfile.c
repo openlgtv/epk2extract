@@ -50,9 +50,15 @@ struct symfile_header {
 	uint32_t tail_size;
 }__attribute__((packed));
 
-struct sym_table sym_table = { .n_symbols = 0, .sym_entry = NULL, .hash = NULL,
-		.n_dwarf_lst = 0, .dwarf_lst = NULL, .dwarf_data = NULL, .sym_name =
-				NULL };
+struct sym_table sym_table = {
+	.n_symbols = 0,
+	.sym_entry = NULL,
+	.hash = NULL,
+	.n_dwarf_lst = 0,
+	.dwarf_lst = NULL,
+	.dwarf_data = NULL,
+	.sym_name = NULL
+};
 
 int symfile_load(const char *fname) {
 	int fd = -1;
@@ -96,10 +102,8 @@ int symfile_load(const char *fname) {
 		return -1;
 	}
 
-	if ((header->tail_size + sizeof(struct sym_entry) * header->n_symbols)
-			!= header->size) {
+	if ((header->tail_size + sizeof(struct sym_entry) * header->n_symbols)	!= header->size) {
 		say_error("file `%s' is broken", fname);
-
 		return -1;
 	}
 
@@ -144,8 +148,7 @@ int symfile_load(const char *fname) {
 uint32_t symfile_addr_by_name(const char *name) {
 	unsigned i = 0;
 	for (i = 0; i < sym_table.n_symbols; ++i) {
-		char *sym_name = sym_table.sym_name
-				+ sym_table.sym_entry[i].sym_name_off;
+		char *sym_name = sym_table.sym_name	+ sym_table.sym_entry[i].sym_name_off;
 
 		if (strcmp(sym_name, name) == 0)
 			return sym_table.sym_entry[i].addr;
@@ -200,8 +203,7 @@ void symfile_write_idc(const char *fname) {
 const char *symfile_name_by_addr(uint32_t addr) {
 	int i = 0;
 	for (i = sym_table.n_symbols - 1; i >= 0; --i) {
-		if (sym_table.sym_entry[i].addr <= addr && sym_table.sym_entry[i].end
-				> addr)
+		if (sym_table.sym_entry[i].addr <= addr && sym_table.sym_entry[i].end > addr)
 			return sym_table.sym_name + sym_table.sym_entry[i].sym_name_off;
 	}
 
