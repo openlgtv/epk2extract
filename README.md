@@ -4,6 +4,7 @@ epk2extract
 ===========
 
 [![Join the chat at https://gitter.im/openlgtv/epk2extract](https://badges.gitter.im/openlgtv/epk2extract.svg)](https://gitter.im/openlgtv/epk2extract?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TV sets.
 
 Supported Formats:
@@ -66,7 +67,7 @@ To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
 
     cd epk2extract ; ./build.sh
 
-After building epk2extract can be found in ./build_linux/ 
+After building, epk2extract can be found in ./build_<platform>/ 
 
 
 To compile on Cygwin:
