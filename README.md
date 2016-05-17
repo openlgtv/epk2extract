@@ -9,7 +9,7 @@ epk2extract is a tool that can extract, decrypt, convert multiple file formats t
 
 Supported Formats:
 ===========================================
-**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV. We're thinking about releasing the keys extracted in the near future.**
+**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV.**
 
 **NOTE: To decrypt PVR recordings you need a dump of the unique AES-128 key from your TV**
 
