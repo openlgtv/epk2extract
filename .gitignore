@@ -20,10 +20,6 @@ install_manifest.txt
 
 ### Epk2Extract ###
 
-# Keys
-*.key
-*.pem
-
 # build
 build_linux
 build_cygwin
