@@ -19,6 +19,9 @@
 #    include <sys/cygwin.h>
 #endif
 
+#include "config.h"
+#include "mfile.h"
+
 #include "epk1.h"		/* EPK v1 */
 #include "epk2.h"		/* EPK v2 and v3 */
 #include "cramfs/cramfs.h"	/* CRAMFS */
@@ -75,17 +78,19 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 
 	int result = EXIT_SUCCESS;
 
+	MFILE *mf = NULL;
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
 	} else if (isFileEPK2(file)) {
 		extractEPK2file(file, config_opts);
-	} else if (isFileEPK3(file)) {
+	/* LZ4 */
 		extractEPK3file(file, config_opts);
-	} else if (is_lz4(file)) {
+	} else if ((mf=is_lz4(file))) {
 		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);
 		printf("UnLZ4 file to: %s\n", dest_file);
 		if (!LZ4_decode_file(file, dest_file))
 			handle_file(dest_file, config_opts);
+	/* LZO */
 	} else if (check_lzo_header(file)) {
 		if (!strcmp(file_name, "logo.pak"))
 			asprintf(&dest_file, "%s/%s.bmp", dest_dir, file_name);
@@ -94,79 +99,99 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("UnLZO file to: %s\n", dest_file);
 		if (!lzo_unpack(file, dest_file))
 			handle_file(dest_file, config_opts);
-	} else if (is_nfsb(file)) {
+	/* NFSB */
+	} else if ((mf=is_nfsb(file))) {
 		asprintf(&dest_file, "%s/%s.unnfsb", dest_dir, file_name);
 		printf("UnNFSB file to: %s\n", dest_file);
 		unnfsb(file, dest_file);
 		handle_file(dest_file, config_opts);
+	/* SQUASHFS */
 	} else if (is_squashfs(file)) {
 		asprintf(&dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
 		printf("UnSQUASHFS file to: %s\n", dest_file);
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
+	/* GZIP */
 	} else if (is_gzip(file)) {
 		asprintf(&dest_file, "%s/", dest_dir);
 		printf("UnGZIP %s to folder %s\n", file, dest_file);
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		handle_file(dest_file, config_opts);
+	/* MTK boot partition */
 	} else if (is_mtk_boot(file)) {
 		asprintf(&dest_file, "%s/mtk_1bl.bin", dest_dir);
 		printf("[MTK] Extracting primary bootloader to %s...\n", dest_file);
 		extract_mtk_boot(file, dest_file);
 		printf("[MTK] Extracting embedded LZHS files...\n");
 		extract_lzhs(file);
+	/* CRAMFS Big Endian */
 	} else if (is_cramfs_image(file, "be")) {
 		asprintf(&dest_file, "%s/%s.cramswap", dest_dir, file_name);
 		printf("Swapping cramfs endian for file %s\n", file);
 		cramswap(file, dest_file);
 		handle_file(dest_file, config_opts);
+	/* CRAMFS Little Endian */
 	} else if (is_cramfs_image(file, "le")) {
 		asprintf(&dest_file, "%s/%s.uncramfs", dest_dir, file_name);
 		printf("UnCRAMFS %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
+	/* Kernel uImage */
 	} else if (is_kernel(file)) {
 		asprintf(&dest_file, "%s/%s.unpaked", dest_dir, file_name);
 		printf("Extracting boot image (kernel) to: %s\n", dest_file);
 		extract_kernel(file, dest_file);
 		handle_file(dest_file, config_opts);
+	/* Partition Table (partinfo) */
 	} else if (isPartPakfile(file)) {
 		asprintf(&dest_file, "%s/%s.txt", dest_dir, file_base);
 		printf("Saving partition info to: %s\n", dest_file);
 		dump_partinfo(file, dest_file);
+	/* JFFS2 */
 	} else if (is_jffs2(file)) {
 		asprintf(&dest_file, "%s/%s.unjffs2", dest_dir, file_name);
 		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
 		jffs2extract(file, dest_file, "1234");
+	/* PVR STR (ts/m2ts video) */
 	} else if (isSTRfile(file)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		setKey();
 		printf("\nConverting %s file to TS: %s\n", file, dest_file);
 		convertSTR2TS(file, dest_file, 0);
+	/* PVR PIF (Program Information File) */ 
 	} else if (!memcmp(&file[strlen(file) - 3], "PIF", 3)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		setKey();
 		printf("\nProcessing PIF file: %s\n", file);
 		processPIF(file, dest_file);
+	/* SYM File (Debugging information) */
 	} else if (symfile_load(file) == 0) {
 		asprintf(&dest_file, "%s/%s.idc", dest_dir, file_name);
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
+	/* MTK LZHS (Modified LZSS + Huffman) */
 	} else if (is_lzhs(file)) {
 		asprintf(&dest_file, "%s/%s.unlzhs", dest_dir, file_name);
 		printf("UnLZHS %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
+	/* MTK TZFW (TrustZone Firmware) */
 	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
 		printf("Splitting mtk tzfw...\n");
 		split_mtk_tz(file, dest_dir);
 	} else {
 		result = EXIT_FAILURE;
-		goto ret;
 	}
-	ret:
+	
+	if(mf != NULL)
+		mclose(mf);
+
 	free(file_name);
 	free(file_base);
+	
+	if(dest_file != NULL)
+		free(dest_file);
+	
 	return result;
 }
 

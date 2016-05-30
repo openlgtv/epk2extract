@@ -14,6 +14,8 @@
 #include <libgen.h>
 #include <errno.h>
 
+#include "mfile.h"
+
 //partinfo
 #include <time.h>
 #include "partinfo.h"
@@ -129,7 +131,7 @@ int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	return rv;
 }
 
-void rmrf(char *path) {
+void rmrf(const char *path) {
 	struct stat status;
 	if (stat(path, &status) == 0)
 		nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
@@ -163,29 +165,34 @@ void createFolder(const char *directory) {
 	}
 }
 
-int is_lz4(const char *lz4file) {
-	FILE *file = fopen(lz4file, "rb");
-	if (file == NULL)
+MFILE *is_lz4(const char *lz4file) {
+	MFILE *file = mopen(lz4file, O_RDONLY);
+	if (!file){
 		err_exit("Can't open file %s\n\n", lz4file);
+	}
+	if(!memcmp(mdata(file, uint8_t), "LZ4P", 4))
+		return file;
 
-	char magic[4];
-	if (fread(&magic, 1, 4, file) != 4)
-		return 0;
-	return !memcmp(&magic, "LZ4P", 4);
+	mclose(file);
+	return NULL;
 }
 
-int is_nfsb(const char *filename) {
-	FILE *file = fopen(filename, "rb");
-	if (file == NULL)
+MFILE *is_nfsb(const char *filename) {
+	MFILE *file = mopen(filename, O_RDONLY);
+	if (!file){
 		err_exit("Can't open file %s\n\n", filename);
+	}
 
-	char header[0x11];
-	if (fread(&header, 1, sizeof(header), file) != sizeof(header))
-		return 0;
-	fclose(file);
-	if (memcmp(&header, "NFSB", 4) == 0)
-		return !memcmp(&header[0xE], "md5", 3);
-	return 0;
+	uint8_t *data = mdata(file, uint8_t);
+	if (
+		!memcmp(data, "NFSB", 4) &&
+		!memcmp(data + 0xE, "md5", 3)
+	){
+		return file;
+	}
+
+	mclose(file);
+	return NULL;
 }
 
 void unnfsb(char *filename, char *extractedFile) {
