@@ -118,10 +118,12 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
 		handle_file(dest_file, config_opts);
 	/* MTK boot partition */
-	} else if (is_mtk_boot(file)) {
+	} else if ((mf=is_mtk_boot(file))) {
 		asprintf(&dest_file, "%s/mtk_1bl.bin", dest_dir);
-		printf("[MTK] Extracting primary bootloader to %s...\n", dest_file);
-		extract_mtk_boot(file, dest_file);
+
+		printf("[MTK] Extracting 1BL to mtk_1bl.bin...\n");
+		extract_mtk_1bl(mf, dest_file);
+
 		printf("[MTK] Extracting embedded LZHS files...\n");
 		extract_lzhs(file);
 	/* CRAMFS Big Endian */
