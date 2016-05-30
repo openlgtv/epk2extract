@@ -34,6 +34,7 @@
 #include "minigzip.h"	/* GZIP */
 #include "symfile.h"	/* SYM */
 #include "tsfile.h"		/* STR and PIF */
+#include "mediatek.h"	/* MTK Boot */
 #include "u-boot/partinfo.h"	/* PARTINFO */
 #include "util.h"
 
@@ -68,7 +69,7 @@ char *get_ext(const char *mystr) {
 
 struct config_opts_t config_opts;
 
-int handle_file(const char *file, struct config_opts_t *config_opts) {
+int handle_file(char *file, struct config_opts_t *config_opts) {
 	char *dest_dir = config_opts->dest_dir;
 	char *file_name = my_basename(file);
 	
@@ -115,7 +116,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else if (is_gzip(file)) {
 		asprintf(&dest_file, "%s/", dest_dir);
 		printf("UnGZIP %s to folder %s\n", file, dest_file);
-		strcpy(dest_file, file_uncompress_origname((char *)file, dest_file));
+		strcpy(dest_file, file_uncompress_origname(file, dest_file));
 		handle_file(dest_file, config_opts);
 	/* MTK boot partition */
 	} else if ((mf=is_mtk_boot(file))) {
@@ -178,9 +179,9 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		printf("UnLZHS %s to %s\n", file, dest_file);
 		lzhs_decode(file, dest_file);
 	/* MTK TZFW (TrustZone Firmware) */
-	} else if (!strcmp(file_name, "tzfw.pak") && is_elf(file)) {
+	} else if (!strcmp(file_name, "tzfw.pak") && (mf=is_elf(file))) {
 		printf("Splitting mtk tzfw...\n");
-		split_mtk_tz(file, dest_dir);
+		split_mtk_tz(mf, dest_dir);
 	} else {
 		result = EXIT_FAILURE;
 	}

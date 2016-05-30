@@ -2,6 +2,7 @@
 #define __UTIL_H
 #include <stddef.h>
 #include <elf.h>
+#include "mfile.h"
 
 char *my_basename(const char *path);
 char *my_dirname(const char *path);
@@ -11,9 +12,9 @@ void rmrf(char *path);
 int err_ret(const char *format, ...);
 void err_exit(const char *format, ...);
 void createFolder(const char *directory);
-int is_lz4(const char *lz4file);
-int is_nfsb(const char *filename);
-void unnfsb(char *filename, char *extractedFile);
+MFILE *is_lz4(const char *lz4file);
+MFILE *is_nfsb(const char *filename);
+void unnfsb(const char *filename, const char *extractedFile);
 int is_lzhs(const char *filename);
 int is_gzip(const char *filename);
 int is_jffs2(const char *filename);

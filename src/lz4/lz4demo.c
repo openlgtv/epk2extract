@@ -118,7 +118,7 @@ int badusage(char *exename) {
 	return 0;
 }
 
-int get_fileHandle(char *input_filename, char *output_filename, FILE ** pfinput, FILE ** pfoutput) {
+int get_fileHandle(const char *input_filename, const char *output_filename, FILE ** pfinput, FILE ** pfoutput) {
 	char stdinmark[] = "stdin";
 	char stdoutmark[] = "stdout";
 

@@ -195,7 +195,7 @@ MFILE *is_nfsb(const char *filename) {
 	return NULL;
 }
 
-void unnfsb(char *filename, char *extractedFile) {
+void unnfsb(const char *filename, const char *extractedFile) {
 	int fdin, fdout;
 	char *src, *dst;
 	struct stat statbuf;

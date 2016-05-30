@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -50,7 +50,7 @@ int API_SWU_VerifyImage(unsigned char *image, unsigned int imageSize) {
 	EVP_MD_CTX ctx1, ctx2;
 	EVP_DigestInit(&ctx1, EVP_get_digestbyname("sha1"));
 	EVP_DigestUpdate(&ctx1, image + SIGNATURE_SIZE, imageSize - SIGNATURE_SIZE);
-	EVP_DigestFinal(&ctx1, &md_value, &md_len);
+	EVP_DigestFinal(&ctx1, (unsigned char *)&md_value, &md_len);
 	EVP_DigestInit(&ctx2, EVP_sha1());
 	EVP_DigestUpdate(&ctx2, &md_value, md_len);
 	int result = 0;
@@ -136,7 +136,7 @@ void SelectAESkey(struct pak2_t *pak, struct config_opts_t *config_opts) {
 			printf("%02X", aes_key[i]);
 		printf(") for PAK segment decryption...");
 		struct pak2segment_t *PAKsegment = pak->segments[0];
-		decryptImage(PAKsegment->header->signature, headerSize, &decrypted);
+		decryptImage(PAKsegment->header->signature, headerSize, (unsigned char *)&decrypted);
 		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)(&decrypted);
 		if (!memcmp(decryptedSegmentHeader->pakMagic, "MPAK", 4)) {
 			printf("Success!\n");
