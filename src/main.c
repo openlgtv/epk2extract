@@ -126,7 +126,7 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		extract_mtk_1bl(mf, dest_file);
 
 		printf("[MTK] Extracting embedded LZHS files...\n");
-		extract_lzhs(file);
+		extract_lzhs(mf);
 	/* CRAMFS Big Endian */
 	} else if (is_cramfs_image(file, "be")) {
 		asprintf(&dest_file, "%s/%s.cramswap", dest_dir, file_name);
@@ -174,10 +174,10 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		printf("Converting SYM file to IDC script: %s\n", dest_file);
 		symfile_write_idc(dest_file);
 	/* MTK LZHS (Modified LZSS + Huffman) */
-	} else if (is_lzhs(file)) {
+	} else if ((mf=is_lzhs(file))) {
 		asprintf(&dest_file, "%s/%s.unlzhs", dest_dir, file_name);
 		printf("UnLZHS %s to %s\n", file, dest_file);
-		lzhs_decode(file, dest_file);
+		lzhs_decode(mf, dest_file);
 	/* MTK TZFW (TrustZone Firmware) */
 	} else if (!strcmp(file_name, "tzfw.pak") && (mf=is_elf(file))) {
 		printf("Splitting mtk tzfw...\n");

@@ -2,6 +2,9 @@
 #define _LZHS_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include "mfile.h"
 
 struct lzhs_header {
 	uint32_t uncompressedSize, compressedSize;
@@ -19,9 +22,14 @@ typedef struct __attribute__ ((__packed__)) {
 	uint32_t len;
 } t_code;
 
-int is_lzhs_mem(struct lzhs_header *header);
-void extract_lzhs(const char *filename);
-void lzhs_decode(const char *infile, const char *outfile);
+void unlzss(cursor_t *in, cursor_t *out);
+void unhuff(cursor_t *in, cursor_t *out);
+
+MFILE *is_lzhs(const char *filename);
+bool _is_lzhs_mem(struct lzhs_header *header);
+bool is_lzhs_mem(MFILE *file, off_t offset);
+int extract_lzhs(MFILE *in_file);
+int lzhs_decode(MFILE *in_file, const char *out_path);
 void lzhs_encode(const char *infile, const char *outfile);
 void scan_lzhs(const char *filename, int extract);
 

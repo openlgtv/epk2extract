@@ -15,7 +15,6 @@ void createFolder(const char *directory);
 MFILE *is_lz4(const char *lz4file);
 MFILE *is_nfsb(const char *filename);
 void unnfsb(const char *filename, const char *extractedFile);
-int is_lzhs(const char *filename);
 int is_gzip(const char *filename);
 int is_jffs2(const char *filename);
 int isSTRfile(const char *filename);

@@ -241,26 +241,6 @@ void unnfsb(const char *filename, const char *extractedFile) {
 	close(fdin);
 }
 
-int is_lzhs(const char *filename) {
-	FILE *file = fopen(filename, "rb");
-	if (file == NULL) {
-		err_exit("Can't open file %s\n", filename);
-	}
-	size_t threshold = 10;
-	struct lzhs_header header;
-	int read = fread(&header, 1, sizeof(header), file);
-	if (read == sizeof(header)) {
-		fseek(file, 0, SEEK_END);
-		size_t diff = ftell(file) - sizeof(header) - header.compressedSize;
-		if (diff <= threshold && (memcmp(&header.spare, "\0\0\0\0\0\0\0", sizeof(header.spare)) == 0)) {
-			fclose(file);
-			return 1;
-		}
-	}
-	fclose(file);
-	return 0;
-}
-
 int is_gzip(const char *filename) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
