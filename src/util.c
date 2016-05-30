@@ -15,6 +15,7 @@
 #include <errno.h>
 
 #include "mfile.h"
+#include "util.h"
 
 //partinfo
 #include <time.h>
@@ -147,13 +148,6 @@ int err_ret(const char *format, ...) {
 	getch();
 #endif
 	return EXIT_FAILURE;
-}
-
-void err_exit(const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	exit(err_ret(format, args));
-	va_end(args);
 }
 
 void createFolder(const char *directory) {
