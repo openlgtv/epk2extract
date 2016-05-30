@@ -29,8 +29,6 @@
 
 #include <symfile.h>
 
-#include <log.h>
-
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -70,13 +68,13 @@ int symfile_load(const char *fname) {
 
 	fd = open(fname, O_RDONLY);
 	if (fd == -1) {
-		say_error("can't open `%s': %m", fname);
+		fprintf(stderr, "can't open `%s': %m", fname);
 
 		return -1;
 	}
 
 	if (fstat(fd, &st_buf) != 0) {
-		say_error("fstat for `%s' is failed: %m", fname);
+		fprintf(stderr, "fstat for `%s' is failed: %m", fname);
 
 		return -1;
 	}
@@ -85,25 +83,25 @@ int symfile_load(const char *fname) {
 	header = p;
 	p += sizeof(*header);
 	if (header == NULL) {
-		say_error("can't mmap `%s': %m", fname);
+		fprintf(stderr, "can't mmap `%s': %m", fname);
 
 		return -1;
 	}
 
 	if (header->magic != MAGIC) {
-		//say_error("bad magic 0x%x from `%s'", header->magic, fname);
+		//fprintf(stderr, "bad magic 0x%x from `%s'", header->magic, fname);
 		return -1;
 	}
 
 	if ((header->size + sizeof(*header)) != (uint32_t) st_buf.st_size) {
-		say_error("bad file `%s' size: %su, expected size: %lu", fname,
+		fprintf(stderr, "bad file `%s' size: %su, expected size: %lu", fname,
 				st_buf.st_size, header->size + sizeof(*header));
 
 		return -1;
 	}
 
 	if ((header->tail_size + sizeof(struct sym_entry) * header->n_symbols)	!= header->size) {
-		say_error("file `%s' is broken", fname);
+		fprintf(stderr, "file `%s' is broken", fname);
 		return -1;
 	}
 
@@ -114,7 +112,7 @@ int symfile_load(const char *fname) {
 	has_hash = p;
 	p += sizeof(*has_hash);
 	if (*has_hash != 2 && *has_hash != 0) {
-		say_error("unsupported file `%s' format (unexpected has_hash 0x%x)", fname, *has_hash);
+		fprintf(stderr, "unsupported file `%s' format (unexpected has_hash 0x%x)", fname, *has_hash);
 		return -1;
 	}
 
@@ -140,7 +138,7 @@ int symfile_load(const char *fname) {
 		sym_table.sym_name = (char *)has_dwarf;
 	}
 
-	say_info("`%s' has been successfully loaded", fname);
+	printf("`%s' has been successfully loaded", fname);
 
 	return 0;
 }
