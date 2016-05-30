@@ -84,8 +84,9 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		extract_epk1_file(file, config_opts);
 	} else if (isFileEPK2(file)) {
 		extractEPK2file(file, config_opts);
-	/* LZ4 */
+	} else if(isFileEPK3(file)) {
 		extractEPK3file(file, config_opts);
+	/* LZ4 */
 	} else if ((mf=is_lz4(file))) {
 		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);
 		printf("UnLZ4 file to: %s\n", dest_file);
