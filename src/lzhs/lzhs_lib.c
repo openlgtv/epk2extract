@@ -225,7 +225,7 @@ int lzhs_decode(MFILE *in_file, const char *out_path){
 	
 	MFILE *out_file = mfopen(out_path, "w+");
 	if(!out_file){
-		fprintf(stderr, "Cannot open output file %s\n", out_file);
+		fprintf(stderr, "Cannot open output file %s\n", out_path);
 		return -1;
 	}
 	mfile_map(out_file, header->uncompressedSize);
@@ -272,9 +272,11 @@ int lzhs_decode(MFILE *in_file, const char *out_path){
 	if (checksum != header->checksum)
 		printf("[LZHS] WARNING: Checksum mismatch (expected 0x%x)!!\n", header->checksum);
 	if (out_cur.size != header->uncompressedSize)
-		printf("[LZHS] WARNING: Size mismatch (got %d, expected %d)!!\n", out_cur.size, header->uncompressedSize);	
+		printf("[LZHS] WARNING: Size mismatch (got %zu, expected %d)!!\n", out_cur.size, header->uncompressedSize);	
 	
 	mclose(out_file);
+	
+	return 0;
 }
 
 int process_segment(MFILE *in_file, off_t offset, const char *name){

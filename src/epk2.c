@@ -99,7 +99,7 @@ void printPAKinfo(struct pak2_t *pak) {
 			printf("build=TEST");
 			break;
 		default:
-			printf("build=UNKNOWN %0x%x\n", decryptedSegmentHeader->devmode);
+			printf("build=UNKNOWN 0x%x\n", decryptedSegmentHeader->devmode);
 		}
 		printf(")\n");
 		free(decrypted);
@@ -525,7 +525,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 		unsigned int distance_between_paks = (next_pak_offset->name) - (pak2segmentHeader->name);
 
 		// Last contained PAK...
-		if ((count == (fwInfo->pakCount - 1)))
+		if (count == (fwInfo->pakCount - 1))
 			distance_between_paks = next_pak_length + pak2segmentHeaderSignatureLength;
 		unsigned int max_distance = pakHeader->maxPAKsegmentSize + sizeof(struct pak2segmentHeader_t);
 		while (!verified) {

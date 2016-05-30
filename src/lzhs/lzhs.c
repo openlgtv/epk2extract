@@ -181,7 +181,7 @@ static int getData(cursor_t *in) {
 			return 0;
 		}
 	}
-	code = (code << 1) | (c >> 7 - bitno++) & 1;	// get bit msb - index
+	code = (code << 1) | ((c >> (7 - bitno++)) & 1);	// get bit msb - index
 	len++;
 	return 1;
 }

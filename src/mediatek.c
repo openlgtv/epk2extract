@@ -39,7 +39,7 @@ void split_mtk_tz(MFILE *tz, const char *destdir) {
 		err_exit("Can't open file %s for writing\n", dest);
 
 	tz_size = msize(tz) - MTK_ENV_SIZE;
-	printf("Extracting env.o... (%zu bytes)\n", MTK_ENV_SIZE);
+	printf("Extracting env.o... (%d bytes)\n", MTK_ENV_SIZE);
 
 	uint8_t *indata, *outdata;
 	indata = mdata(tz, uint8_t);
@@ -74,7 +74,7 @@ MFILE *is_mtk_boot(const char *filename) {
 	}
 	if (
 		(msize(file) < MTK_PBL_SIZE) ||
-		(strncmp(data + 0x100, MTK_PBL_MAGIC, strlen(MTK_PBL_MAGIC)) != 0)
+		(memcmp(data + 0x100, MTK_PBL_MAGIC, strlen(MTK_PBL_MAGIC)) != 0)
 	){
 		mclose(file);
 		return NULL;

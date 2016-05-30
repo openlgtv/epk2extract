@@ -1,8 +1,8 @@
 #ifndef _PART_COMMON_H_
 #define _PART_COMMON_H_
 
-#define U64_UPPER(x)	(unsigned long)( x >> 32 )
-#define U64_LOWER(x)	(unsigned long)( x & 0xffffffff)
+#define U64_UPPER(x)	(unsigned long)( (x) >> 32 )
+#define U64_LOWER(x)	(unsigned long)( (x) & 0xffffffff)
 
 /*#ifndef NO
 #define NO							0x00

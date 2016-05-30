@@ -94,7 +94,7 @@ int symfile_load(const char *fname) {
 	}
 
 	if ((header->size + sizeof(*header)) != (uint32_t) st_buf.st_size) {
-		fprintf(stderr, "bad file `%s' size: %su, expected size: %lu", fname,
+		fprintf(stderr, "bad file `%s' size: %zu, expected size: %lu", fname,
 				st_buf.st_size, header->size + sizeof(*header));
 
 		return -1;

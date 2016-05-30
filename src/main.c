@@ -38,6 +38,10 @@
 #include "u-boot/partinfo.h"	/* PARTINFO */
 #include "util.h"
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 char *remove_ext(const char *mystr) {
 	char *retstr, *lastdot;
 	if (mystr == NULL)
