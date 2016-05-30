@@ -34,14 +34,13 @@
 #    include <endian.h>
 #endif
 
-#include <os_byteswap.h>
-#include <mini_inflate.h>
-
 extern unsigned long crc32_no_comp(unsigned long crc, const unsigned char *buf, int len);
 
 #define ES 0x1ff
 
-#include <jffs2/jffs2.h>
+#include "os_byteswap.h"
+#include "jffs2/mini_inflate.h"
+#include "jffs2/jffs2.h"
 
 int swap_words;
 
@@ -354,7 +353,7 @@ void do_list(int inode, std::string root = "") {
 		do_list(*i, root + inodes[inode].c_str() + "/");
 }
 
-int do_jffs2extract(char *infile, char *outdir, char *inendian) {
+extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
 	int errors = 0;
 	int verbose = 0;
 
@@ -502,8 +501,4 @@ int do_jffs2extract(char *infile, char *outdir, char *inendian) {
 	fclose(devtab);
 
 	return 0;
-}
-
-extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
-	return do_jffs2extract(infile, outdir, inendian);
 }

@@ -1,8 +1,11 @@
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <epk1.h>
 #include <errno.h>
-#include <os_byteswap.h>
+
+#include "main.h" //for handle_file
+#include "epk1.h"
+#include "os_byteswap.h"
+#include "util.h"
 
 int isFileEPK1(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");

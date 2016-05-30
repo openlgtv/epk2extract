@@ -1,19 +1,19 @@
 #ifndef _PART_INFO2_H_
-#    define _PART_INFO2_H_
+#define _PART_INFO2_H_
 
-#    define P2_PARTITION_MAX				128
+#define P2_PARTITION_MAX				128
 
 struct p2_device_info {
 	char name[STR_LEN_MAX];
 	unsigned long long size;
 	unsigned long long phys;
-#    if __x86_64__
+#if __x86_64__
 	unsigned int virt;
 	unsigned int cached;
-#    else
+#else
 	void *virt;
 	void *cached;
-#    endif
+#endif
 	int bankwidth;
 	unsigned int used;
 };
@@ -39,8 +39,8 @@ struct p2_partmap_info {
 	struct p2_partition_info partition[P2_PARTITION_MAX];
 };
 
-#    define P2_GET_PART_INFO(x)			((struct p2_partition_info *)&(p2_partinfo.partition[x]))
-#    define P2_GET_DEV_INFO(x)			((struct p2_device_info *)&(p2_partinfo.dev))
+#define P2_GET_PART_INFO(x)			((struct p2_partition_info *)&(p2_partinfo.partition[x]))
+#define P2_GET_DEV_INFO(x)			((struct p2_device_info *)&(p2_partinfo.dev))
 
 extern struct p2_partmap_info p2_partinfo;
 #endif /* _PART_INFO2_H_ */

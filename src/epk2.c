@@ -1,8 +1,12 @@
+#include <stdio.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <epk2.h>
-#include <crc.h>
 #include <dirent.h>
+
+#include "main.h" //for handle_file
+#include "epk2.h"
+#include "crc.h"
+#include "util.h"
 
 EVP_PKEY *_gpPubKey;
 AES_KEY _gdKeyImage, _geKeyImage;

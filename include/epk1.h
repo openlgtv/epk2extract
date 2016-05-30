@@ -53,4 +53,7 @@ struct pakHeader_t {
 	unsigned char unknown[105];
 };
 
+void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts);
+int isFileEPK1(const char *epk_file);
+
 #endif /* EPK1_H_ */

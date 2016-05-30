@@ -15,7 +15,7 @@
 #    include <openssl/pem.h>
 #    include <openssl/err.h>
 #    include <openssl/aes.h>
-#    include <epk.h>
+#    include "epk.h"
 #    include <stdbool.h>
 
 enum { SIGNATURE_SIZE = 0x80 };
@@ -111,5 +111,10 @@ struct pak2_t {
 	unsigned int segment_count;
 	struct pak2segment_t **segments;
 };
+
+void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts);
+void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts);
+int isFileEPK2(const char *epk_file);
+int isFileEPK3(const char *epk_file);
 
 #endif /* EPK2_H_ */

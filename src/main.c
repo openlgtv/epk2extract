@@ -18,11 +18,21 @@
 #ifdef __CYGWIN__
 #    include <sys/cygwin.h>
 #endif
-#include <epk1.h>
-#include <epk2.h>
-#include <symfile.h>
-#include <minigzip.h>
-#include <util.h>
+
+#include "epk1.h"		/* EPK v1 */
+#include "epk2.h"		/* EPK v2 and v3 */
+#include "cramfs/cramfs.h"	/* CRAMFS */
+#include "cramfs/cramfsswap.h"
+#include "lz4/lz4.h"	/* LZ4 */
+#include "lzo/lzo.h"	/* LZO */
+#include "lzhs/lzhs.h"	/* LZHS */
+#include "jffs2/jffs2.h"	/* JFFS2 */
+#include "squashfs/unsquashfs.h"	/* SQUASHFS */
+#include "minigzip.h"	/* GZIP */
+#include "symfile.h"	/* SYM */
+#include "tsfile.h"		/* STR and PIF */
+#include "u-boot/partinfo.h"	/* PARTINFO */
+#include "util.h"
 
 char *remove_ext(const char *mystr) {
 	char *retstr, *lastdot;
@@ -60,7 +70,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	char *file_name = my_basename(file);
 	
 	char *file_base = remove_ext(file_name);
-	//char *file_ext = get_ext(strdup(file_name));
+	//const char *file_ext = get_ext(strdup(file_name));
 	char *dest_file = NULL;
 
 	int result = EXIT_SUCCESS;
@@ -74,7 +84,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 	} else if (is_lz4(file)) {
 		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);
 		printf("UnLZ4 file to: %s\n", dest_file);
-		if (!decode_file(file, dest_file))
+		if (!LZ4_decode_file(file, dest_file))
 			handle_file(dest_file, config_opts);
 	} else if (check_lzo_header(file)) {
 		if (!strcmp(file_name, "logo.pak"))

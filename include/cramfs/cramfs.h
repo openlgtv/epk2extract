@@ -1,9 +1,9 @@
 #ifndef __CRAMFS_H
-#    define __CRAMFS_H
+#define __CRAMFS_H
 
-#    define CRAMFS_MAGIC		0x28cd3d45
+#define CRAMFS_MAGIC		0x28cd3d45
 										/* some random number */
-#    define CRAMFS_SIGNATURE	"Compressed ROMFS"
+#define CRAMFS_SIGNATURE	"Compressed ROMFS"
 
 // Needed by cramfs
 typedef unsigned char u8;
@@ -48,11 +48,14 @@ struct cramfs_super {
  * if (flags & ~CRAMFS_SUPPORTED_FLAGS).  Maybe that should be
  * changed to test super.future instead.
  */
-#    define CRAMFS_SUPPORTED_FLAGS (0xff)
+#define CRAMFS_SUPPORTED_FLAGS (0xff)
 
 /* Uncompression interfaces to the underlying zlib */
 int cramfs_uncompress_block(void *dst, int dstlen, void *src, int srclen);
 int cramfs_uncompress_init(void);
 int cramfs_uncompress_exit(void);
+
+int is_cramfs_image(char const *imagefile, char *endian);
+int uncramfs(char const *dirname, char const *imagefile);
 
 #endif

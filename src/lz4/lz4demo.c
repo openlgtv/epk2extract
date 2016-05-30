@@ -238,7 +238,7 @@ int compress_file(char *input_filename, char *output_filename, int compressionle
 	return 0;
 }
 
-int decode_file(char *input_filename, char *output_filename) {
+int LZ4_decode_file(const char *input_filename, const char *output_filename) {
 	unsigned long long filesize = 0;
 	char *in_buff;
 	char *out_buff;

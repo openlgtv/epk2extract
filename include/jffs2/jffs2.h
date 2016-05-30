@@ -36,9 +36,9 @@
  */
 
 #ifndef __LINUX_JFFS2_H__
-#    define __LINUX_JFFS2_H__
+#define __LINUX_JFFS2_H__
 
-#    ifdef __APPLE__
+#ifdef __APPLE__
 typedef __signed__ char __s8;
 typedef unsigned char __u8;
 
@@ -48,60 +48,60 @@ typedef unsigned short __u16;
 typedef __signed__ int __s32;
 typedef unsigned int __u32;
 
-#        ifdef __GNUC__
+#ifdef __GNUC__
 __extension__ typedef __signed__ long long __s64;
 __extension__ typedef unsigned long long __u64;
-#        else
+#else
 typedef __signed__ long long __s64;
 typedef unsigned long long __u64;
-#        endif
-#    else
-#        include <asm/types.h>
-#    endif
+#endif
+#else
+#include <asm/types.h>
+#endif
 
-#    define JFFS2_SUPER_MAGIC 0x72b6
+#define JFFS2_SUPER_MAGIC 0x72b6
 
 /* Values we may expect to find in the 'magic' field */
-#    define JFFS2_OLD_MAGIC_BITMASK 0x1984
-#    define JFFS2_MAGIC_BITMASK 0x1985
-#    define KSAMTIB_CIGAM_2SFFJ 0x5981
+#define JFFS2_OLD_MAGIC_BITMASK 0x1984
+#define JFFS2_MAGIC_BITMASK 0x1985
+#define KSAMTIB_CIGAM_2SFFJ 0x5981
 									/* For detecting wrong-endian fs */
-#    define JFFS2_EMPTY_BITMASK 0xffff
-#    define JFFS2_DIRTY_BITMASK 0x0000
+#define JFFS2_EMPTY_BITMASK 0xffff
+#define JFFS2_DIRTY_BITMASK 0x0000
 
 /* We only allow a single char for length, and 0xFF is empty flash so
    we don't want it confused with a real length. Hence max 254.
 */
-#    define JFFS2_MAX_NAME_LEN 254
+#define JFFS2_MAX_NAME_LEN 254
 
 /* How small can we sensibly write nodes? */
-#    define JFFS2_MIN_DATA_LEN 128
+#define JFFS2_MIN_DATA_LEN 128
 
-#    define JFFS2_COMPR_NONE	0x00
-#    define JFFS2_COMPR_ZERO	0x01
-#    define JFFS2_COMPR_RTIME	0x02
-#    define JFFS2_COMPR_RUBINMIPS	0x03
-#    define JFFS2_COMPR_COPY	0x04
-#    define JFFS2_COMPR_DYNRUBIN	0x05
-#    define JFFS2_COMPR_ZLIB	0x06
-#    define JFFS2_NUM_COMPR		7
+#define JFFS2_COMPR_NONE	0x00
+#define JFFS2_COMPR_ZERO	0x01
+#define JFFS2_COMPR_RTIME	0x02
+#define JFFS2_COMPR_RUBINMIPS	0x03
+#define JFFS2_COMPR_COPY	0x04
+#define JFFS2_COMPR_DYNRUBIN	0x05
+#define JFFS2_COMPR_ZLIB	0x06
+#define JFFS2_NUM_COMPR		7
 
 /* Compatibility flags. */
-#    define JFFS2_COMPAT_MASK 0xc000/* What do to if an unknown nodetype is found */
-#    define JFFS2_NODE_ACCURATE 0x2000
+#define JFFS2_COMPAT_MASK 0xc000/* What do to if an unknown nodetype is found */
+#define JFFS2_NODE_ACCURATE 0x2000
 /* INCOMPAT: Fail to mount the filesystem */
-#    define JFFS2_FEATURE_INCOMPAT 0xc000
+#define JFFS2_FEATURE_INCOMPAT 0xc000
 /* ROCOMPAT: Mount read-only */
-#    define JFFS2_FEATURE_ROCOMPAT 0x8000
+#define JFFS2_FEATURE_ROCOMPAT 0x8000
 /* RWCOMPAT_COPY: Mount read/write, and copy the node when it's GC'd */
-#    define JFFS2_FEATURE_RWCOMPAT_COPY 0x4000
+#define JFFS2_FEATURE_RWCOMPAT_COPY 0x4000
 /* RWCOMPAT_DELETE: Mount read/write, and delete the node when it's GC'd */
-#    define JFFS2_FEATURE_RWCOMPAT_DELETE 0x0000
+#define JFFS2_FEATURE_RWCOMPAT_DELETE 0x0000
 
-#    define JFFS2_NODETYPE_DIRENT (JFFS2_FEATURE_INCOMPAT | JFFS2_NODE_ACCURATE | 1)
-#    define JFFS2_NODETYPE_INODE (JFFS2_FEATURE_INCOMPAT | JFFS2_NODE_ACCURATE | 2)
-#    define JFFS2_NODETYPE_CLEANMARKER (JFFS2_FEATURE_RWCOMPAT_DELETE | JFFS2_NODE_ACCURATE | 3)
-#    define JFFS2_NODETYPE_PADDING (JFFS2_FEATURE_RWCOMPAT_DELETE | JFFS2_NODE_ACCURATE | 4)
+#define JFFS2_NODETYPE_DIRENT (JFFS2_FEATURE_INCOMPAT | JFFS2_NODE_ACCURATE | 1)
+#define JFFS2_NODETYPE_INODE (JFFS2_FEATURE_INCOMPAT | JFFS2_NODE_ACCURATE | 2)
+#define JFFS2_NODETYPE_CLEANMARKER (JFFS2_FEATURE_RWCOMPAT_DELETE | JFFS2_NODE_ACCURATE | 3)
+#define JFFS2_NODETYPE_PADDING (JFFS2_FEATURE_RWCOMPAT_DELETE | JFFS2_NODE_ACCURATE | 4)
 
 /* Maybe later... */
 /*#define JFFS2_NODETYPE_CHECKPOINT (JFFS2_FEATURE_RWCOMPAT_DELETE | JFFS2_NODE_ACCURATE | 3) */
@@ -113,11 +113,11 @@ typedef unsigned long long __u64;
 /*#define JFFS2_NODETYPE_DIRENT_ECC (JFFS2_FEATURE_INCOMPAT | JFFS2_NODE_ACCURATE | 5) */
 /*#define JFFS2_NODETYPE_INODE_ECC (JFFS2_FEATURE_INCOMPAT | JFFS2_NODE_ACCURATE | 6) */
 
-#    define JFFS2_INO_FLAG_PREREAD	  1
+#define JFFS2_INO_FLAG_PREREAD	  1
 									/* Do read_inode() for this one at
 									   mount time, don't wait for it to
 									   happen later */
-#    define JFFS2_INO_FLAG_USERCOMPR  2
+#define JFFS2_INO_FLAG_USERCOMPR  2
 									/* User has requested a specific
 									   compression type */
 
@@ -185,23 +185,33 @@ union jffs2_node_union {
 
 enum {
 	DT_UNKNOWN = 0,
-#    define DT_UNKNOWN     DT_UNKNOWN
+#define DT_UNKNOWN     DT_UNKNOWN
 	DT_FIFO = 1,
-#    define DT_FIFO        DT_FIFO
+#define DT_FIFO        DT_FIFO
 	DT_CHR = 2,
-#    define DT_CHR         DT_CHR
+#define DT_CHR         DT_CHR
 	DT_DIR = 4,
-#    define DT_DIR         DT_DIR
+#define DT_DIR         DT_DIR
 	DT_BLK = 6,
-#    define DT_BLK         DT_BLK
+#define DT_BLK         DT_BLK
 	DT_REG = 8,
-#    define DT_REG         DT_REG
+#define DT_REG         DT_REG
 	DT_LNK = 10,
-#    define DT_LNK         DT_LNK
+#define DT_LNK         DT_LNK
 	DT_SOCK = 12,
-#    define DT_SOCK        DT_SOCK
+#define DT_SOCK        DT_SOCK
 	DT_WHT = 14
-#    define DT_WHT         DT_WHT
+#define DT_WHT         DT_WHT
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int jffs2extract(char *infile, char *outdir, char *inendian);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LINUX_JFFS2_H__ */

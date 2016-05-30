@@ -3,9 +3,10 @@
 #include <string.h>
 #include <libgen.h>
 
-#include <config.h>
-#include <lzhs/lzhs.h>
-#include <lzhs/tables.h>
+#include "config.h"
+#include "lzhs/lzhs.h"
+#include "lzhs/tables.h"
+#include "util.h"
 
 //globals
 unsigned long int textsize = 0, codesize = 0;

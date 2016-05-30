@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include "lzhs/lzhs.h"
+
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("Usage: \n");

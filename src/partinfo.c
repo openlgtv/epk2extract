@@ -3,7 +3,9 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/types.h>
-#include <partinfo.h>
+
+#include "partinfo.h"
+#include "util.h"
 
 #ifdef __CYGWIN__
 #    define lne "\r\n"

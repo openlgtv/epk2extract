@@ -27,7 +27,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <log.h>
+#include "log.h"
 
 #include <fcntl.h>
 #include <stdarg.h>

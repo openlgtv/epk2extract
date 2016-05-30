@@ -1,17 +1,17 @@
 #ifndef _PART_INFO1_H_
-#    define _PART_INFO1_H_
+#define _PART_INFO1_H_
 
 struct p1_device_info {
 	char name[STR_LEN_MAX];
 	unsigned int size;
 	unsigned int phys;
-#    if __x86_64__
+#if __x86_64__
 	unsigned int virt;
 	unsigned int cached;
-#    else
+#else
 	void *virt;
 	void *cached;
-#    endif
+#endif
 	int bankwidth;
 	unsigned int used;
 };
@@ -37,8 +37,8 @@ struct p1_partmap_info {
 	struct p1_partition_info partition[PM_PARTITION_MAX];
 };
 
-#    define P1_GET_PART_INFO(x)			((struct p1_partition_info *)&(p1_partinfo.partition[x]))
-#    define P1_GET_DEV_INFO(x)			((struct p1_device_info *)&(p1_partinfo.dev))
+#define P1_GET_PART_INFO(x)			((struct p1_partition_info *)&(p1_partinfo.partition[x]))
+#define P1_GET_DEV_INFO(x)			((struct p1_device_info *)&(p1_partinfo.dev))
 
 extern struct p1_partmap_info p1_partinfo;
 #endif /* _PART_INFO1_H_ */

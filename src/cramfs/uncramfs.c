@@ -25,10 +25,10 @@
 // Application libraries
 #include <zlib.h>
 
-#include <os_byteswap.h>
-
 // Cramfs definitions
 #include "cramfs.h"
+
+#include "os_byteswap.h"
 
 #define PAGE_CACHE_SIZE (4096)
 

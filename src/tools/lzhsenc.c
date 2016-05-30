@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "lzhs/lzhs.h"
 
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
@@ -7,5 +8,5 @@ int main(int argc, char *argv[]) {
 	}
 	printf("LZHS Encoding %s => %s...\n", argv[1], argv[2]);
 	lzhs_encode(argv[1], argv[2]);
-	return !err_ret("");
+	return 0;
 }
