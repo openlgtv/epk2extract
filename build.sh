@@ -75,7 +75,7 @@ if [ ! "$1" == "clean" ]; then
 		fi
 
 		cd ..
-		if [ -d "keys" ]; then
+		if [ -d "$srcdir/keys" ]; then
 			for key in $(find ${srcdir}/keys -iname "*.pem" -or -iname "*.key" | sort); do
 				$lblue; echo "Installing $(basename $key)"; $normal
 				cp $key $installdir/
