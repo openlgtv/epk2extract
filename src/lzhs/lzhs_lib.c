@@ -116,43 +116,40 @@ unsigned char lzhs_calc_checksum(unsigned char *buf, int fsize) {
 	return checksum;
 }
 
-void lzhs_encode(const char *infile, const char *outfile){}
-#if 0
 void lzhs_encode(const char *infile, const char *outfile) {
 	struct lzhs_header header;
 	FILE *in, *out;
 	unsigned char *buf;
-	int fsize;
+	size_t fsize;
 
-	char *filedir = malloc(strlen(infile));
-	char *outtmp = malloc(strlen(infile) + 5);
+	char *filedir, *outpath;
+	
+	unsigned long int textsize, codesize;
 
+//// PADDING
 	printf("\n[LZHS] Padding...\n");
-	sprintf(outtmp, "%s.tmp", infile);
-	lzhs_pad_file(infile, outtmp);
-
-	in = fopen(outtmp, "rb");
+	asprintf(&outpath, "%s.tmp", infile);
+	lzhs_pad_file(infile, outpath);
+	
+	in = fopen(outpath, "rb");
 	if (!in) {
-		printf("Cannot open file %s\n", infile);
-		exit(1);
+		err_exit("Cannot open file %s\n", infile);
 	}
 
-	strcpy(outtmp, infile);
-	strcpy(filedir, dirname(outtmp));
-	strcpy(outtmp, filedir);
-	strcat(outtmp, "/conv");
+//// ARM 2 THUMB
+	free(outpath);
 
-	out = fopen(outtmp, "wb");
+	asprintf(&outpath, "%s.conv", infile);
+	out = fopen(outpath, "wb");
 	if (!out) {
-		printf("Cannot open file conv\n");
-		exit(1);
+		err_exit("Cannot open file conv\n");
 	}
-
+	
 	fseek(in, 0, SEEK_END);
 	fsize = ftell(in);
 	rewind(in);
 
-	buf = malloc(fsize);
+	buf = calloc(1, fsize);
 	fread(buf, 1, fsize, in);
 
 	printf("[LZHS] Calculating checksum...\n");
@@ -163,51 +160,54 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	printf("[LZHS] Converting ARM => Thumb...\n");
 	ARMThumb_Convert(buf, fsize, 0, 1);
 	fwrite(buf, 1, fsize, out);
+	
 	free(buf);
-
-	freopen(outtmp, "rb", in);
+	
+////LZSS
+	freopen(outpath, "rb", in);
 	if (!in) {
-		printf("Cannot open file conv\n");
-		exit(1);
+		err_exit("Cannot open file conv\n");
 	}
 
-	strcpy(outtmp, filedir);
-	strcat(outtmp, "/tmp.lzs");
-	freopen(outtmp, "wb", out);
+	free(outpath);
+	asprintf(&outpath, "%s.lzs", infile);
+
+	freopen(outpath, "wb", out);
 
 	printf("[LZHS] Encoding with LZSS...\n");
-	lzss(in, out);
+	lzss(in, out, &textsize, &codesize);
 	if (!out) {
-		printf("Cannot open tmp.lzs\n");
-		exit(1);
+		err_exit("Cannot open tmp.lzs\n");
 	}
 
-	freopen(outtmp, "rb", in);
+////HUFFMAN
+	freopen(outpath, "rb", in);
 	if (!in) {
-		printf("Cannot open file tmp.lzs\n");
-		exit(1);
+		err_exit("Cannot open file tmp.lzs\n");
 	}
+	
 	freopen(outfile, "wb", out);
 	if (!out) {
-		printf("Cannot open file %s\n", outfile);
-		exit(1);
+		err_exit("Cannot open file %s\n", outfile);
 	}
 
 	printf("[LZHS] Encoding with Huffman...\n");
-	//header.uncompressedSize = textsize; //TODO:REPLACE 
+	header.uncompressedSize = textsize; 
 	fwrite(&header, 1, sizeof(header), out);
 
-	huff(in, out);
-	//header.compressedSize = codesize; //TODO:REPLACE
+	huff(in, out, &textsize, &codesize);
+	header.uncompressedSize = textsize; 
+	header.compressedSize = codesize;
 	printf("[LZHS] Writing Header...\n");
 	rewind(out);
 	fwrite(&header, 1, sizeof(header), out);
 	printf("[LZHS] Done!\n");
 
+	free(outpath);
+
 	fclose(in);
 	fclose(out);
 }
-#endif
 
 int lzhs_decode(MFILE *in_file, const char *out_path){
 	struct lzhs_header *header = mdata(in_file, struct lzhs_header);

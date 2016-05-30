@@ -191,7 +191,7 @@ static int getData(cursor_t *in) {
 /*
  * Huffman encodes the specified stream
  */
-void huff(FILE * in, FILE * out) {
+void huff(FILE * in, FILE * out, unsigned long int *p_textsize, unsigned long int *p_codesize) {
 	textsize = codesize;
 	codesize = 0;
 	int c, i, j, k, m, flags = 0;
@@ -220,6 +220,10 @@ void huff(FILE * in, FILE * out) {
 	}
 	putc(precode << (8 - preno), out);
 	codesize = ftell(out) - sizeof(struct lzhs_header);
+	if(p_textsize)
+		*p_textsize = textsize;
+	if(p_codesize)
+		*p_codesize = codesize;
 	printf("LZHS Out(%ld)/In(%ld): %.4f\n", codesize, textsize, (double)codesize / textsize);
 }
 
@@ -294,7 +298,7 @@ void unhuff(cursor_t *in, cursor_t *out) {
 /*
  * LZSS encodes the specified stream
  */
-void lzss(FILE * infile, FILE * outfile) {
+void lzss(FILE * infile, FILE * outfile, unsigned long int *p_textsize, unsigned long int *p_codesize) {
 	int c, i, len, r, s, last_match_length, code_buf_ptr;
 	unsigned char code_buf[32], mask;
 
@@ -355,6 +359,10 @@ void lzss(FILE * infile, FILE * outfile) {
 			codesize++;
 		}
 	}
+	if(p_textsize)
+		*p_textsize = textsize;
+	if(p_codesize)
+		*p_codesize = codesize;
 	printf("LZSS Out(%ld)/In(%ld): %.3f\n", codesize, textsize, (double)codesize / textsize);
 }
 

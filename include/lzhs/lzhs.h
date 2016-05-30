@@ -28,6 +28,10 @@ void unhuff(cursor_t *in, cursor_t *out);
 MFILE *is_lzhs(const char *filename);
 bool _is_lzhs_mem(struct lzhs_header *header);
 bool is_lzhs_mem(MFILE *file, off_t offset);
+
+void lzss(FILE * infile, FILE * outfile, unsigned long int *p_textsize, unsigned long int *p_codesize);
+void huff(FILE * in, FILE * out, unsigned long int *p_textsize, unsigned long int *p_codesize);
+
 int extract_lzhs(MFILE *in_file);
 int lzhs_decode(MFILE *in_file, const char *out_path);
 void lzhs_encode(const char *infile, const char *outfile);
