@@ -16,23 +16,23 @@
 
 //partinfo
 #include <time.h>
-#include <partinfo.h>
+#include "partinfo.h"
 char *modelname;
 char *mtdname;
 part_struct_type part_type;
 
 //jffs2
-#include <jffs2/jffs2.h>
+#include "jffs2/jffs2.h"
 
 //lzhs
-#include <lzhs/lzhs.h>
+#include "lzhs/lzhs.h"
 
 //kernel
-#include <u-boot/image.h>
+#include "u-boot/image.h"
 #include <arpa/inet.h>
 
 //minigzip
-#include <minigzip.h>
+#include "minigzip.h"
 
 //boot and tzfw
 #include <elf.h>
