@@ -4,13 +4,17 @@
 #include <elf.h>
 #include "mfile.h"
 
+#define err_exit(fmt, ...) \
+	exit(err_ret(fmt, ##__VA_ARGS__))
+
 char *my_basename(const char *path);
 char *my_dirname(const char *path);
 void getch(void);
 void hexdump(void *pAddressIn, long lSize);
-void rmrf(char *path);
+void rmrf(const char *path);
 int err_ret(const char *format, ...);
-void err_exit(const char *format, ...);
+
+
 void createFolder(const char *directory);
 MFILE *is_lz4(const char *lz4file);
 MFILE *is_nfsb(const char *filename);
