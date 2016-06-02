@@ -126,19 +126,21 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	
 	unsigned long int textsize, codesize;
 
+#if 1
 //// PADDING
 	printf("\n[LZHS] Padding...\n");
 	asprintf(&outpath, "%s.tmp", infile);
 	lzhs_pad_file(infile, outpath);
-	
 	in = fopen(outpath, "rb");
 	if (!in) {
-		err_exit("Cannot open file %s\n", infile);
+		err_exit("Cannot open file %s\n", outpath);
 	}
+	free(outpath);
+#else
+	in = fopen(infile, "rb");
+#endif
 
 //// ARM 2 THUMB
-	free(outpath);
-
 	asprintf(&outpath, "%s.conv", infile);
 	out = fopen(outpath, "wb");
 	if (!out) {
@@ -151,6 +153,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 
 	buf = calloc(1, fsize);
 	fread(buf, 1, fsize, in);
+	rewind(in);
 
 	printf("[LZHS] Calculating checksum...\n");
 	header.checksum = lzhs_calc_checksum(buf, fsize);
@@ -191,12 +194,12 @@ void lzhs_encode(const char *infile, const char *outfile) {
 		err_exit("Cannot open file %s\n", outfile);
 	}
 
-	printf("[LZHS] Encoding with Huffman...\n");
-	header.uncompressedSize = textsize; 
+	header.uncompressedSize = fsize;
 	fwrite(&header, 1, sizeof(header), out);
+	
+	printf("[LZHS] Encoding with Huffman...\n");
 
-	huff(in, out, &textsize, &codesize);
-	header.uncompressedSize = textsize; 
+	huff(in, out, &textsize, &codesize); 
 	header.compressedSize = codesize;
 	printf("[LZHS] Writing Header...\n");
 	rewind(out);
