@@ -41,12 +41,11 @@ void split_mtk_tz(MFILE *tz, const char *destdir) {
 	tz_size = msize(tz) - MTK_ENV_SIZE;
 	printf("Extracting env.o... (%d bytes)\n", MTK_ENV_SIZE);
 
-	uint8_t *indata, *outdata;
-	indata = mdata(tz, uint8_t);
-	outdata = mdata(out, uint8_t);
+	uint8_t *data = mdata(tz, uint8_t);
+
 
 	mfile_map(out, MTK_ENV_SIZE);
-	memcpy(out, tz, MTK_ENV_SIZE);
+	memcpy(mdata(out, void), data, MTK_ENV_SIZE);
 
 	free(dest);
 	mclose(out);
@@ -57,8 +56,10 @@ void split_mtk_tz(MFILE *tz, const char *destdir) {
 	if (out == NULL)
 		err_exit("Can't open file %s for writing\n", dest);
 
+	mfile_map(out, tz_size);
+
 	printf("Extracting tz.bin... (%zu bytes)\n", tz_size);
-	memcpy(out, tz + MTK_ENV_SIZE, tz_size);
+	memcpy(mdata(out, void), data + MTK_ENV_SIZE, tz_size);
 
 	free(dest);
 	mclose(out);
