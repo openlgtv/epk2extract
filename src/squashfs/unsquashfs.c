@@ -37,6 +37,7 @@
 #    include <sys/sysinfo.h>
 #endif
 
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -814,7 +815,6 @@ int write_block(int file_fd, char *buffer, int size, long long hole, int sparse)
 pthread_mutex_t open_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t open_empty = PTHREAD_COND_INITIALIZER;
 int open_unlimited, open_count;
-#define OPEN_FILE_MARGIN 10
 
 void open_init(int count) {
 	open_count = count;
@@ -2002,17 +2002,43 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 	}
 
 	if (rlim.rlim_cur != RLIM_INFINITY) {
+		max_files = rlim.rlim_cur;
+
 		/*
-		 * leave OPEN_FILE_MARGIN free (rlim_cur includes fds used by
-		 * stdin, stdout, stderr and filesystem fd
+		 * Check the amount of free files, and use all but 1/3rd of them
 		 */
-		if (rlim.rlim_cur <= OPEN_FILE_MARGIN)
-			/* no margin, use minimum possible */
+		struct pollfd *fds = calloc(max_files, sizeof(struct pollfd));
+		uint cur_file, opened_files = 0;
+		for(cur_file = 0; cur_file < max_files; cur_file++){
+			fds[cur_file].fd = cur_file;
+		}
+		poll(fds, max_files, 0);
+		for(cur_file = 0; cur_file < max_files; cur_file++){
+			if(!(fds[cur_file].revents & POLLNVAL)){
+				opened_files++;
+			}
+		}
+
+		if(opened_files >= max_files){
+			EXIT_UNSQUASH("Too many open files");
+		}
+
+		/* Calculate margin as % of free files / 3 */
+		uint margin = max_files * ((100 - ((opened_files * 100) / max_files)) / 3) / 100;
+		if(margin == 0)
 			max_files = 1;
 		else
-			max_files = rlim.rlim_cur - OPEN_FILE_MARGIN;
+			max_files -= margin;
+
+
+		printf("Max Files: %u, Opened Files: %u, Allocated: %u (Margin: %u)\n",
+			rlim.rlim_cur, opened_files, max_files, margin
+		);
+		free(fds);
+
 	} else
 		max_files = -1;
+
 
 	/* set amount of available files for use by open_wait and close_wake */
 	open_init(max_files);
