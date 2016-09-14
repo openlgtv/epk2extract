@@ -25,7 +25,7 @@ Supported Formats:
 | gzip		| 
 | jffs2		| 
 | lzhs		| Special compression for MTK bootloaders (boot.pak, tzfw.pak), uses lzss + huffman
-| mtinfo/partinfo |  Partition table format (mtdi.pak, part.pak)
+| mtdinfo/partinfo |  Partition table format (mtdi.pak, part.pak)
 | str/pif	| PVR recording format that can be found in netcast models
 | sym		| Debugging symbols. Can extracts function names and addresses to an IDA script file (idc)
 
