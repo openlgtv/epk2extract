@@ -317,9 +317,9 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
 
 	if (ismtk1)
-		model = "Mtk 2012 - MTK5369";
+		model = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
 	else if (ismtk2)
-		model = "Mtk 2013 - MTK5398";
+		model = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
 	else if (is1152)
 		model = "LG1152 (L9)";
 	else if (is1154)
