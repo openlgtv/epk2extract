@@ -2,6 +2,7 @@
 #define __UTIL_H
 #include <stddef.h>
 #include <elf.h>
+#include <stdlib.h>
 #include "mfile.h"
 
 #define err_exit(fmt, ...) \
@@ -14,7 +15,8 @@ void hexdump(void *pAddressIn, long lSize);
 void rmrf(const char *path);
 int err_ret(const char *format, ...);
 
-
+char *remove_ext(const char *mystr);
+char *get_ext(const char *mystr);
 void createFolder(const char *directory);
 MFILE *is_lz4(const char *lz4file);
 MFILE *is_nfsb(const char *filename);

@@ -18,7 +18,7 @@
 #    include "epk.h"
 #    include <stdbool.h>
 
-enum { SIGNATURE_SIZE = 0x80 };
+#define SIGNATURE_SIZE 0x80
 
 typedef enum {
 	RELEASE = 0,

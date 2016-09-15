@@ -41,6 +41,34 @@ part_struct_type part_type;
 #include <elf.h>
 #define MTK_PBL_SIZE 0x9FFF
 
+char *remove_ext(const char *mystr) {
+	char *retstr, *lastdot;
+	if (mystr == NULL)
+		return NULL;
+	if ((retstr = (char *)malloc(strlen(mystr) + 1)) == NULL)
+		return NULL;
+	strcpy(retstr, mystr);
+	lastdot = strrchr(retstr, '.');
+	if (lastdot != NULL)
+		*lastdot = '\0';
+	return retstr;
+}
+
+char *get_ext(const char *mystr) {
+	char *retstr, *lastdot;
+	if (mystr == NULL)
+		return NULL;
+	if ((retstr = (char *)malloc(strlen(mystr) + 1)) == NULL)
+		return NULL;
+	lastdot = strrchr(mystr, '.');
+	if (lastdot != NULL) {
+		sprintf(retstr, "%s", lastdot + 1);
+		int i;
+		for (i = 0; retstr[i]; i++)
+			retstr[i] = tolower(retstr[i]);
+	}
+	return retstr;
+}
 
 char *my_basename(const char *path){
 	char *cpy = strdup(path);
@@ -180,7 +208,10 @@ MFILE *is_nfsb(const char *filename) {
 	uint8_t *data = mdata(file, uint8_t);
 	if (
 		!memcmp(data, "NFSB", 4) &&
-		!memcmp(data + 0xE, "md5", 3)
+		(
+			(!memcmp(data + 0xE, "md5", 3)) ||
+			(!memcmp(data + 0x1A, "md5", 3))
+		)
 	){
 		return file;
 	}

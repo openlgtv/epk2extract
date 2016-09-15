@@ -331,10 +331,12 @@ int process_segment(MFILE *in_file, off_t offset, const char *name){
 
 int extract_lzhs(MFILE *in_file) {
 	int r;
-	if((r=process_segment(in_file, MTK_LOADER_OFF, "mtkloader")) < 0)
+	if(is_lzhs_mem(in_file, MTK_LOADER_OFF) && (r=process_segment(in_file, MTK_LOADER_OFF, "mtkloader")) < 0)
 		return r;
-	if((r=process_segment(in_file, MTK_UBOOT_OFF, "uboot")) < 0)
+	if(is_lzhs_mem(in_file, MTK_UBOOT_OFF) && (r=process_segment(in_file, MTK_UBOOT_OFF, "uboot")) < 0)
 		return r;
+	if(is_lzhs_mem(in_file, MTK_HISENSE_UBOOT_OFF) && (r=process_segment(in_file, MTK_HISENSE_UBOOT_OFF, "uboot")) < 0)
+		return r;	
 		
 	struct lzhs_header *uboot_hdr = (struct lzhs_header *)(&(mdata(in_file, uint8_t))[MTK_UBOOT_OFF]);
 	off_t mtk_tz = (
@@ -352,7 +354,7 @@ int extract_lzhs(MFILE *in_file) {
 	
 	/* Do we have the TZ segment? (mtk5369 only) */
 	if(mtk_tz < msize(in_file)){
-		if((r=process_segment(in_file, mtk_tz, "boot_tz")) < 0)
+		if(is_lzhs_mem(in_file, mtk_tz) && (r=process_segment(in_file, mtk_tz, "boot_tz")) < 0)
 			return r;
 	}
 	

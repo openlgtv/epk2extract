@@ -20,7 +20,7 @@
 /* Gets the file handler (for mfopen) */
 #define mfh(mfile) mfile->fh
 /* Gets the file offset */
-#define moff(mfile, ptr) (off_t)((uintptr_t)ptr - (uintptr_t)mfile->pMem)
+#define moff(mfile, ptr) (off_t)((uintptr_t)ptr - (uintptr_t)(mfile->pMem))
 
 #define mwriteat(mfile, off, ptr, size) \
 	memcpy( \
