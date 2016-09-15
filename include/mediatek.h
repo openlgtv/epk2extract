@@ -6,10 +6,11 @@
 #include "mfile.h"
 
 #define MTK_ROM_MAGIC "MTK/DTV/ROMCODE/NANDBOOT" //CPU ROM (maybe unsused if boot can occur on eMMC directly)
+#define MTK_ROM_SIZE 0x4000 //16kb
 #define MTK_PBL_MAGIC "MTK/DTV/ROMCODE/MSDCBOOT" //First Bootloader (MSDC: Mediatek SD Controller, eMMC)
+#define MTK_PBL_SIZE 0x9FFF
 #define MTK_LOADER_OFF 0xA040
 #define MTK_UBOOT_OFF 0x80000
-#define MTK_PBL_SIZE 0x9FFF
 #define MTK_ENV_SIZE 0x20000
 #define MTK_TZ_OFF 0x200 //512
 

@@ -74,14 +74,21 @@ MFILE *is_mtk_boot(const char *filename) {
 		err_exit("Can't open file %s\n", filename);
 	}
 	if (
-		(msize(file) < MTK_PBL_SIZE) ||
-		(memcmp(data + 0x100, MTK_PBL_MAGIC, strlen(MTK_PBL_MAGIC)) != 0)
+		(msize(file) >= MTK_PBL_SIZE) &&
+		(memcmp(data + 0x100, MTK_PBL_MAGIC, strlen(MTK_PBL_MAGIC)) == 0)
 	){
+		printf("Found valid PBL magic: "MTK_PBL_MAGIC"\n");
+	} else if (
+		(msize(file) >= MTK_ROM_SIZE) &&
+		(memcmp(data + 0x100, MTK_ROM_MAGIC, strlen(MTK_ROM_MAGIC)) == 0)
+	){
+		printf("Found valid PBL/ROM magic: "MTK_ROM_MAGIC"\n");
+	} else {
 		mclose(file);
 		return NULL;
 	}
 	
-	printf("Found valid PBL magic: "MTK_PBL_MAGIC"\n");
+	
 	return file;
 }
 
