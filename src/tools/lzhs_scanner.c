@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "mfile.h"
 #include "lzhs/lzhs.h"
@@ -26,13 +27,18 @@ void scan_lzhs(const char *filename, int extract) {
 		if (_is_lzhs_mem(header)) {
 			count++;
 			off_t fileOff = moff(file, header);
+			char *fstring;
 			if(!(fileOff % MTK_LOADER_OFF)){
-				printf("Found possible mtk loader at 0x%x\n", fileOff);
+				fstring="mtk loader";
 			} else if(!(fileOff % MTK_UBOOT_OFF)){
-				printf("Found possible mtk uboot at 0x%x\n", fileOff);
+				fstring="mtk uboot";
 			} else {
-				printf("Found possible LZHS header at 0x%x\n", fileOff);
+				fstring="LZHS header";
 			}
+
+			printf("Found possible %-12s at offset @0x%08X (Checksum: 0x%02X, compressedSize: 0x%08X, uncompressedSize: 0x%08X)\n",
+				fstring, fileOff, header->checksum, header->compressedSize, header->uncompressedSize
+			);
 
 			if (extract) {
 				char *dirn = my_dirname(filename);
@@ -54,16 +60,19 @@ void scan_lzhs(const char *filename, int extract) {
 					sizeof(*header) + header->compressedSize
 				);
 				
-				free(outname);
-				
+				uint8_t out_checksum;
 				asprintf(&outdecode, "%s/%s_file%d.unlzhs", dirn, filen, count);
-				lzhs_decode(out, outdecode);
+				lzhs_decode(out, outdecode, &out_checksum);
+				if(extract == 2 && out_checksum != header->checksum){
+					printf("Checksum Mismatch, Skipping\n");
+					unlink(outname);
+					unlink(outdecode);
+				}
+				printf("\n");
 				
 				mclose(out);
-				
-				free(outdecode);
-				free(dirn);
-				free(filen);
+				free(outname); free(outdecode);
+				free(dirn); free(filen);
 			}
 		}
 	}
@@ -75,6 +84,7 @@ int main(int argc, char *argv[]) {
 		printf("Usage: \n");
 		printf("'%s [in] 0' scan\n", argv[0]);
 		printf("'%s [in] 1' scan and extract\n", argv[0]);
+		printf("'%s [in] 2' scan and extract chunks with valid checksum only\n", argv[0]);
 		return 1;
 	}
 	scan_lzhs(argv[1], atoi(argv[2]));

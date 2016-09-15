@@ -33,7 +33,7 @@ void lzss(FILE * infile, FILE * outfile, unsigned long int *p_textsize, unsigned
 void huff(FILE * in, FILE * out, unsigned long int *p_textsize, unsigned long int *p_codesize);
 
 int extract_lzhs(MFILE *in_file);
-int lzhs_decode(MFILE *in_file, const char *out_path);
+int lzhs_decode(MFILE *in_file, const char *out_path, uint8_t *out_checksum);
 void lzhs_encode(const char *infile, const char *outfile);
 void scan_lzhs(const char *filename, int extract);
 

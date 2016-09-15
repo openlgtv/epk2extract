@@ -212,7 +212,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	fclose(out);
 }
 
-int lzhs_decode(MFILE *in_file, const char *out_path){
+int lzhs_decode(MFILE *in_file, const char *out_path, uint8_t *out_checksum){
 	struct lzhs_header *header = mdata(in_file, struct lzhs_header);
 	printf("\n---LZHS details---\n");
 	printf("Compressed:\t%d\n", header->compressedSize);
@@ -271,6 +271,9 @@ int lzhs_decode(MFILE *in_file, const char *out_path){
 	
 	printf("[LZHS] Calculating checksum...\n");
 	uint8_t checksum = lzhs_calc_checksum(out_bytes, out_cur.size);
+	if(out_checksum != NULL){
+		*out_checksum = checksum;
+	}
 	printf("Calculated checksum = 0x%x\n", checksum);
 	if (checksum != header->checksum)
 		printf("[LZHS] WARNING: Checksum mismatch (expected 0x%x)!!\n", header->checksum);
@@ -317,7 +320,7 @@ int process_segment(MFILE *in_file, off_t offset, const char *name){
 	asprintf(&out_path, "%s/%s.unlzhs", file_dir, name);
 	
 	// Decode the file we just wrote
-	lzhs_decode(out_file, out_path);
+	lzhs_decode(out_file, out_path, NULL);
 	mclose(out_file);
 	
 	exit:
