@@ -252,7 +252,7 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	cursor_t in_cur = {
 		.ptr = in_bytes,
 		.size = msize(in_file),
-		.offset = (off_t)sizeof(*header)
+		.offset = (off_t)sizeof(*header) + offset
 	};
 	
 	/* Temp memory */
@@ -356,6 +356,10 @@ int extract_lzhs(MFILE *in_file) {
 		return r;	
 		
 	struct lzhs_header *uboot_hdr = (struct lzhs_header *)(&(mdata(in_file, uint8_t))[MTK_UBOOT_OFF]);
+
+	uint pad;
+	pad = (pad = (uboot_hdr->compressedSize % 16)) == 0 ? 0 : (16 - pad);
+
 	off_t mtk_tz = (
 		//Offset of uboot
 		MTK_UBOOT_OFF +
@@ -364,7 +368,7 @@ int extract_lzhs(MFILE *in_file) {
 		//uboot compressed size
 		uboot_hdr->compressedSize +
 		//Align to the next "line"
-		(16 - (uboot_hdr->compressedSize % 16)) +
+		pad +
 		//TZ relative offset 
 		MTK_TZ_OFF
 	);
