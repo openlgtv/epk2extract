@@ -239,7 +239,7 @@ void unhuff(cursor_t *in, cursor_t *out) {
 		if (!getData(in))
 			goto flush_ret;
 		if (len < 4)
-			continue;			// len in code_len table should be min 4
+			continue; // len in code_len table should be min 4
 		for (i = 0; i < 288; i++) {
 			if (huff_char[i]->len == len &&
 				huff_char[i]->code == code
@@ -277,7 +277,8 @@ void unhuff(cursor_t *in, cursor_t *out) {
 				}
 				if ((mask <<= 1) == 0) {
 					for (j = 0; j < code_buf_ptr; j++){
-						cputc(code_buf[j], out);
+						if(cputc(code_buf[j], out) == EOF)
+							return;
 					}
 					code_buf[0] = 0;
 					code_buf_ptr = mask = 1;
@@ -290,7 +291,8 @@ void unhuff(cursor_t *in, cursor_t *out) {
 	flush_ret:
 	if (code_buf_ptr > 1)	// flushing buffer
 		for (i = 0; i < code_buf_ptr; i++){
-			cputc(code_buf[i], out);
+			if(cputc(code_buf[i], out) == EOF)
+				break;
 		}
 	return;
 }
@@ -381,7 +383,8 @@ void unlzss(cursor_t *in, cursor_t *out) {
 			if((c = cgetc(in)) == EOF)
 				break;
 			
-			cputc(text_buf[r++] = c, out);
+			if(cputc(text_buf[r++] = c, out) == EOF)
+				break;
 			r &= (N - 1);
 		} else {
 			if((j = cgetc(in)) == EOF) // match length
@@ -394,7 +397,8 @@ void unlzss(cursor_t *in, cursor_t *out) {
 			i = (i << 8) | m;
 			for (k = 0; k <= j + THRESHOLD; k++) {
 				m = text_buf[(r - i) & (N - 1)];				
-				cputc(text_buf[r++] = m, out);
+				if(cputc((text_buf[r++] = m), out) == EOF)
+					return;
 				r &= (N - 1);
 			}
 		}
