@@ -11,7 +11,7 @@
 #include "util.h"
 
 bool _is_lzhs_mem(struct lzhs_header *header){
-	uint32_t sane_val = 50 * 1024 * 1024; //50 MB (a random sane value)
+	uint32_t sane_val = 20 * 1024 * 1024; //20 MB (a random sane value)
 	if (
 		!memcmp(header->spare, "\0\0\0\0\0\0\0", sizeof(header->spare)) &&
 		header->compressedSize > 0 && header->compressedSize <= sane_val &&
