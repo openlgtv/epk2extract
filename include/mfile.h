@@ -10,8 +10,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#define MFILE_ANON(var, size) \
-	void *var = mmap(0, size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, 0, 0)
+#define MFILE_ANON(size) \
+	mmap(0, size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, 0, 0)
 
 /* Gets the size of the memory mapped file */
 #define msize(mfile) mfile->statBuf.st_size

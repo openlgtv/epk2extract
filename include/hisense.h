@@ -9,9 +9,11 @@
 #define HISENSE_MTK_MAGIC "iMtK8"
 #define HISENSE_PAD_MAGIC "iPAd"
 
+#define HISENSE_EXT_LZHS_OFFSET 0x100000
+
 struct hipkg {
 	char pakName[8];
-	uint32_t size;
+	uint32_t size; //including any extra header, if present
 	uint8_t signature[PKG_SIGNATURE_SIZE];
 	char data[];
 };

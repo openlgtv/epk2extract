@@ -10,12 +10,13 @@
 #include "mediatek.h"
 #include "util.h"
 
+#define LZHS_SIZE_THRESHOLD (20 * 1024 * 1024) //20 MB (a random sane value)
+
 bool _is_lzhs_mem(struct lzhs_header *header){
-	uint32_t sane_val = 20 * 1024 * 1024; //20 MB (a random sane value)
 	if (
 		!memcmp(header->spare, "\0\0\0\0\0\0\0", sizeof(header->spare)) &&
-		header->compressedSize > 0 && header->compressedSize <= sane_val &&
-		header->uncompressedSize > 0 && header->uncompressedSize <= sane_val
+		header->compressedSize > 0 && header->compressedSize <= LZHS_SIZE_THRESHOLD &&
+		header->uncompressedSize > 0 && header->uncompressedSize <= LZHS_SIZE_THRESHOLD
 	){
 		return true;
 	}
@@ -212,29 +213,40 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	fclose(out);
 }
 
-int lzhs_decode(MFILE *in_file, const char *out_path, uint8_t *out_checksum){
-	struct lzhs_header *header = mdata(in_file, struct lzhs_header);
+cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_t *out_checksum){
+	struct lzhs_header *header = (struct lzhs_header *)(mdata(in_file, uint8_t) + offset);
 	printf("\n---LZHS details---\n");
 	printf("Compressed:\t%d\n", header->compressedSize);
 	printf("Uncompressed:\t%d\n", header->uncompressedSize);
 	printf("Checksum:\t0x%x\n\n", header->checksum);
-	
-	MFILE_ANON(tmp, header->uncompressedSize);
+
+	void *tmp = MFILE_ANON(header->uncompressedSize);
 	if(tmp == MAP_FAILED){
 		perror("mmap tmp for lzhs\n");
-		return -1;
+		return (cursor_t *)-1;
 	}
 	memset(tmp, 0x00, header->uncompressedSize);
 	
-	MFILE *out_file = mfopen(out_path, "w+");
-	if(!out_file){
-		fprintf(stderr, "Cannot open output file %s\n", out_path);
-		return -1;
+	MFILE *out_file = NULL;
+	uint8_t *out_bytes = NULL;
+
+	if(out_path == NULL){
+		out_bytes = MFILE_ANON(header->uncompressedSize);
+			if(out_bytes == MAP_FAILED){
+				perror("mmap out for lzhs\n");
+				return (cursor_t *)-1;
+		}
+	} else {
+		out_file = mfopen(out_path, "w+");
+		if(!out_file){
+			fprintf(stderr, "Cannot open output file %s\n", out_path);
+			return (cursor_t *)-1;
+		}
+		mfile_map(out_file, header->uncompressedSize);
+		out_bytes = mdata(out_file, uint8_t);
 	}
-	mfile_map(out_file, header->uncompressedSize);
 
 	uint8_t *in_bytes = mdata(in_file, uint8_t);
-	uint8_t *out_bytes = mdata(out_file, uint8_t);
 
 	/* Input file */
 	cursor_t in_cur = {
@@ -276,13 +288,18 @@ int lzhs_decode(MFILE *in_file, const char *out_path, uint8_t *out_checksum){
 	}
 	printf("Calculated checksum = 0x%x\n", checksum);
 	if (checksum != header->checksum)
-		printf("[LZHS] WARNING: Checksum mismatch (expected 0x%x)!!\n", header->checksum);
+		printf("[LZHS] WARNING: Checksum mismatch (got 0x%x, expected 0x%x)!!\n", checksum, header->checksum);
 	if (out_cur.size != header->uncompressedSize)
 		printf("[LZHS] WARNING: Size mismatch (got %zu, expected %d)!!\n", out_cur.size, header->uncompressedSize);	
 	
-	mclose(out_file);
-	
-	return 0;
+	if(out_file != NULL){
+		mclose(out_file);
+		return NULL;
+	} else {
+		cursor_t *cpy = calloc(1, sizeof(out_cur));
+		memcpy(cpy, &out_cur, sizeof(out_cur));
+		return cpy;
+	}
 }
 
 int process_segment(MFILE *in_file, off_t offset, const char *name){
@@ -320,7 +337,7 @@ int process_segment(MFILE *in_file, off_t offset, const char *name){
 	asprintf(&out_path, "%s/%s.unlzhs", file_dir, name);
 	
 	// Decode the file we just wrote
-	lzhs_decode(out_file, out_path, NULL);
+	lzhs_decode(out_file, 0, out_path, NULL);
 	mclose(out_file);
 	
 	exit:

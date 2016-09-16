@@ -62,7 +62,7 @@ void scan_lzhs(const char *filename, int extract) {
 				
 				uint8_t out_checksum;
 				asprintf(&outdecode, "%s/%s_file%d.unlzhs", dirn, filen, count);
-				lzhs_decode(out, outdecode, &out_checksum);
+				lzhs_decode(out, 0, outdecode, &out_checksum);
 				if(extract == 2 && out_checksum != header->checksum){
 					printf("Checksum Mismatch, Skipping\n");
 					unlink(outname);

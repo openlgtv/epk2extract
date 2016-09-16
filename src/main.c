@@ -64,6 +64,9 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		extractEPK3file(file, config_opts);
 	} else if((mf=is_hisense(file))){
 		extract_hisense(mf, config_opts);
+	} else if((mf=is_ext4_lzhs(file))){
+		asprintf(&dest_file, "%s/%s.ext4", dest_dir, file_name);
+		extract_ext4_lzhs(mf, dest_file);
 	/* LZ4 */
 	} else if ((mf=is_lz4(file))) {
 		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);
@@ -156,7 +159,7 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 	} else if ((mf=is_lzhs(file))) {
 		asprintf(&dest_file, "%s/%s.unlzhs", dest_dir, file_name);
 		printf("UnLZHS %s to %s\n", file, dest_file);
-		lzhs_decode(mf, dest_file, NULL);
+		lzhs_decode(mf, 0, dest_file, NULL);
 	/* MTK TZFW (TrustZone Firmware) */
 	} else if (!strcmp(file_name, "tzfw.pak") && (mf=is_elf(file))) {
 		printf("Splitting mtk tzfw...\n");
