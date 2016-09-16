@@ -30,5 +30,7 @@ struct hipkg_pad {
 };
 
 MFILE *is_hisense(const char *pkgfile);
+MFILE *is_ext4_lzhs(const char *pkg);
 void extract_hisense(MFILE *pkg, struct config_opts_t *config_opts);
+void extract_ext4_lzhs(MFILE *mf, const char *dest_file);
 #endif

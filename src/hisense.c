@@ -57,7 +57,8 @@ MFILE *is_ext4_lzhs(const char *pkg){
  * Hisense (or Mediatek?) uses an ext4 filesystem splitted in chunks, compressed with LZHS
  * They use 2 LZHS header for each chunk
  * The first header contains the chunk number, and the compressed size includes the outer lzhs header (+16)
- * The second header contains the actual data, and checksum is the checksum of all the chunks together
+ * The second header contains the actual data, and its checksum indicates the chunks number (at least for the first one).
+ * The othr checksum purposes are unknown, as well as where the actual checksum of the data is
  */
 void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 	uint8_t *data = mdata(mf, uint8_t) + HISENSE_EXT_LZHS_OFFSET;
@@ -84,18 +85,10 @@ void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
 
 		uint8_t out_checksum;
-		cursor_t *out_cur = lzhs_decode(mf, moff(mf, data), NULL, out_checksum);
-		if(out_cur == NULL || (int)out_cur < 0){
+		cursor_t *out_cur = lzhs_decode(mf, moff(mf, data), NULL, &out_checksum);
+		if(out_cur == NULL || (intptr_t)out_cur < 0){
 			err_exit("LZHS decode failed\n");
 		}
-
-		if(out_checksum != 0x00){
-			printf("[LZHS_FS] Expected checksum 0x00, got 0x%x\n", out_checksum);
-		} else {
-			printf("[LZHS_FS] Checksum OK (0x%x)!\n", out_checksum);
-		}
-
-
 
 		fwrite(out_cur->ptr, out_cur->size, 1, out_file);
 		free(out_cur);
