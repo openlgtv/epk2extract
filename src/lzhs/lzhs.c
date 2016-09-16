@@ -292,7 +292,7 @@ void unhuff(cursor_t *in, cursor_t *out) {
 	if (code_buf_ptr > 1)	// flushing buffer
 		for (i = 0; i < code_buf_ptr; i++){
 			if(cputc(code_buf[i], out) == EOF)
-				break;
+				return;
 		}
 	return;
 }
@@ -384,7 +384,7 @@ void unlzss(cursor_t *in, cursor_t *out) {
 				break;
 			
 			if(cputc(text_buf[r++] = c, out) == EOF)
-				break;
+				return;
 			r &= (N - 1);
 		} else {
 			if((j = cgetc(in)) == EOF) // match length
