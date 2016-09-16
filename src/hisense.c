@@ -57,8 +57,8 @@ MFILE *is_ext4_lzhs(const char *pkg){
  * Hisense (or Mediatek?) uses an ext4 filesystem splitted in chunks, compressed with LZHS
  * They use 2 LZHS header for each chunk
  * The first header contains the chunk number, and the compressed size includes the outer lzhs header (+16)
- * The second header contains the actual data, and its checksum indicates the chunks number (at least for the first one).
- * The othr checksum purposes are unknown, as well as where the actual checksum of the data is
+ * The second header contains the actual data
+ * Checksum seems to be 0x00 on all succesfully decoded chunks
  */
 void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 	uint8_t *data = mdata(mf, uint8_t) + HISENSE_EXT_LZHS_OFFSET;
@@ -68,23 +68,32 @@ void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 		err_exit("Cannot open %s for writing\n", dest_file);
 	}
 
+	#ifdef LZHSFS_EXTRACT_CHUNKS
+	char *dir = my_dirname(dest_file);
+	char *file = my_basename(dest_file);
+	char *base = remove_ext(file);
+	#endif
+
 	uint8_t checksum_sums = 0;
 	uint i=0, segNo=0;
 	for(i=0; moff(mf, data) < msize(mf); i++){
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data; 
-		data += sizeof(*main_hdr);
-		struct lzhs_header *seg_hdr = (struct lzhs_header *)data;
+		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
 
-		if(i == 0){
-			segNo = seg_hdr->checksum;
-		} else if(i > segNo){
-			break;
-		}
-		printf(" segment #%u/%u (compressed='%u bytes', uncompressed='%u bytes')\n",
-			main_hdr->checksum, segNo,
+		printf("[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
+			moff(mf, main_hdr),
+			main_hdr->checksum,
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
 
-		uint8_t out_checksum;
+		uint8_t out_checksum = 0x00;
+
+		#ifdef LZHSFS_EXTRACT_CHUNKS
+		char *out;
+
+		asprintf(&out, "%s/%s.%d", dir, base, main_hdr->checksum);
+		lzhs_decode(mf, moff(mf, data), out, &out_checksum);
+		free(out);
+		#else
 		cursor_t *out_cur = lzhs_decode(mf, moff(mf, data), NULL, &out_checksum);
 		if(out_cur == NULL || (intptr_t)out_cur < 0){
 			err_exit("LZHS decode failed\n");
@@ -92,20 +101,38 @@ void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 
 		fwrite(out_cur->ptr, out_cur->size, 1, out_file);
 		free(out_cur);
+		#endif
+
+		if(out_checksum == 0x00){
+			printf("[LZHS_FS] Checksum OK! (0x00)\n");
+		} else {
+			printf("[LZHS_FS] Checksum MISMATCH! (expected 0x00, got 0x%02X)\n", out_checksum);
+		}
+
+		uint pad;
+		pad = (pad = (seg_hdr->compressedSize % 16)) == 0 ? 0 : (16 - pad);
 
 		data += (
-			sizeof(*seg_hdr) +
+			sizeof(*main_hdr) + sizeof(*seg_hdr) +
 			seg_hdr->compressedSize +
-			16 - (seg_hdr->compressedSize % 16)
+			pad
 		);
-		seg_hdr = (struct lzhs_header *)data;
+
+		if(moff(mf, data) >= msize(mf)){
+			break;
+		}
 	}
+
 	fclose(out_file);
+
+	#ifdef LZHSFS_EXTRACT_CHUNKS
+	free(dir); free(file); free(base);
+	#endif
 }
 
 void extract_hisense(MFILE *mf, struct config_opts_t *config_opts){
 	uint8_t *data = mdata(mf, uint8_t) + UPG_HEADER_SIZE;
-	
+
 	char *file_name = my_basename(mf->path);
 	char *file_base = remove_ext(file_name);
 
