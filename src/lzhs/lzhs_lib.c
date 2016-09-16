@@ -216,8 +216,8 @@ void lzhs_encode(const char *infile, const char *outfile) {
 cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_t *out_checksum){
 	struct lzhs_header *header = (struct lzhs_header *)(mdata(in_file, uint8_t) + offset);
 	printf("\n---LZHS details---\n");
-	printf("Compressed:\t%d\n", header->compressedSize);
-	printf("Uncompressed:\t%d\n", header->uncompressedSize);
+	printf("Compressed:\t%u\n", header->compressedSize);
+	printf("Uncompressed:\t%u\n", header->uncompressedSize);
 	printf("Checksum:\t0x%x\n\n", header->checksum);
 
 	void *tmp = MFILE_ANON(header->uncompressedSize);
@@ -364,7 +364,7 @@ int extract_lzhs(MFILE *in_file) {
 		//uboot compressed size
 		uboot_hdr->compressedSize +
 		//Align to the next "line"
-		16 - (uboot_hdr->compressedSize % 16) +
+		(16 - (uboot_hdr->compressedSize % 16)) +
 		//TZ relative offset 
 		MTK_TZ_OFF
 	);
