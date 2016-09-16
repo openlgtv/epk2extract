@@ -395,7 +395,10 @@ int isPartPakfile(const char *filename) {
 	char *cmagic;
 	asprintf(&cmagic, "%x", partinfo.magic);
 
-	if (isdatetime((char *)cmagic)) {
+	int r = isdatetime((char *)cmagic);
+	free(cmagic);
+
+	if (r) {
 		printf("Found valid partpak magic 0x%x in %s\n", partinfo.magic, filename);
 	} else {
 		return 0;
