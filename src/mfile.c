@@ -114,23 +114,22 @@ inline MFILE *mopen_private(const char *path, int oflags){
 	return _mopen(path, oflags, MAP_PRIVATE);
 }
 
-
 int mgetc(MFILE *stream){
-	if(stream->offset > msize(stream))
+	if(stream->offset >= msize(stream))
 		return EOF;
 	return (unsigned int)(*(&((uint8_t *)(stream->pMem))[stream->offset++]));
 }
+
 int mputc(int c, MFILE *stream){
-	if(stream->offset > msize(stream))
+	if(stream->offset >= msize(stream))
 		return EOF;
 	((uint8_t *)(stream->pMem))[stream->offset] = (uint8_t)c;
 	stream->offset++;
 	return c;
 }
 
-
 int cgetc(cursor_t *stream){
-	if(stream->offset > stream->size)
+	if(stream->offset >= stream->size)
 		return EOF;
 	return (unsigned int)(
 		*(&(
@@ -138,8 +137,9 @@ int cgetc(cursor_t *stream){
 		))
 	);
 }
+
 int cputc(int c, cursor_t *stream){
-	if(stream->offset > stream->size)
+	if(stream->offset >= stream->size)
 		return EOF;
 	((unsigned char *)(stream->ptr))[stream->offset++] = (unsigned char)c;
 	return c;
