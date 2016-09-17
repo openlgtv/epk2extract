@@ -64,9 +64,9 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		extractEPK3file(file, config_opts);
 	} else if((mf=is_hisense(file))){
 		extract_hisense(mf, config_opts);
-	} else if((mf=is_ext4_lzhs(file))){
+	} else if((mf=is_lzhs_fs(file))){
 		asprintf(&dest_file, "%s/%s.ext4", dest_dir, file_name);
-		extract_ext4_lzhs(mf, dest_file);
+		extract_lzhs_fs(mf, dest_file);
 	/* LZ4 */
 	} else if ((mf=is_lz4(file))) {
 		asprintf(&dest_file, "%s/%s.unlz4", dest_dir, file_name);

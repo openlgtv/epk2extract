@@ -31,7 +31,7 @@ MFILE *is_hisense(const char *pkgfile){
 	return NULL;
 }
 
-MFILE *is_ext4_lzhs(const char *pkg){
+MFILE *is_lzhs_fs(const char *pkg){
 	MFILE *mf = mopen(pkg, O_RDONLY);
 	if(!mf){
 		err_exit("Cannot open file %s\n", pkg);
@@ -59,7 +59,7 @@ MFILE *is_ext4_lzhs(const char *pkg){
  * The first header contains the chunk number, and the compressed size includes the outer lzhs header (+16)
  * The second header contains the actual data
  */
-void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
+void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	uint8_t *data = mdata(mf, uint8_t) + HISENSE_EXT_LZHS_OFFSET;
 	
 	FILE *out_file = fopen(dest_file, "w+");
