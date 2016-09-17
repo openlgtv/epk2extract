@@ -327,9 +327,8 @@ void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts) {
 	int i;
 	FILE *outfile;
 	struct pak3segmentHeader_t segment;
-	const char *pak_type_name;
-	char name[4];
 
+	char name[4];
 	char fwVersion[1024];
 	memset(&fwVersion, 0x0, sizeof(fwVersion));
 	sprintf(fwVersion, "%02x.%02x.%02x.%02x-%s", fwInfo->fwVersion[3], fwInfo->fwVersion[2], fwInfo->fwVersion[1], fwInfo->fwVersion[0], fwInfo->otaID);
@@ -612,13 +611,14 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	int index;
 	for (index = 0; index < last_index + 1; index++) {
 		printPAKinfo(pakArray[index]);
-		const char *pak_type_name;
 		char filename[1024] = "";
 		char name[4];
 		sprintf(name, "%.4s", pakArray[index]->header->name);
 		sprintf(filename, "%s/%.4s.pak", config_opts->dest_dir, name);
 		printf("#%u/%u saving PAK (%s) to file %s\n", index + 1, fwInfo->pakCount, name, filename);
-		int length = writePAKsegment(pakArray[index], filename);
+		
+		/*int length = */ writePAKsegment(pakArray[index], filename);
+
 		free(pakArray[index]);
 		handle_file(filename, config_opts);
 	}

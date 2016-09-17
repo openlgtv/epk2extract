@@ -77,7 +77,6 @@ static const char *p2_menu_partition_info[] = {
 };
 
 void print_size(unsigned int devsize) {
-	char *devsizeunit;
 	if (devsize % (1024 * 1024 * 1024) == 0) {
 		//Gigabytes
 		fprintf(destfile, "\tSize: %dGB", (devsize / 1024 / 1024 / 1024));
@@ -265,10 +264,7 @@ unsigned int load_partinfo(const char *filename) {
 		err_exit("Can't open file %s\n", filename);
 	}
 
-	int ret = 0;
 	size_t size = 0;
-	unsigned char *offset = NULL;
-	unsigned char *buf = NULL;
 
 	switch (part_type) {
 	case STRUCT_PARTINFOv2:

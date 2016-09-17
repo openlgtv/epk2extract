@@ -156,7 +156,6 @@ void file_compress(char *file, char *mode) {
  * Uncompress the given file and remove the original.
  */
 void file_uncompress(char *infile, char *outfile) {
-	local char buf[MAX_NAME_LEN];
 	FILE *in, *out;
 	gzFile gzin;
 
@@ -176,12 +175,11 @@ void file_uncompress(char *infile, char *outfile) {
 }
 
 char *file_uncompress_origname(char *infile, char *path) {
-	local char buf[MAX_NAME_LEN];
 	FILE *in, *out;
 	gzFile gzin;
 
 	char *filename;
-	int len = 0, i;
+	int len = 0;
 	in = fopen(infile, "rb");
 	if (in == NULL) {
 		printf("Can't open %s\n", infile);

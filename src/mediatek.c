@@ -44,7 +44,6 @@ void extract_mtk_1bl(MFILE *in, const char *outname) {
 }
 
 void split_mtk_tz(MFILE *tz, const char *destdir) {
-	int n;
 	size_t tz_size;
 
 	char *dest;

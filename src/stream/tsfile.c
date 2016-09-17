@@ -15,8 +15,12 @@ void setKey() {
 		return;
 	}
 	unsigned char wKey[24];
-	int read = fread(&wKey, 1, 24, keyFile);
+	int read = fread(&wKey, 24, 1, keyFile);
 	fclose(keyFile);
+	if(read != 1){
+		printf("key read error\n");
+		return;
+	}
 
 	printf("Wrapped key: ");
 	int i;

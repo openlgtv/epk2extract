@@ -123,7 +123,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	unsigned char *buf;
 	size_t fsize;
 
-	char *filedir, *outpath;
+	char *outpath;
 	
 	unsigned long int textsize, codesize;
 

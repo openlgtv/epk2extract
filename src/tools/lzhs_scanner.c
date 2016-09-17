@@ -10,8 +10,6 @@
 #include "util.h"
 
 void scan_lzhs(const char *filename, int extract) {
-	int fsize, pos;
-	
 	struct lzhs_header *header = NULL;
 	char *outname, *outdecode;
 

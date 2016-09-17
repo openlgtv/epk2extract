@@ -335,7 +335,6 @@ int isdatetime(char *datetime) {
 
 /* detect_model - detect model and corresponding part struct */
 part_struct_type detect_model(struct p2_device_info * pid) {
-	part_struct_type retval;
 	char *model;
 	part_type = STRUCT_INVALID;
 	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
@@ -444,7 +443,6 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 	}
 	fclose(file);
 
-	struct image_header *image_header = (struct image_header *)(&buffer);
 	FILE *out = fopen(destination_file, "wb");
 	int header_size = sizeof(struct image_header);
 	fwrite(buffer + header_size, 1, read - header_size, out);
