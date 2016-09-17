@@ -73,13 +73,11 @@ void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 	char *base = remove_ext(file);
 	#endif
 
-	uint8_t checksum_sums = 0;
-	uint i=0, segNo=0;
-	for(i=0; moff(mf, data) < msize(mf); i++){
+	while(moff(mf, data) < msize(mf)){
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data; 
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
 
-		printf("[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
+		printf("\n[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
 			moff(mf, main_hdr),
 			main_hdr->checksum,
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
@@ -110,10 +108,6 @@ void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 			seg_hdr->compressedSize +
 			pad
 		);
-
-		if(moff(mf, data) >= msize(mf)){
-			break;
-		}
 	}
 
 	fclose(out_file);
