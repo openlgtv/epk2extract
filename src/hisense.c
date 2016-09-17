@@ -73,6 +73,16 @@ void extract_ext4_lzhs(MFILE *mf, const char *dest_file){
 	char *base = remove_ext(file);
 	#endif
 
+
+	printf("Copying 0x%08X bytes\n", HISENSE_EXT_LZHS_OFFSET);
+	/* Copy first MB as-is (uncompressed) */
+	fwrite (
+		mdata(mf, uint8_t),
+		HISENSE_EXT_LZHS_OFFSET,
+		1,
+		out_file
+	);
+
 	while(moff(mf, data) < msize(mf)){
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data; 
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
