@@ -258,7 +258,7 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	/* Input file */
 	cursor_t in_cur = {
 		.ptr = in_bytes + offset + sizeof(*header),
-		.size = tempSize,
+		.size = header->compressedSize,
 		.offset = 0
 	};
 	
