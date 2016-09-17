@@ -4,7 +4,7 @@
 
 /* LZSS globals */
 static unsigned long int textsize = 0, codesize = 0;
-static uint8_t text_buf[N + F - 1];
+static uint8_t text_buf[N + F - 1] = {0};
 static int32_t match_length, match_position, lson[N + 1], rson[N + 257], dad[N + 1];
 /* Huffman decoding tables */
 static t_code(*huff_char)[1] = (void *)&char_table;
@@ -194,7 +194,7 @@ static int getData(cursor_t *in) {
 void huff(FILE * in, FILE * out, unsigned long int *p_textsize, unsigned long int *p_codesize) {
 	textsize = codesize;
 	codesize = 0;
-	int c, i, j, k, m, flags = 0;
+	int c, i, j, m, flags = 0;
 	while (1) {
 		if (((flags >>= 1) & 256) == 0) {
 			if ((c = getc(in)) == EOF)
@@ -383,7 +383,7 @@ void unlzss(cursor_t *in, cursor_t *out) {
 			if((c = cgetc(in)) == EOF)
 				break;
 			
-			if(cputc(text_buf[r++] = c, out) == EOF)
+			if(cputc((text_buf[r++] = c), out) == EOF)
 				return;
 			r &= (N - 1);
 		} else {
