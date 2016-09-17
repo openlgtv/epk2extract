@@ -220,12 +220,19 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	printf("Uncompressed:\t%u\n", header->uncompressedSize);
 	printf("Checksum:\t0x%x\n\n", header->checksum);
 
-	void *tmp = MFILE_ANON(header->uncompressedSize);
+
+	/*
+	 * There are a few cases where the huffman data can result in a bigger LZSS set than the final output size.
+	 * To work around this problem, we set temp memory to twice the uncompressedSize.
+	 */
+	size_t tempSize = header->uncompressedSize * 2;
+
+	void *tmp = MFILE_ANON(tempSize);
 	if(tmp == MAP_FAILED){
 		perror("mmap tmp for lzhs\n");
 		return (cursor_t *)-1;
 	}
-	memset(tmp, 0x00, header->uncompressedSize);
+	memset(tmp, 0x00, tempSize);
 	
 	MFILE *out_file = NULL;
 	uint8_t *out_bytes = NULL;
@@ -251,14 +258,14 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	/* Input file */
 	cursor_t in_cur = {
 		.ptr = in_bytes + offset + sizeof(*header),
-		.size = header->compressedSize,
+		.size = tempSize,
 		.offset = 0
 	};
 	
 	/* Temp memory */
 	cursor_t out_cur = {
 		.ptr = tmp,
-		.size = header->uncompressedSize,
+		.size = tempSize,
 		.offset = 0
 	};
 
@@ -271,13 +278,17 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	// Rewind the huffman cursor and change ends
 	out_cur.offset = 0;
 	memcpy((void *)&in_cur, (void *)&out_cur, sizeof(cursor_t));
+
+	// Setup output cursor for the final file
 	out_cur.ptr = out_bytes;
+	out_cur.size = header->uncompressedSize;
+
 	// Temp memory -> Output file
 	unlzss(&in_cur, &out_cur);
 
 	// We don't need the temp memory anymore
-	munmap(tmp, header->uncompressedSize);	
-	
+	munmap(tmp, tempSize);
+
 	printf("[LZHS] Converting Thumb => ARM...\n");
 	ARMThumb_Convert(out_bytes, out_cur.size, 0, 0);
 	
