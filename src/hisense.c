@@ -43,8 +43,8 @@ MFILE *is_lzhs_fs(const char *pkg){
 		msize(mf) > (HISENSE_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
 		is_lzhs_mem(mf, HISENSE_EXT_LZHS_OFFSET) &&
 		is_lzhs_mem(mf, HISENSE_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
-		// first LZHS header contains number of block in checksum
-		((struct lzhs_header *)&data[HISENSE_EXT_LZHS_OFFSET])->checksum != 0x00
+		// First LZHS header contains number of segment in checksum. Make sure that it is the first segment
+		((struct lzhs_header *)&data[HISENSE_EXT_LZHS_OFFSET])->checksum == 1
 	){
 		return mf;
 	}
