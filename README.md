@@ -18,6 +18,7 @@ Supported Formats:
 | epk v1	| First version of epk format, not encrypted and not signed
 | epk v2	| Introduces signing and encryption, keys needed
 | epk v3   	| Keys needed
+| hisense pkg | Hisense DTV upgrade files
 | squashfs	| 
 | cramfs	| 
 | lz4		| Slightly modified version with header
@@ -25,6 +26,7 @@ Supported Formats:
 | gzip		| 
 | jffs2		| 
 | lzhs		| Special compression for MTK bootloaders (boot.pak, tzfw.pak), uses lzss + huffman
+| lzhs_fs   | LZHS compressed filesystem used in Hisense upgrade files
 | mtdinfo/partinfo |  Partition table format (mtdi.pak, part.pak)
 | str/pif	| PVR recording format that can be found in netcast models
 | sym		| Debugging symbols. Can extracts function names and addresses to an IDA script file (idc)
