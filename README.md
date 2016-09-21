@@ -5,11 +5,11 @@ epk2extract
 
 [![Join the chat at https://gitter.im/openlgtv/epk2extract](https://badges.gitter.im/openlgtv/epk2extract.svg)](https://gitter.im/openlgtv/epk2extract?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TV sets.
+epk2extract is a tool that can extract, decrypt, convert multiple file formats that can be found in LG TV sets and similar devices.
 
 Supported Formats:
 ===========================================
-**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get the keys you will need to dump them from a running TV.**
+**NOTE: To unpack epk v2 and v3 you need proper AES and RSA keys for decryption. To get them you will need to dump them from a running TV.**
 
 **NOTE: To decrypt PVR recordings you need a dump of the unique AES-128 key from your TV**
 
@@ -17,11 +17,11 @@ Supported Formats:
 | :-----	| :-----
 | epk v1	| First version of epk format, not encrypted and not signed
 | epk v2	| Introduces signing and encryption, keys needed
-| epk v3   	| Keys needed
+| epk v3   	| Introduced with WebOS. Keys needed
 | hisense pkg | Hisense DTV upgrade files
 | squashfs	| 
 | cramfs	| 
-| lz4		| Slightly modified version with header
+| lz4		| Slightly modified version with header magic
 | lzo		| 
 | gzip		| 
 | jffs2		| 
@@ -29,15 +29,16 @@ Supported Formats:
 | lzhs_fs   | LZHS compressed filesystem used in Hisense upgrade files
 | mtdinfo/partinfo |  Partition table format (mtdi.pak, part.pak)
 | str/pif	| PVR recording format that can be found in netcast models
-| sym		| Debugging symbols. Can extracts function names and addresses to an IDA script file (idc)
+| sym		| Debugging symbols. Can extract function names and addresses to an IDA script file (idc)
 
-Although epk2extract is only tested on LG firmware files, you may use it to extract other files like a general unpack tool, as long as they have a supported format in the table above.
+Although epk2extract is only tested on LG firmware files, you may use it to extract other files like a general unpack tool, as long as they are supported according to the table above.
 
 **!!WARNING!!**<br>
 **epk2extract isn't designed to repack files**<br>
 **If you wish to repack modified files, follow the openlgtv wiki/forum, and do it in a Linux environment (no cygwin)**<br>
 **Don't repack files extracted in cygwin environment**<br>
 **In any case, you do so at your own risk**<br>
+
 *THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -91,7 +92,7 @@ To compile on Cygwin:
     cd epk2extract ; ./build.sh
 
 After compilation epk2extract and Cygwin *.dll libs can be found in ./build_cygwin (or ./build_linux or ./build_osx)
-The build script automatically copies Cygwin shared libraries to the ./build_cygwin/ folder, so you can use epk2extract standalone without having to install Cygwin.
+The build script automatically copies Cygwin shared libraries to the ./build_cygwin/ folder, so you can use epk2extract standalone without having to install Cygwin as a dependency.
 
 ## To use:
 
