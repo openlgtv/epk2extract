@@ -51,7 +51,6 @@ typedef struct {
 	int fd;
 	FILE *fh;
 	off_t offset;
-	size_t size;
 	int prot;
 	struct stat statBuf;
 	void *pMem;

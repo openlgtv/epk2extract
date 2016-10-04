@@ -149,12 +149,17 @@ int cputc(int c, cursor_t *stream){
  * Closes an opened file and frees the structure
  */
 int mclose(MFILE *mfile){
-	if(!mfile || mfile->fd < 0 || !mfile->pMem || mfile->size <= 0)
+	if(!mfile || mfile->fd < 0 || !mfile->pMem || mfile->statBuf.st_size <= 0)
 		return -1;
-	if(munmap(mfile->pMem, mfile->size) < 0)
+	if(munmap(mfile->pMem, mfile->statBuf.st_size) < 0)
 		return -2;
 	free(mfile->path);
-	close(mfile->fd);
+	if(mfile->fh != NULL){
+		fclose(mfile->fh);
+		mfile->fd = 0;
+	} else {
+		close(mfile->fd);
+	}
 	free(mfile);
 	mfile = NULL;
 	return 0;
