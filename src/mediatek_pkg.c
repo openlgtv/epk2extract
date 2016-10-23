@@ -292,9 +292,6 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 		data += pak->size;
 	}
 
-	mclose(mf);
-	mf = NULL;
-
 	if(hdr != NULL){
 		free(hdr);
 	}
