@@ -2,24 +2,24 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
-
 #include "main.h" //for handle_file
 #include "mfile.h"
-#include "hisense.h"
+#include "mediatek_pkg.h"
 #include "lzhs/lzhs.h"
 #include "util.h"
+#include "util_crypto.h"
 
-MFILE *is_hisense(const char *pkgfile){
+MFILE *is_mtk_pkg(const char *pkgfile){
 	MFILE *mf = mopen(pkgfile, O_RDONLY);
 	if(!mf){
 		err_exit("Cannot open file %s\n", pkgfile);
 	}
 	
 	uint8_t *data = mdata(mf, uint8_t);
-	data = &data[UPG_HEADER_SIZE];
+	data = &data[sizeof(struct mtkupg_header) + UPG_HMAC_SIZE];
 
 	/* First pak doesn't have OTA ID fields */
-	struct hipkg *cfig = (struct hipkg *)data;
+	struct mtkpkg *cfig = (struct mtkpkg *)data;
 	if(
 		(!strcmp(cfig->pakName, "cfig")) &&
 		(!strncmp(cfig->data, "START", 5))
@@ -40,11 +40,11 @@ MFILE *is_lzhs_fs(const char *pkg){
 	uint8_t *data = mdata(mf, uint8_t);
 
 	if(
-		msize(mf) > (HISENSE_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
-		is_lzhs_mem(mf, HISENSE_EXT_LZHS_OFFSET) &&
-		is_lzhs_mem(mf, HISENSE_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
+		msize(mf) > (MTK_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
+		is_lzhs_mem(mf, MTK_EXT_LZHS_OFFSET) &&
+		is_lzhs_mem(mf, MTK_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
 		// First LZHS header contains number of segment in checksum. Make sure that it is the first segment
-		((struct lzhs_header *)&data[HISENSE_EXT_LZHS_OFFSET])->checksum == 1
+		((struct lzhs_header *)&data[MTK_EXT_LZHS_OFFSET])->checksum == 1
 	){
 		return mf;
 	}
@@ -60,7 +60,7 @@ MFILE *is_lzhs_fs(const char *pkg){
  * The second header contains the actual data
  */
 void extract_lzhs_fs(MFILE *mf, const char *dest_file){
-	uint8_t *data = mdata(mf, uint8_t) + HISENSE_EXT_LZHS_OFFSET;
+	uint8_t *data = mdata(mf, uint8_t) + MTK_EXT_LZHS_OFFSET;
 	
 	FILE *out_file = fopen(dest_file, "w+");
 	if(!out_file){
@@ -74,11 +74,11 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	#endif
 
 
-	printf("Copying 0x%08X bytes\n", HISENSE_EXT_LZHS_OFFSET);
+	printf("Copying 0x%08X bytes\n", MTK_EXT_LZHS_OFFSET);
 	/* Copy first MB as-is (uncompressed) */
 	fwrite (
 		mdata(mf, uint8_t),
-		HISENSE_EXT_LZHS_OFFSET,
+		MTK_EXT_LZHS_OFFSET,
 		1,
 		out_file
 	);
@@ -127,17 +127,61 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	#endif
 }
 
-void extract_hisense(MFILE *mf, struct config_opts_t *config_opts){
-	uint8_t *data = mdata(mf, uint8_t) + UPG_HEADER_SIZE;
+int compare_pkg_header(uint8_t *header, size_t headerSize){
+	if( !strncmp(header, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
+		printf("[+] Found HISENSE Package\n");
+		return 1;
+	}
+	if( !strncmp(header, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
+		printf("[+] Found SHARP Package\n");
+		return 1;
+	}
+	if( !strncmp(header, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
+		printf("[+] Found PHILIPS Package\n");
+		return 1;
+	}
+	return 0;
+}
+
+void process_pkg_header(MFILE *mf){
+	uint8_t *header = mdata(mf, uint8_t);
+	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header);
+	if(!headerKey){
+		fprintf(stderr, "[!] Cannot find proper AES key for header, ignoring\n");
+		return;
+	}
+
+	struct mtkupg_header *hdr = calloc(1, sizeof(struct mtkupg_header));
+
+	uint8_t ivec[16] = {0x00};
+	AES_cbc_encrypt(header, (uint8_t *)hdr, sizeof(*hdr), headerKey, (uint8_t *)&ivec, AES_DECRYPT);
+	hexdump(hdr, sizeof(*hdr));
+
+	printf("======== Firmware Info ========\n");
+	printf("| Product Name: %s\n", hdr->product_name);
+	printf("| Firmware ID : %.*s\n",
+		member_size(struct mtkupg_header, vendor_magic) + 
+		member_size(struct mtkupg_header, mtk_magic) + 
+		member_size(struct mtkupg_header, vendor_info),
+		hdr->vendor_magic
+	);
+	printf("| File Size: %u bytes\n", hdr->fileSize);
+	printf("| Platform Type: 0x%02X\n", hdr->platform);
+	printf("======== Firmware Info ========\n");
+}
+
+void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
+	off_t i = sizeof(struct mtkupg_header) + UPG_HMAC_SIZE;
+	uint8_t *data = mdata(mf, uint8_t) + i;
 
 	char *file_name = my_basename(mf->path);
 	char *file_base = remove_ext(file_name);
 
-	off_t i = UPG_HEADER_SIZE;
+	process_pkg_header(mf);
 	
 	int pakNo;
 	for(pakNo=0; i < msize(mf); pakNo++){
-		struct hipkg *pak = (struct hipkg *)data;
+		struct mtkpkg *pak = (struct mtkpkg *)data;
 		/* End of package */
 		if(pak->size == 0){
 			break;
@@ -153,8 +197,8 @@ void extract_hisense(MFILE *mf, struct config_opts_t *config_opts){
 		size_t pkgSize = pak->size;
 
 		char *dest_path;
-		struct hipkg_plat *ext = (struct hipkg_plat *)pkgData;
-		if(!strncmp(ext->platform, HISENSE_MTK_MAGIC, strlen(HISENSE_MTK_MAGIC))){
+		struct mtkpkg_plat *ext = (struct mtkpkg_plat *)pkgData;
+		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
 			printf(", platform='%s', otaid='%s')\n", ext->platform, ext->otaID);
 			if(pakNo == 1){
 				sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
@@ -166,8 +210,8 @@ void extract_hisense(MFILE *mf, struct config_opts_t *config_opts){
 			printf(")\n");
 		}
 
-		struct hipkg_pad *pad = (struct hipkg_pad *)pkgData;
-		if(!strncmp(pad->magic, HISENSE_PAD_MAGIC, strlen(HISENSE_PAD_MAGIC))){
+		struct mtkpkg_pad *pad = (struct mtkpkg_pad *)pkgData;
+		if(!strncmp(pad->magic, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC))){
 			pkgData += sizeof(*pad);
 			pkgSize -= sizeof(*pad);
 		}

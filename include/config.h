@@ -13,6 +13,8 @@ struct config_opts_t {
 	char *dest_dir;
 };
 
+extern struct config_opts_t config_opts;
+
 #    define G_DIR_SEPARATOR_S "/"
 
 #    if defined(__APPLE__)

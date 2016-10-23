@@ -24,7 +24,6 @@
 
 #include "epk1.h"		/* EPK v1 */
 #include "epk2.h"		/* EPK v2 and v3 */
-#include "hisense.h"	/* Hisense DTV */
 #include "cramfs/cramfs.h"	/* CRAMFS */
 #include "cramfs/cramfsswap.h"
 #include "lz4/lz4.h"	/* LZ4 */
@@ -36,6 +35,7 @@
 #include "symfile.h"	/* SYM */
 #include "tsfile.h"		/* STR and PIF */
 #include "mediatek.h"	/* MTK Boot */
+#include "mediatek_pkg.h"	/* MTK UPG */
 #include "u-boot/partinfo.h"	/* PARTINFO */
 #include "util.h"
 
@@ -62,8 +62,8 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		extractEPK2file(file, config_opts);
 	} else if(isFileEPK3(file)) {
 		extractEPK3file(file, config_opts);
-	} else if((mf=is_hisense(file))){
-		extract_hisense(mf, config_opts);
+	} else if((mf=is_mtk_pkg(file))){
+		extract_mtk_pkg(mf, config_opts);
 	} else if((mf=is_lzhs_fs(file))){
 		asprintf(&dest_file, "%s/%s.ext4", dest_dir, file_name);
 		extract_lzhs_fs(mf, dest_file);

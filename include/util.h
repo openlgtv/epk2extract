@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "mfile.h"
 
+#define member_size(type, member) sizeof(((type *)0)->member)
 #define err_exit(fmt, ...) \
 	exit(err_ret(fmt, ##__VA_ARGS__))
 
