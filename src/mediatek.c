@@ -40,7 +40,6 @@ void extract_mtk_1bl(MFILE *in, const char *outname) {
 	);
 
 	mclose(out);
-	mclose(in);
 }
 
 void split_mtk_tz(MFILE *tz, const char *destdir) {
@@ -102,7 +101,6 @@ MFILE *is_mtk_boot(const char *filename) {
 		mclose(file);
 		return NULL;
 	}
-	
 	
 	return file;
 }
