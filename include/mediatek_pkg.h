@@ -18,6 +18,7 @@
 
 #define MTK_PAK_MAGIC "iMtK8"
 #define MTK_PAD_MAGIC "iPAd"
+#define MTK_EXTHDR_SIZE 64
 
 #define PAK_FLAG_ENCRYPTED (1 << 0)
 
@@ -48,7 +49,7 @@ struct mtkpkg_plat {
 
 struct mtkpkg_pad {
 	char magic[8];
-	uint8_t padding[28];
+	uint8_t padding[];
 };
 
 MFILE *is_mtk_pkg(const char *pkgfile);

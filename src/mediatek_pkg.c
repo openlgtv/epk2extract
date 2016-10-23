@@ -243,24 +243,31 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
 			int otaID_len = ext->otaID_len;
 			/* If otaID is missing, compensate for the otaID_len field that would normally be there */
-			if(!strncmp((uint8_t *)&ext->otaID_len, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC))){
-				otaID_len = -member_size(struct mtkpkg_plat, otaID_len);
-			}
-			printf(", platform='%s', otaid='%s')\n", ext->platform, ext->otaID);
-			if(pakNo == 1 && hdr != NULL){
-				sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
+			uint8_t *extData = (uint8_t *)&(ext->otaID_len);
+			int has_otaID = strncmp(extData, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC)) != 0;
+			if(has_otaID){
+				printf(", platform='%s', otaid='%s')\n", ext->platform, ext->otaID);
+				if(pakNo == 1 && hdr == NULL){
+					sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
+					createFolder(config_opts->dest_dir);
+				}
+			} else if(pakNo == 1 && hdr == NULL){
+				sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
 				createFolder(config_opts->dest_dir);
 			}
-			pkgData += sizeof(*ext) + otaID_len;
-			pkgSize -= sizeof(*ext) + otaID_len;
+
+			uint skip = sizeof(*ext);
+			if(has_otaID){
+				skip += ext->otaID_len;
+			}
+			if(skip < MTK_EXTHDR_SIZE){
+				skip += (MTK_EXTHDR_SIZE - skip);
+			}
+
+			pkgData += skip;
+			pkgSize -= skip;
 		} else {
 			printf(")\n");
-		}
-
-		struct mtkpkg_pad *pad = (struct mtkpkg_pad *)pkgData;
-		if(!strncmp(pad->magic, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC))){
-			pkgData += sizeof(*pad);
-			pkgSize -= sizeof(*pad);
 		}
 
 		asprintf(&dest_path, "%s/%.*s.pak",
