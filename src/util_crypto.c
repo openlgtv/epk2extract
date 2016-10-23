@@ -6,7 +6,7 @@
 #include "config.h"
 #include "util_crypto.h"
 
-AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare){
+AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int verbose){
 	AES_KEY *aesKey = calloc(1, sizeof(AES_KEY));
 	int found = 0;
 	char *key_file_name;
@@ -27,13 +27,19 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		char *pos = line;
 
 		size_t count;
-		printf("[+] Trying AES Key ");
+		if(verbose){
+			printf("[+] Trying AES Key ");
+		}
 		for (count = 0; count < AES_BLOCK_SIZE; count++) {
 			sscanf(pos, "%2hhx", &key_buf[count]);
-			printf("%02X", key_buf[count]);
+			if(verbose){
+				printf("%02X", key_buf[count]);
+			}
 			pos += 2;
 		}
-		printf("\n");
+		if(verbose){
+			printf("\n");
+		}
 
 		AES_set_decrypt_key((uint8_t *)&key_buf, 128, aesKey);
 

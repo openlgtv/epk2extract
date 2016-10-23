@@ -9,6 +9,25 @@
 #include "util.h"
 #include "util_crypto.h"
 
+static int is_philips_pkg = 0;
+static AES_KEY *pkg_key = NULL;
+
+int compare_pkg_header(uint8_t *header, size_t headerSize){
+	if( !strncmp(header, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
+		printf("[+] Found HISENSE Package\n");
+		return 1;
+	}
+	if( !strncmp(header, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
+		printf("[+] Found SHARP Package\n");
+		return 1;
+	}
+	if( !strncmp(header, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
+		printf("[+] Found PHILIPS Package\n");
+		return 1;
+	}
+	return 0;
+}
+
 MFILE *is_mtk_pkg(const char *pkgfile){
 	MFILE *mf = mopen(pkgfile, O_RDONLY);
 	if(!mf){
@@ -16,13 +35,34 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	}
 	
 	uint8_t *data = mdata(mf, uint8_t);
+
+	if((pkg_key = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, 0)) != NULL){
+		return mf;
+	}
+
+	/* It failed, but we want to check for Philips.
+ 	 * Philips has an additional 0x80 header before the normal PKG one
+ 	 */
+	if((pkg_key = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, 0)) != NULL){
+		is_philips_pkg = 1;
+		return mf;
+	}
+		
+
+	/* No AES key found to decrypt the header. Try to check if it's a MTK PKG anyways
+	 * This method can return false for valid packages as the order of partitions isn't fixed
+	 */
 	data = &data[sizeof(struct mtkupg_header) + UPG_HMAC_SIZE];
 
 	/* First pak doesn't have OTA ID fields */
 	struct mtkpkg *cfig = (struct mtkpkg *)data;
 	if(
-		(!strcmp(cfig->pakName, "cfig")) &&
-		(!strncmp(cfig->data, "START", 5))
+		(	/* Hisense and Sharp first partition */
+			!strcmp(cfig->pakName, "cfig") &&
+			!strncmp(cfig->data, "START", 5)
+		) || (
+			!strcmp(cfig->pakName, "ixml") //Philips first partition
+		)
 	){
 		/* Checking for END may be desirable */
 		return mf;
@@ -127,28 +167,15 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	#endif
 }
 
-int compare_pkg_header(uint8_t *header, size_t headerSize){
-	if( !strncmp(header, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
-		printf("[+] Found HISENSE Package\n");
-		return 1;
-	}
-	if( !strncmp(header, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
-		printf("[+] Found SHARP Package\n");
-		return 1;
-	}
-	if( !strncmp(header, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
-		printf("[+] Found PHILIPS Package\n");
-		return 1;
-	}
-	return 0;
-}
-
-void process_pkg_header(MFILE *mf){
+struct mtkupg_header *process_pkg_header(MFILE *mf){
 	uint8_t *header = mdata(mf, uint8_t);
-	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header);
+	if(is_philips_pkg)
+		header += PHILIPS_HEADER_SIZE;
+
+	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header, 1);
 	if(!headerKey){
 		fprintf(stderr, "[!] Cannot find proper AES key for header, ignoring\n");
-		return;
+		return NULL;
 	}
 
 	struct mtkupg_header *hdr = calloc(1, sizeof(struct mtkupg_header));
@@ -168,22 +195,37 @@ void process_pkg_header(MFILE *mf){
 	printf("| File Size: %u bytes\n", hdr->fileSize);
 	printf("| Platform Type: 0x%02X\n", hdr->platform);
 	printf("======== Firmware Info ========\n");
+
+	return hdr;
 }
 
 void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 	off_t i = sizeof(struct mtkupg_header) + UPG_HMAC_SIZE;
+	if(is_philips_pkg)
+		i += PHILIPS_HEADER_SIZE;
+
 	uint8_t *data = mdata(mf, uint8_t) + i;
 
 	char *file_name = my_basename(mf->path);
 	char *file_base = remove_ext(file_name);
 
-	process_pkg_header(mf);
+	struct mtkupg_header *hdr = process_pkg_header(mf);
+	if(hdr != NULL){
+		// Use product name for now (version would be better)
+		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, hdr->product_name);
+		createFolder(config_opts->dest_dir);
+	}
 	
 	int pakNo;
-	for(pakNo=0; i < msize(mf); pakNo++){
+	for(pakNo=0; moff(mf, data) < msize(mf); pakNo++){
 		struct mtkpkg *pak = (struct mtkpkg *)data;
 		/* End of package */
 		if(pak->size == 0){
+			break;
+		}
+
+		if(is_philips_pkg && moff(mf, data) + PHILIPS_SIGNATURE_SIZE == msize(mf)){
+			//Philips RSA-2048 signature
 			break;
 		}
 
@@ -205,7 +247,7 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 				otaID_len = -member_size(struct mtkpkg_plat, otaID_len);
 			}
 			printf(", platform='%s', otaid='%s')\n", ext->platform, ext->otaID);
-			if(pakNo == 1){
+			if(pakNo == 1 && hdr != NULL){
 				sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
 				createFolder(config_opts->dest_dir);
 			}
@@ -245,6 +287,10 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 
 	mclose(mf);
 	mf = NULL;
+
+	if(hdr != NULL){
+		free(hdr);
+	}
 
 	free(file_name);
 	free(file_base);

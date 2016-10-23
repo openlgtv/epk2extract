@@ -11,6 +11,9 @@
 #define SHARP_PKG_MAGIC "Shar"
 #define PHILIPS_PKG_MAGIC "TPV_"
 
+#define PHILIPS_HEADER_SIZE 0x80 //at top before MTK header
+#define PHILIPS_SIGNATURE_SIZE 0x100 //RSA-2048 at the bottom
+
 #define MTK_FIRMWARE_MAGIC "#DH@FiRm" //after vendor magic
 
 #define MTK_PAK_MAGIC "iMtK8"
