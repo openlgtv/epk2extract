@@ -390,6 +390,5 @@ int extract_lzhs(MFILE *in_file) {
 			return r;
 	}
 	
-	mclose(in_file);
 	return 0;
 }
