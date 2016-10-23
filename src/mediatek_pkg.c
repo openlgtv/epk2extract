@@ -199,13 +199,18 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 		char *dest_path;
 		struct mtkpkg_plat *ext = (struct mtkpkg_plat *)pkgData;
 		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
+			int otaID_len = ext->otaID_len;
+			/* If otaID is missing, compensate for the otaID_len field that would normally be there */
+			if(!strncmp((uint8_t *)&ext->otaID_len, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC))){
+				otaID_len = -member_size(struct mtkpkg_plat, otaID_len);
+			}
 			printf(", platform='%s', otaid='%s')\n", ext->platform, ext->otaID);
 			if(pakNo == 1){
 				sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
 				createFolder(config_opts->dest_dir);
 			}
-			pkgData += sizeof(*ext) + ext->otaID_len;
-			pkgSize -= sizeof(*ext) + ext->otaID_len;
+			pkgData += sizeof(*ext) + otaID_len;
+			pkgSize -= sizeof(*ext) + otaID_len;
 		} else {
 			printf(")\n");
 		}
