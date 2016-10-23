@@ -18,7 +18,7 @@ Supported Formats:
 | epk v1	| First version of epk format, not encrypted and not signed
 | epk v2	| Introduces signing and encryption, keys needed
 | epk v3   	| Introduced with WebOS. Keys needed
-| hisense pkg | Hisense DTV upgrade files
+| Mediatek pkg | UPG/PKG files used by Hisense/Sharp and possibly others
 | squashfs	| 
 | cramfs	| 
 | lz4		| Slightly modified version with header magic
