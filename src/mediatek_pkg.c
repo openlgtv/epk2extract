@@ -263,7 +263,10 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 			pkgSize -= sizeof(*pad);
 		}
 
-		asprintf(&dest_path, "%s/%s.pak", config_opts->dest_dir, pak->pakName);
+		asprintf(&dest_path, "%s/%.*s.pak",
+			config_opts->dest_dir,
+			member_size(struct mtkpkg, pakName), pak->pakName
+		);
 
 		MFILE *out = mfopen(dest_path, "w+");
 		if(!out){
@@ -279,7 +282,11 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 			pkgSize
 		);
 		mclose(out);
-		handle_file(dest_path, config_opts);
+
+		if(pak->flags != PAK_FLAG_ENCRYPTED){
+			handle_file(dest_path, config_opts);
+		}
+
 		free(dest_path);
 
 		data += pak->size;

@@ -19,6 +19,8 @@
 #define MTK_PAK_MAGIC "iMtK8"
 #define MTK_PAD_MAGIC "iPAd"
 
+#define PAK_FLAG_ENCRYPTED (1 << 0)
+
 #define MTK_EXT_LZHS_OFFSET 0x100000
 
 struct mtkupg_header {
@@ -31,7 +33,8 @@ struct mtkupg_header {
 };
 
 struct mtkpkg {
-	char pakName[8];
+	char pakName[4];
+	uint32_t flags;
 	uint32_t size; //including any extra header, if present
 	uint8_t signature[PKG_HMAC_SIZE];
 	char data[];
