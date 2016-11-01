@@ -238,15 +238,16 @@ int main(int argc, char *argv[]) {
 	char *input_file = argv[optind];
 #endif
 	printf("Input file: %s\n", input_file);
+	char *dname = NULL;
 	if (strlen(config_opts.dest_dir) == 0){
-			char *dname = my_dirname(input_file);
+			dname = my_dirname(input_file);
 			strcpy(config_opts.dest_dir, dname);
-			free(dname);
 	}
 	if (strlen(config_opts.dest_dir) == 0 && config_opts.dest_dir[0] == '.'){
-		char *dname = my_dirname(exe_dir);
+		dname = my_dirname(exe_dir);
 		strcpy(config_opts.dest_dir, dname);
 	}
+	free(dname);
 
 	printf("Destination directory: %s\n", config_opts.dest_dir);
 	

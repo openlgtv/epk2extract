@@ -59,6 +59,10 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 			break;
 	}
 
+	if(line != NULL){
+		free(line);
+	}
+
 	exit_e0:
 	free(key_file_name);
 	if(!found){

@@ -10,7 +10,6 @@
 #include "util_crypto.h"
 
 static int is_philips_pkg = 0;
-static AES_KEY *pkg_key = NULL;
 
 int compare_pkg_header(uint8_t *header, size_t headerSize){
 	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
@@ -47,14 +46,14 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	
 	uint8_t *data = mdata(mf, uint8_t);
 
-	if((pkg_key = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, 0)) != NULL){
+	if(find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, 0) != NULL){
 		return mf;
 	}
 
 	/* It failed, but we want to check for Philips.
  	 * Philips has an additional 0x80 header before the normal PKG one
  	 */
-	if((pkg_key = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, 0)) != NULL){
+	if(find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, 0) != NULL){
 		is_philips_pkg = 1;
 		return mf;
 	}
@@ -206,6 +205,7 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 	printf("| Platform Type: 0x%02X\n", hdr->platform);
 	printf("======== Firmware Info ========\n");
 
+	free(headerKey);
 	return hdr;
 }
 
