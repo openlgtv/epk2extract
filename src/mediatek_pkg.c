@@ -13,18 +13,29 @@ static int is_philips_pkg = 0;
 static AES_KEY *pkg_key = NULL;
 
 int compare_pkg_header(uint8_t *header, size_t headerSize){
-	if( !strncmp(header, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
+	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
+	
+	if( !strncmp(hdr->vendor_magic, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
 		printf("[+] Found HISENSE Package\n");
 		return 1;
 	}
-	if( !strncmp(header, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
+	if( !strncmp(hdr->vendor_magic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
 		printf("[+] Found SHARP Package\n");
 		return 1;
 	}
-	if( !strncmp(header, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
+	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
 		printf("[+] Found PHILIPS Package\n");
 		return 1;
 	}
+
+	if( !strncmp(hdr->mtk_magic, MTK_FIRMWARE_MAGIC, strlen(MTK_FIRMWARE_MAGIC)) ){
+		printf("[+] Found UNKNOWN Package (Magic: '%.*s')\n",
+			member_size(struct mtkupg_header, vendor_magic),
+			hdr->vendor_magic
+		);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -47,7 +58,6 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 		is_philips_pkg = 1;
 		return mf;
 	}
-		
 
 	/* No AES key found to decrypt the header. Try to check if it's a MTK PKG anyways
 	 * This method can return false for valid packages as the order of partitions isn't fixed
@@ -283,11 +293,13 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 		printf("Saving partition (%s) to file %s\n\n", pak->pakName, dest_path);
 
 		mfile_map(out, pkgSize);
+
 		memcpy(
 			mdata(out, void),
 			pkgData,
 			pkgSize
 		);
+
 		mclose(out);
 
 		if(pak->flags != PAK_FLAG_ENCRYPTED){
