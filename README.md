@@ -52,6 +52,7 @@ OTHER DEALINGS IN THE SOFTWARE*
 | :----		| :----
 | lzhsenc	| Compresses a given file with lzhs algorithm
 | lzhs_scanner	| Scans a given file to find lzhs files, and extracts them
+| idb_extract | Extracts Image Database (IDB) files that can be found in LG firmwares
 
 
 To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
