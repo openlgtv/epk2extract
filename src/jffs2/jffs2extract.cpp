@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -200,6 +201,9 @@ int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 		return dstlen;
 	case JFFS2_COMPR_ZLIB:
 		return zlib_decompress((unsigned char *)src, (unsigned char *)dst, srclen, dstlen);
+	case JFFS2_COMPR_LZO:
+		printf("LZO Compression currently unsupported!\n");
+		return -1;
 	}
 	printf("  ** unknown compression type %d!\n", type);
 	return -1;
@@ -322,13 +326,13 @@ void do_list(int inode, std::string root = "") {
 	case DT_FIFO:
 		{
 			if (mkfifo(pathname.c_str(), mode) < 0)
-				printf("warnning:fail to make FIFO(%s) !\n", pathname.c_str());
+				printf("warning:fail to make FIFO(%s) !\n", pathname.c_str());
 			break;
 		}
 	case DT_SOCK:
 	case DT_WHT:
 	case DT_UNKNOWN:
-		printf("warnning:unhandled inode type(%d) !\n", node_type[inode]);
+		printf("warning:unhandled inode type(%d) !\n", node_type[inode]);
 		break;
 	}
 
@@ -471,6 +475,10 @@ extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
 		case JFFS2_NODETYPE_PADDING:
 			if (verbose)
 				printf("PADDING\n");
+			break;
+		case JFFS2_NODETYPE_SUMMARY:
+			if (verbose)
+				printf("SUMMARY\n");
 			break;
 		default:
 			errors++;
