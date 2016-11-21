@@ -1,8 +1,7 @@
 #!/bin/bash
-#============================================================================
-# Authors      : sirius, lprot, smx
-# Copyright   : published under GPL
-#============================================================================
+#epk2extract build script
+#Copyright 2016 Smx <smxdev4@gmail.com>
+#All right reserved
 
 normal='tput sgr0'
 lred='printf \033[01;31m'
@@ -46,8 +45,18 @@ if [ ! -e "$rel/obj" ]; then
 fi
 
 cd $objdir
-cmake $srcdir
-make
+
+CMAKE_ARGS=""
+MAKE_ARSG=""
+
+case "$1" in
+	"-v")
+		MAKE_ARGS="${MAKE_ARGS} VERBOSE=1"
+		;;
+esac
+
+cmake $srcdir $CMAKE_ARGS
+make $MAKE_ARGS
 RESULT=$?
 cd src
 
