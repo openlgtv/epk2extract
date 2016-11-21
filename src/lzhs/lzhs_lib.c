@@ -1,3 +1,9 @@
+/**
+ * LZHS Encoder
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * All right reserved
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -127,6 +133,8 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	
 	unsigned long int textsize, codesize;
 
+	struct lzhs_ctx *ctx = lzhs_ctx_new();
+
 #if 1
 //// PADDING
 	printf("\n[LZHS] Padding...\n");
@@ -179,7 +187,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	freopen(outpath, "wb", out);
 
 	printf("[LZHS] Encoding with LZSS...\n");
-	lzss(in, out, &textsize, &codesize);
+	lzss(ctx, in, out, &textsize, &codesize);
 	if (!out) {
 		err_exit("Cannot open tmp.lzs\n");
 	}
@@ -200,7 +208,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	
 	printf("[LZHS] Encoding with Huffman...\n");
 
-	huff(in, out, &textsize, &codesize); 
+	huff(ctx, in, out, &textsize, &codesize); 
 	header.compressedSize = codesize;
 	printf("[LZHS] Writing Header...\n");
 	rewind(out);
@@ -211,6 +219,8 @@ void lzhs_encode(const char *infile, const char *outfile) {
 
 	fclose(in);
 	fclose(out);
+
+	free(ctx);
 }
 
 cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_t *out_checksum){
@@ -233,7 +243,7 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 		return (cursor_t *)-1;
 	}
 	memset(tmp, 0x00, tempSize);
-	
+
 	MFILE *out_file = NULL;
 	uint8_t *out_bytes = NULL;
 
@@ -269,9 +279,11 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 		.offset = 0
 	};
 
+	struct lzhs_ctx *ctx = lzhs_ctx_new();
+
 	printf("[LZHS] Decoding Huffman...\n");
 	// Input file -> Temp memory
-	unhuff(&in_cur, &out_cur);
+	unhuff(ctx, &in_cur, &out_cur);
 	
 	printf("[LZHS] Decoding LZSS...\n");
 	
@@ -284,14 +296,16 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	out_cur.size = header->uncompressedSize;
 
 	// Temp memory -> Output file
-	unlzss(&in_cur, &out_cur);
+	unlzss(ctx, &in_cur, &out_cur);
+
+	free(ctx);
 
 	// We don't need the temp memory anymore
 	munmap(tmp, tempSize);
 
 	printf("[LZHS] Converting Thumb => ARM...\n");
 	ARMThumb_Convert(out_bytes, out_cur.size, 0, 0);
-	
+
 	printf("[LZHS] Calculating checksum...\n");
 	uint8_t checksum = lzhs_calc_checksum(out_bytes, out_cur.size);
 	if(out_checksum != NULL){
