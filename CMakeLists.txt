@@ -1,7 +1,14 @@
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 project(epk2extract)
-set(CMAKE_BUILD_TYPE Debug)
 cmake_minimum_required(VERSION 2.8)
+
+if( NOT CMAKE_BUILD_TYPE )
+	set(CMAKE_BUILD_TYPE Debug)
+endif()
+set(CMAKE_BUILD_TYPE Test)
+set(CMAKE_CXX_FLAGS_TEST "-Ofast")
+set(CMAKE_C_FLAGS_TEST "-Ofast -funroll-loops")
+
 
 add_definitions(-D_GNU_SOURCE -D__USE_XOPEN_EXTENDED)
 add_definitions(-DUSE_MMAP) #for gzip
