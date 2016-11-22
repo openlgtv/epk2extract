@@ -5,7 +5,7 @@ if(APPLE)
 endif(APPLE)
 
 add_library(mfile mfile.c)
-add_library(utils util.c util_crypto.c)
+add_library(utils util.c util_crypto.c thpool.c)
 
 target_link_libraries(utils ${OPENSSL_LIBRARIES} mfile)
 

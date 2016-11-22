@@ -1,13 +1,20 @@
+/**
+ * Mediatek PKG Handling
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
+#include <pthread.h>
 #include "main.h" //for handle_file
 #include "mfile.h"
 #include "mediatek_pkg.h"
 #include "lzhs/lzhs.h"
 #include "util.h"
 #include "util_crypto.h"
+#include "thpool.h"
 
 static int is_philips_pkg = 0;
 
@@ -102,6 +109,39 @@ MFILE *is_lzhs_fs(const char *pkg){
 	return NULL;
 }
 
+/* Arguments passed to the thread function */
+struct thread_arg {
+	MFILE *mf;
+	off_t offset;
+	char *filename;
+	uint blockNo;
+};
+
+void process_block(struct thread_arg *arg){
+	printf("[+] Extracting %u...\n", arg->blockNo);
+	uint8_t out_checksum = 0x00;
+	cursor_t *out_cur = lzhs_decode(arg->mf, arg->offset, NULL, &out_checksum);
+	if(out_cur == NULL || (intptr_t)out_cur < 0){
+		err_exit("LZHS decode failed\n");
+	}
+
+	MFILE *out = mfopen(arg->filename, "w+");
+	if(!out){
+		err_exit("mfopen failed for file '%s'\n", arg->filename);
+	}
+	mfile_map(out, out_cur->size);
+	memcpy(
+		mdata(out, void),
+		out_cur->ptr,
+		out_cur->size
+	);
+	mclose(out);
+	free(out_cur);
+
+	free(arg->filename);
+	free(arg);
+}
+
 /*
  * Hisense (or Mediatek?) uses an ext4 filesystem splitted in chunks, compressed with LZHS
  * They use 2 LZHS header for each chunk
@@ -116,12 +156,13 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 		err_exit("Cannot open %s for writing\n", dest_file);
 	}
 
-	#ifdef LZHSFS_EXTRACT_CHUNKS
 	char *dir = my_dirname(dest_file);
 	char *file = my_basename(dest_file);
 	char *base = remove_ext(file);
-	#endif
 
+	char *tmpdir;
+	asprintf(&tmpdir, "%s/tmp", dir);
+	createFolder(tmpdir);
 
 	printf("Copying 0x%08X bytes\n", MTK_EXT_LZHS_OFFSET);
 	/* Copy first MB as-is (uncompressed) */
@@ -132,6 +173,11 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 		out_file
 	);
 
+	int nThreads = sysconf(_SC_NPROCESSORS_ONLN);
+	printf("[+] Max threads: %d\n", nThreads);
+	threadpool thpool = thpool_init(nThreads);
+
+	uint segNo = 0;
 	while(moff(mf, data) < msize(mf)){
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data; 
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
@@ -143,21 +189,15 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 
 		uint8_t out_checksum = 0x00;
 
-		#ifdef LZHSFS_EXTRACT_CHUNKS
-		char *out;
-
-		asprintf(&out, "%s/%s.%d", dir, base, main_hdr->checksum);
-		lzhs_decode(mf, moff(mf, seg_hdr), out, &out_checksum);
-		free(out);
-		#else
-		cursor_t *out_cur = lzhs_decode(mf, moff(mf, seg_hdr), NULL, &out_checksum);
-		if(out_cur == NULL || (intptr_t)out_cur < 0){
-			err_exit("LZHS decode failed\n");
-		}
-
-		fwrite(out_cur->ptr, out_cur->size, 1, out_file);
-		free(out_cur);
-		#endif
+		char *outSeg;
+		asprintf(&outSeg, "%s/%s.%d", tmpdir, base, (segNo++) + 1);
+		struct thread_arg *arg = calloc(1, sizeof(struct thread_arg));
+		arg->mf = mf;
+		arg->offset = moff(mf, seg_hdr);
+		arg->filename = outSeg;
+		arg->blockNo = main_hdr->checksum;
+		
+		thpool_add_work(thpool, (void *)process_block, arg);
 
 		uint pad;
 		pad = (pad = (seg_hdr->compressedSize % 16)) == 0 ? 0 : (16 - pad);
@@ -168,12 +208,32 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 			pad
 		);
 	}
+	
+	thpool_wait(thpool);
+	thpool_destroy(thpool);
+
+	int i;
+	for(i=1; i<=segNo; i++){
+		printf("[+] Joining Segment %d\n", i);
+		char *outSeg;
+		asprintf(&outSeg, "%s/%s.%d", tmpdir, base, i);
+		
+		MFILE *seg = mopen(outSeg, O_RDONLY);
+		fwrite(mdata(seg, void), msize(seg), 1, out_file);
+		mclose(seg);
+		
+		unlink(outSeg);
+		free(outSeg);
+	}
+
+	rmrf(tmpdir);
+	free(tmpdir);
 
 	fclose(out_file);
 
-	#ifdef LZHSFS_EXTRACT_CHUNKS
-	free(dir); free(file); free(base);
-	#endif
+	free(dir);
+	free(file);
+	free(base);
 }
 
 struct mtkupg_header *process_pkg_header(MFILE *mf){
