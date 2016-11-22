@@ -55,13 +55,18 @@ OTHER DEALINGS IN THE SOFTWARE*
 | idb_extract | Extracts Image Database (IDB) files that can be found in LG firmwares
 
 
-To compile on Linux (Ubuntu, Debian, Linux Mint, Mandriva or Mageia):
+To compile on Linux:
 ===========================================
 
 ### Install build dependencies:
-
-    In Ubuntu, do: sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
-    In Mandriva or Mageia, do: urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
+Ubuntu/Debian:
+```shell
+    apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
+```
+Mandriva/Mageia:
+```shell
+    urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
+```
 
 ### Build it
 ```shell
@@ -85,15 +90,16 @@ To compile on Cygwin:
 ```shell
     ./build.sh
 ```
+
+The build script automatically copies required shared libraries to the ./build_cygwin/ folder, so you can use epk2extract standalone/portable without a full cygwin installation.
+
+
 =====================
 
 To enable compiler optimization, you can compile epk2extract with this command
 ```shell
 CMAKE_FLAGS=-DCMAKE_BUILD_TYPE=Test ./build.sh
 ```
-
-After compilation epk2extract and Cygwin *.dll libs can be found in ./build_cygwin (or ./build_linux or ./build_osx)
-For cygwin, the build script automatically copies shared libraries to the ./build_cygwin/ folder, so you can use epk2extract standalone/portable without a full cygwin installation.
 
 ### To use:
 
