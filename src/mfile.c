@@ -1,7 +1,8 @@
-/*
-	A mmap file wrapper
-	Copyright 2016 Smx
-*/
+/**
+ * mmap file wrapper
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -12,6 +13,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include "mfile.h"
+
+#include "common.h"
 
 #define PERMS_DEFAULT (mode_t)0666
 
@@ -115,21 +118,21 @@ inline MFILE *mopen_private(const char *path, int oflags){
 }
 
 int mgetc(MFILE *stream){
-	if(stream->offset >= msize(stream))
+	if(UNLIKELY(stream->offset >= msize(stream)))
 		return EOF;
 	return (unsigned int)(*(&((uint8_t *)(stream->pMem))[stream->offset++]));
 }
 
 int mputc(int c, MFILE *stream){
-	if(stream->offset >= msize(stream))
+	if(UNLIKELY(stream->offset >= msize(stream)))
 		return EOF;
 	((uint8_t *)(stream->pMem))[stream->offset] = (uint8_t)c;
 	stream->offset++;
 	return c;
 }
 
-int cgetc(cursor_t *stream){
-	if(stream->offset >= stream->size)
+inline int cgetc(cursor_t *stream){
+	if(UNLIKELY(stream->offset >= stream->size))
 		return EOF;
 	return (unsigned int)(
 		*(&(
@@ -139,7 +142,7 @@ int cgetc(cursor_t *stream){
 }
 
 int cputc(int c, cursor_t *stream){
-	if(stream->offset >= stream->size)
+	if(UNLIKELY(stream->offset >= stream->size))
 		return EOF;
 	((unsigned char *)(stream->ptr))[stream->offset++] = (unsigned char)c;
 	return c;
