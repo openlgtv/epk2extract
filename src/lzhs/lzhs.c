@@ -29,6 +29,10 @@ static t_code(*huff_pos)[1] = (void *)&pos_table;		// Position of LZSS match
 static int32_t lookup_charlen[131072];	//2^(13 + 4 bits for len)
 static int32_t lookup_charpos[512];		//2^( 6 + 3 bits for len)
 
+/*
+ * Pack together length and code to create a key for the lookup table
+ * [length][code]
+ */
 static inline uint32_t key_charlen(uint32_t code, uint32_t len){
 	return ((len & 0xF) << 13) | (code & 0x1FFF);
 }
@@ -207,15 +211,6 @@ static void putChar(struct lzhs_ctx *ctx, uint32_t code, uint32_t no, FILE *out)
 	}
 }
 
-unsigned createMask(unsigned a, unsigned b)
-{
-   unsigned r = 0;
-   for (unsigned i=a; i<=b; i++)
-       r |= 1 << i;
-
-   return r;
-}
-
 static inline int getData(struct lzhs_ctx *ctx, cursor_t *in) {
 	if (ctx->bitno > 7) {
 		ctx->bitno = 0;
@@ -284,9 +279,7 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 		if (ctx->len < 4)
 			continue; // len in code_len table should be min 4
 		uint32_t key = key_charlen(ctx->code, ctx->len);
-		//ctx->i = lzhs_lookup_get(key);
 		ctx->i = lookup_charlen[key];
-		//printf("i - %d\n", ctx->i);
 		found = (ctx->i > -1);
 		if(!found){
 			for (ctx->i = 0; ctx->i < 288; ctx->i++) {
@@ -294,7 +287,6 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 					huff_charlen[ctx->i]->code == ctx->code
 				){
 					lookup_charlen[key] = ctx->i;
-					//lzhs_lookup_insert(*huff_charlen[ctx->i], ctx->i, TABLE_CHARLEN);
 					found = 1;
 					break;
 				}
@@ -313,17 +305,13 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 				if (ctx->len < 2)
 					continue;	// len in pos table should be min 2
 				uint32_t key = key_charpos(ctx->code, ctx->len);
-				//ctx->j = lzhs_lookup_get(find, TABLE_POS);
 				ctx->j = lookup_charpos[key];
-				//printf("j - %d\n", ctx->j);
 				found_pos = (ctx->j > -1); 
 				if(!found_pos){
 					for (ctx->j = 0; ctx->j < 32; ctx->j++) {
 						if (huff_pos[ctx->j]->len == ctx->len &&
 							huff_pos[ctx->j]->code == ctx->code
 						){
-							//printf("charpos insert: 0x%08X\n", huff_pos[ctx->j]->code);
-							//lzhs_lookup_insert(*huff_pos[ctx->j], ctx->j, TABLE_POS);
 							lookup_charpos[key] = ctx->j;
 							found_pos = 1;
 							break;

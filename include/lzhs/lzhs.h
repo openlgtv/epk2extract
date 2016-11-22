@@ -40,18 +40,6 @@ typedef struct __attribute__ ((__packed__)) {
 	uint32_t len;
 } t_code;
 
-/* for lookup */
-#define TABLE_CHARLEN 0
-#define TABLE_POS 1
-#ifdef __cplusplus
-extern "C" {
-#endif
-	int lzhs_lookup_get(t_code code, int table);
-	void lzhs_lookup_insert(t_code code, int32_t index, int table);
-#ifdef __cplusplus
-}
-#endif
-
 struct lzhs_ctx *lzhs_ctx_new();
 void lzhs_init_lookup();
 void unlzss(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out);
