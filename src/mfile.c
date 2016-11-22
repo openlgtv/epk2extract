@@ -15,6 +15,7 @@
 #include "mfile.h"
 
 #include "common.h"
+#include "util.h"
 
 #define PERMS_DEFAULT (mode_t)0666
 
@@ -51,12 +52,9 @@ void *_mfile_map(MFILE *file, size_t mapSize, int mapFlags){
 		lseek(file->fd, 0, SEEK_SET);
 		_mfile_update_info(file, NULL);
 	}
-	if(file->pMem){
-
-	}
 	file->pMem = mmap(0, mapSize, file->prot, mapFlags, file->fd, 0);
 	if(file->pMem == MAP_FAILED){
-		//err_exit("mmap failed: %s\n", strerror(errno));
+		err_exit("mmap failed: %s (%d)\n", strerror(errno), errno);
 		return NULL;
 	}
 	
