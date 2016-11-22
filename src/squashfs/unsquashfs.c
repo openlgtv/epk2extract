@@ -2265,8 +2265,7 @@ int is_squashfs(char *filename) {
 }
 
 int unsquashfs(char *squashfs, char *dest) {
-	int i, stat_sys = FALSE, version = FALSE;
-	int n;
+	int stat_sys = FALSE;
 	struct pathnames *paths = NULL;
 	struct pathname *path = NULL;
 	long long directory_table_end;
