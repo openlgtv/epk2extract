@@ -36,6 +36,7 @@
  //
  // Please study LZO.FAQ and simple.c first.
  **************************************************************************/
+#include "common.h"
 
 #include "lzo/lzoconf.h"
 #include "lzo/lzo1x.h"
@@ -244,7 +245,7 @@ int do_decompress(FILE * fi, FILE * fo) {
 	lzo_bytep buf = NULL;
 	lzo_uint buf_len;
 	unsigned char m[sizeof(magic)];
-	lzo_uint32 flags, decomp_size;
+	lzo_uint32 flags, UNUSED(decomp_size);
 	int method;
 	int level;
 	lzo_uint block_size;
@@ -261,7 +262,7 @@ int do_decompress(FILE * fi, FILE * fo) {
 		goto err;
 	}
 
-	decomp_size = xread32(fi);
+	//decomp_size = xread32(fi);
 
 	flags = xread32(fi);
 
@@ -454,7 +455,7 @@ int __lzo_cdecl_main lzo_unpack(const char *in_name, const char *out_name) {
 	int r = 0;
 	FILE *fi = NULL;
 	FILE *fo = NULL;
-	lzo_uint opt_block_size;
+	lzo_uint UNUSED(opt_block_size);
 
 	/*
 	 * Step 1: initialize the LZO library
@@ -465,6 +466,7 @@ int __lzo_cdecl_main lzo_unpack(const char *in_name, const char *out_name) {
 		exit(1);
 	}
 
+#if 0
 	/*
 	 * Step 2: setup memory
 	 */
@@ -474,6 +476,7 @@ int __lzo_cdecl_main lzo_unpack(const char *in_name, const char *out_name) {
 	/* reduce memory requirements for ancient 16-bit DOS 640kB real-mode */
 	if (ACC_MM_AHSHIFT != 3)
 		opt_block_size = 16 * 1024L;
+#endif
 #endif
 
 	/*
