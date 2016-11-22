@@ -46,17 +46,14 @@ fi
 
 cd $objdir
 
-CMAKE_ARGS=""
-MAKE_ARSG=""
-
 case "$1" in
 	"-v")
-		MAKE_ARGS="${MAKE_ARGS} VERBOSE=1"
+		MAKE_FLAGS="${MAKE_ARGS} VERBOSE=1"
 		;;
 esac
 
-cmake $srcdir $CMAKE_ARGS
-make $MAKE_ARGS
+cmake $srcdir $CMAKE_FLAGS
+make $MAKE_FLAGS
 RESULT=$?
 cd src
 
