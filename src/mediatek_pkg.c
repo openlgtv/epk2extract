@@ -187,8 +187,6 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 			main_hdr->checksum,
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
 
-		uint8_t out_checksum = 0x00;
-
 		char *outSeg;
 		asprintf(&outSeg, "%s/%s.%d", tmpdir, base, (segNo++) + 1);
 		struct thread_arg *arg = calloc(1, sizeof(struct thread_arg));
@@ -311,7 +309,6 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 		char *dest_path;
 		struct mtkpkg_plat *ext = (struct mtkpkg_plat *)pkgData;
 		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
-			int otaID_len = ext->otaID_len;
 			/* If otaID is missing, compensate for the otaID_len field that would normally be there */
 			uint8_t *extData = (uint8_t *)&(ext->otaID_len);
 			int has_otaID = strncmp(extData, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC)) != 0;
