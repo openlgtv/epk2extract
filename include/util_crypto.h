@@ -1,3 +1,7 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #ifndef __UTIL_CRYPTO_H
 #define __UTIL_CRYPTO_H
 #include <stdint.h>

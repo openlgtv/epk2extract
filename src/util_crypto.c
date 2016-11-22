@@ -1,3 +1,8 @@
+/**
+ * Miscellaneous utilities
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #include <string.h>
 #include <stdint.h>
 #include <openssl/evp.h>

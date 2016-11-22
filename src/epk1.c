@@ -1,3 +1,10 @@
+/**
+ * EPK v1 handling
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * Copyright 20?? sirius
+ * All right reserved
+ */
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>

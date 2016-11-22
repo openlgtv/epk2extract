@@ -1,3 +1,9 @@
+/**
+ * LG partition table decoder
+ * Original code from u-boot GPL package
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 20?? ???
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>

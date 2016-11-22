@@ -1,3 +1,8 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * All right reserved
+ */
 #ifndef _LZHS_H
 #define _LZHS_H
 

@@ -1,12 +1,9 @@
-/*
- ============================================================================
- Name        : main.c
- Author      : sirius
- Copyright   : published under GPL
- Description : EPK2 firmware extractor for LG Electronic digital TVs
- ============================================================================
-*/
-
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * Copyright 20?? sirius
+ * All right reserved
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -254,6 +251,7 @@ int main(int argc, char *argv[]) {
 	free(exe_dir);
 	free(current_dir);
 
+	lzhs_init_lookup();
 	int exit_code = handle_file(input_file, &config_opts);
 	
 	if (exit_code == EXIT_FAILURE)

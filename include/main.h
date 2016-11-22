@@ -1,3 +1,8 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
+
 #ifndef __MAIN_H
 #define __MAIN_H
 #include "config.h"

@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * All right reserved
+ */
+
 #ifndef __MEDIATEK_H
 #define __MEDIATEK_H
 #include <stdint.h>

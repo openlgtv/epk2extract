@@ -1,3 +1,7 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #ifndef BYTESWAP_H
 #define	BYTESWAP_H
 

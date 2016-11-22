@@ -1,8 +1,6 @@
-/*
- * epk.h
- *
- *  Created on: 16.02.2011
- *      Author: sirius
+/**
+ * Copyright 20xx sirius
+ * All right reserved
  */
 
 #ifndef EPK_H_

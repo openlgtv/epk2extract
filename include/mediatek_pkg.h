@@ -1,3 +1,8 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
+ 
 #ifndef __MTKPKG_H
 #define __MTKPKG_H
 #include "config.h"

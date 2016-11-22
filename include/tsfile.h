@@ -1,3 +1,7 @@
+/**
+ * Copyright 2016 lprot
+ * All right reserved
+ */
 #ifndef __TSFILE_H
 #define __TSFILE_H
 #include <stdint.h>

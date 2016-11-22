@@ -1,3 +1,8 @@
+/**
+ * LZHS Encoding tool
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #include <stdio.h>
 #include "lzhs/lzhs.h"
 

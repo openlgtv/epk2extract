@@ -1,10 +1,7 @@
-/*
- * config.h
- *
- *  Created on: 25.02.2011
- *      Author: root
+/**
+ * Copyright 20xx sirius
+ * All right reserved
  */
-
 #ifndef CONFIG_H_
 #    define CONFIG_H_
 

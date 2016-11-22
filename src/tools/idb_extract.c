@@ -1,3 +1,8 @@
+/**
+ * Image Database dumper
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * All right reserved
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

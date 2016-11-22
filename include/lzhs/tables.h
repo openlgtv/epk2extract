@@ -1,3 +1,8 @@
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * All right reserved
+ */
 #ifndef _LZHS_TAB_H
 #    define _LZHS_TAB_H
 static uint8_t charlen_table[2304] = {	//256 + 32 elements of t_code

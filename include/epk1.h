@@ -1,8 +1,8 @@
-/*
- * epk1.h
- *
- *  Created on: 24.02.2011
- *      Author: sirius
+/**
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * Copyright 20?? sirius
+ * All right reserved
  */
 
 #ifndef EPK1_H_

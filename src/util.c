@@ -1,3 +1,9 @@
+/**
+ * Miscellaneous utilities
+ * Copyright 2016 Smx <smxdev4@gmail.com>
+ * Copyright 2016 lprot
+ * All right reserved
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
