@@ -61,16 +61,16 @@ To compile on Linux:
 ### Install build dependencies:
 Ubuntu/Debian:
 ```shell
-    apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
+apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
 ```
 Mandriva/Mageia:
 ```shell
-    urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
+urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 ```
 
 ### Build it
 ```shell
-    ./build.sh
+./build.sh
 ```
 
 After building, epk2extract can be found in ./build_\<platform\>/ 
@@ -88,7 +88,7 @@ To compile on Cygwin:
 
 ### Build it
 ```shell
-    ./build.sh
+./build.sh
 ```
 
 The build script automatically copies required shared libraries to the ./build_cygwin/ folder, so you can use epk2extract standalone/portable without a full cygwin installation.
