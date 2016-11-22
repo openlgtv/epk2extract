@@ -219,4 +219,12 @@ union jffs2_device_node {
 	__u32 new_id;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+int jffs2extract(char *infile, char *outdir, char *inendian);
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* __LINUX_JFFS2_H__ */

@@ -53,7 +53,7 @@ extern "C" {
 #endif
 
 struct lzhs_ctx *lzhs_ctx_new();
-
+void lzhs_init_lookup();
 void unlzss(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out);
 void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out);
 
