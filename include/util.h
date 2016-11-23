@@ -5,9 +5,11 @@
  */
 #ifndef __UTIL_H
 #define __UTIL_H
+#include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
-#include <elf.h>
 #include <stdlib.h>
+#include <elf.h>
 #include "mfile.h"
 
 #define member_size(type, member) sizeof(((type *)0)->member)
@@ -25,6 +27,7 @@ char *remove_ext(const char *mystr);
 char *get_ext(const char *mystr);
 void createFolder(const char *directory);
 MFILE *is_lz4(const char *lz4file);
+bool is_nfsb_mem(MFILE *file, off_t offset);
 MFILE *is_nfsb(const char *filename);
 void unnfsb(const char *filename, const char *extractedFile);
 int is_gzip(const char *filename);

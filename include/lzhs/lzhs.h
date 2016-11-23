@@ -13,7 +13,8 @@
 
 struct lzhs_header {
 	uint32_t uncompressedSize, compressedSize;
-	uint8_t checksum, spare[7];
+	uint16_t checksum; /* checksum is 1 byte, segment number is 2 bytes */
+	uint8_t spare[6];
 };
 
 /* for LZSS */

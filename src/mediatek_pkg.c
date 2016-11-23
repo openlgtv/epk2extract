@@ -16,7 +16,7 @@
 #include "util_crypto.h"
 #include "thpool.h"
 
-static int is_philips_pkg = 0;
+static int is_philips_pkg = 0, is_sharp_pkg = 0;
 
 int compare_pkg_header(uint8_t *header, size_t headerSize){
 	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
@@ -27,6 +27,7 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 	}
 	if( !strncmp(hdr->vendor_magic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
 		printf("[+] Found SHARP Package\n");
+		is_sharp_pkg = 1;
 		return 1;
 	}
 	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
@@ -95,18 +96,27 @@ MFILE *is_lzhs_fs(const char *pkg){
 
 	uint8_t *data = mdata(mf, uint8_t);
 
+	off_t start = MTK_EXT_LZHS_OFFSET;
+	if(is_nfsb_mem(mf, SHARP_PKG_HEADER_SIZE)){
+		start += SHARP_PKG_HEADER_SIZE;
+	}
+
+	if(msize(mf) < (start + sizeof(struct lzhs_header))){
+		goto fail;
+	}
+
 	if(
-		msize(mf) > (MTK_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
-		is_lzhs_mem(mf, MTK_EXT_LZHS_OFFSET) &&
-		is_lzhs_mem(mf, MTK_EXT_LZHS_OFFSET + sizeof(struct lzhs_header)) &&
+		is_lzhs_mem(mf, start) &&
+		is_lzhs_mem(mf, start + sizeof(struct lzhs_header)) &&
 		// First LZHS header contains number of segment in checksum. Make sure that it is the first segment
-		((struct lzhs_header *)&data[MTK_EXT_LZHS_OFFSET])->checksum == 1
+		((struct lzhs_header *)&data[start])->checksum == 1
 	){
 		return mf;
 	}
 
-	mclose(mf);
-	return NULL;
+	fail:
+		mclose(mf);
+		return NULL;
 }
 
 /* Arguments passed to the thread function */
@@ -150,7 +160,10 @@ void process_block(struct thread_arg *arg){
  */
 void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	uint8_t *data = mdata(mf, uint8_t) + MTK_EXT_LZHS_OFFSET;
-	
+	if(is_nfsb_mem(mf, SHARP_PKG_HEADER_SIZE)){
+		data += SHARP_PKG_HEADER_SIZE;
+	}
+
 	FILE *out_file = fopen(dest_file, "w+");
 	if(!out_file){
 		err_exit("Cannot open %s for writing\n", dest_file);
@@ -165,9 +178,10 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	createFolder(tmpdir);
 
 	printf("Copying 0x%08X bytes\n", MTK_EXT_LZHS_OFFSET);
+
 	/* Copy first MB as-is (uncompressed) */
 	fwrite (
-		mdata(mf, uint8_t),
+		data,
 		MTK_EXT_LZHS_OFFSET,
 		1,
 		out_file
@@ -247,7 +261,9 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 
 	struct mtkupg_header *hdr = calloc(1, sizeof(struct mtkupg_header));
 
-	uint8_t ivec[16] = {0x00};
+	uint8_t ivec[16];
+	memset(&ivec, 0x00, sizeof(ivec));
+
 	AES_cbc_encrypt(header, (uint8_t *)hdr, sizeof(*hdr), headerKey, (uint8_t *)&ivec, AES_DECRYPT);
 	hexdump(hdr, sizeof(*hdr));
 
@@ -351,15 +367,35 @@ void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
 
 		mfile_map(out, pkgSize);
 
-		memcpy(
-			mdata(out, void),
-			pkgData,
-			pkgSize
-		);
+		if((pak->flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
+			if(is_sharp_pkg){
+				uint i;
+				uint8_t ivec[16], keybuf[16];
+				memset(&ivec, 0x00, sizeof(ivec));
+				for(i=0; i<4; i++){
+					memcpy(&keybuf[4 * i], hdr->vendor_magic, sizeof(uint32_t));
+				}
+
+				AES_KEY aesKey;
+				AES_set_decrypt_key((uint8_t *)&keybuf, 128, &aesKey);
+				AES_cbc_encrypt(pkgData, mdata(out, void), pkgSize, &aesKey, (uint8_t *)&ivec, AES_DECRYPT);
+			} else /* if(is_philips) */{
+				/* No AES key for Philips yet */
+				goto write_unencrypted;
+			}
+		} else {
+			write_unencrypted:
+			memcpy(
+				mdata(out, void),
+				pkgData,
+				pkgSize
+			);
+		}
 
 		mclose(out);
-
-		if(pak->flags != PAK_FLAG_ENCRYPTED){
+		
+		/* No AES key for Philips yet */
+		if(!is_philips_pkg){
 			handle_file(dest_path, config_opts);
 		}
 

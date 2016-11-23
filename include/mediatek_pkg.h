@@ -26,8 +26,8 @@
 #define MTK_EXTHDR_SIZE 64
 
 #define PAK_FLAG_ENCRYPTED (1 << 0)
-
 #define MTK_EXT_LZHS_OFFSET 0x100000
+#define SHARP_PKG_HEADER_SIZE 0x40
 
 struct mtkupg_header {
 	int8_t vendor_magic[4];

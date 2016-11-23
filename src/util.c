@@ -45,7 +45,9 @@ part_struct_type part_type;
 
 //boot and tzfw
 #include <elf.h>
-#define MTK_PBL_SIZE 0x9FFF
+
+//mtk pkg
+#include "mediatek_pkg.h"
 
 char *remove_ext(const char *mystr) {
 	char *retstr, *lastdot;
@@ -205,22 +207,23 @@ MFILE *is_lz4(const char *lz4file) {
 	return NULL;
 }
 
+bool is_nfsb_mem(MFILE *file, off_t offset){
+	uint8_t *data = &(mdata(file, uint8_t))[offset];
+	return !memcmp(data, "NFSB", 4) &&
+		(
+			(!memcmp(data + 0xE, "md5", 3)) ||
+			(!memcmp(data + 0x1A, "md5", 3))
+		);
+}
+
 MFILE *is_nfsb(const char *filename) {
 	MFILE *file = mopen(filename, O_RDONLY);
 	if (!file){
 		err_exit("Can't open file %s\n\n", filename);
 	}
 
-	uint8_t *data = mdata(file, uint8_t);
-	if (
-		!memcmp(data, "NFSB", 4) &&
-		(
-			(!memcmp(data + 0xE, "md5", 3)) ||
-			(!memcmp(data + 0x1A, "md5", 3))
-		)
-	){
+	if(is_nfsb_mem(file, 0))
 		return file;
-	}
 
 	mclose(file);
 	return NULL;
