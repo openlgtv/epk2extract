@@ -158,10 +158,12 @@ void process_block(struct thread_arg *arg){
  * The first header contains the chunk number, and the compressed size includes the outer lzhs header (+16)
  * The second header contains the actual data
  */
-void extract_lzhs_fs(MFILE *mf, const char *dest_file){
-	uint8_t *data = mdata(mf, uint8_t) + MTK_EXT_LZHS_OFFSET;
+void extract_lzhs_fs(MFILE *mf, const char *dest_file, struct config_opts_t *config_opts){
+	int is_sharp = 0;
+	uint8_t *data = mdata(mf, uint8_t);
 	if(is_nfsb_mem(mf, SHARP_PKG_HEADER_SIZE)){
 		data += SHARP_PKG_HEADER_SIZE;
+		is_sharp = 1;
 	}
 
 	FILE *out_file = fopen(dest_file, "w+");
@@ -186,6 +188,8 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 		1,
 		out_file
 	);
+
+	data += MTK_EXT_LZHS_OFFSET;
 
 	int nThreads = sysconf(_SC_NPROCESSORS_ONLN);
 	printf("[+] Max threads: %d\n", nThreads);
@@ -246,6 +250,10 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file){
 	free(dir);
 	free(file);
 	free(base);
+
+	if(is_sharp){
+		handle_file(dest_file, config_opts);
+	}
 }
 
 struct mtkupg_header *process_pkg_header(MFILE *mf){
