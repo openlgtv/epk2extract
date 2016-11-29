@@ -7,7 +7,7 @@ if( NOT CMAKE_BUILD_TYPE )
 endif()
 
 set(CMAKE_CXX_FLAGS_TEST "-Ofast")
-set(CMAKE_C_FLAGS_TEST "-Ofast -funroll-loops")
+set(CMAKE_C_FLAGS_TEST "-Ofast -funroll-loops -fprefetch-loop-arrays -march=native")
 
 
 add_definitions(-D_GNU_SOURCE -D__USE_XOPEN_EXTENDED)
