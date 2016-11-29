@@ -33,6 +33,7 @@
 #include "tsfile.h"		/* STR and PIF */
 #include "mediatek.h"	/* MTK Boot */
 #include "mediatek_pkg.h"	/* MTK UPG */
+#include "philips.h"
 #include "u-boot/partinfo.h"	/* PARTINFO */
 #include "util.h"
 
@@ -61,6 +62,8 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 		extractEPK3file(file, config_opts);
 	} else if((mf=is_mtk_pkg(file))){
 		extract_mtk_pkg(mf, config_opts);
+	} else if((mf=is_philips_fusion1(file))){
+		extract_philips_fusion1(mf, config_opts);
 	} else if((mf=is_lzhs_fs(file))){
 		asprintf(&dest_file, "%s/%s.ext4", dest_dir, file_name);
 		extract_lzhs_fs(mf, dest_file, config_opts);
@@ -95,8 +98,9 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 	} else if (is_gzip(file)) {
 		asprintf(&dest_file, "%s/", dest_dir);
 		printf("UnGZIP %s to folder %s\n", file, dest_file);
-		strcpy(dest_file, file_uncompress_origname(file, dest_file));
-		handle_file(dest_file, config_opts);
+		char *gz_name = file_uncompress_origname(file, dest_file);
+		handle_file(gz_name, config_opts);
+		free(gz_name);
 	/* MTK boot partition */
 	} else if ((mf=is_mtk_boot(file))) {
 		asprintf(&dest_file, "%s/mtk_1bl.bin", dest_dir);
