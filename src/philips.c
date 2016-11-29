@@ -30,8 +30,8 @@ MFILE *is_philips_fusion1(const char *filename){
 void extract_philips_fusion1(MFILE *mf, struct config_opts_t *config_opts){
 	char *basename = my_basename(mf->path);
 	char *name = remove_ext(basename);
-	createFolder(name);
-	sprintf(config_opts->dest_dir, name);
+	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, name);
+	createFolder(config_opts->dest_dir);
 
 	uint8_t *data = mdata(mf, uint8_t);
 	struct philips_fusion1_upg *upg = mdata(mf, struct philips_fusion1_upg);
@@ -56,7 +56,7 @@ void extract_philips_fusion1(MFILE *mf, struct config_opts_t *config_opts){
 		#endif
 
 		char *path;
-		asprintf(&path, "%s/part_%d.pak", name, i);
+		asprintf(&path, "%s/part_%d.pak", config_opts->dest_dir, i);
 		printf("  Writing partition to %s\n", path);
 
 		MFILE *out = mfopen(path, "w+");
