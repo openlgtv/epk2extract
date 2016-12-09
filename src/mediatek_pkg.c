@@ -20,7 +20,7 @@ static int is_philips_pkg = 0, is_sharp_pkg = 0;
 
 int compare_pkg_header(uint8_t *header, size_t headerSize){
 	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
-	
+
 	if( !strncmp(hdr->vendor_magic, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
 		printf("[+] Found HISENSE Package\n");
 		return 1;
@@ -30,6 +30,11 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 		is_sharp_pkg = 1;
 		return 1;
 	}
+	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ){
+		printf("[+] Found PHILIPS(TPV) Package\n");
+		return 1;
+	}
+	
 	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
 		printf("[+] Found PHILIPS Package\n");
 		return 1;
@@ -54,14 +59,14 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	
 	uint8_t *data = mdata(mf, uint8_t);
 
-	if(find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, 0) != NULL){
+	if(find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, 0) != NULL){
 		return mf;
 	}
 
 	/* It failed, but we want to check for Philips.
  	 * Philips has an additional 0x80 header before the normal PKG one
  	 */
-	if(find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, 0) != NULL){
+	if(find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, 0) != NULL){
 		is_philips_pkg = 1;
 		return mf;
 	}
@@ -69,7 +74,7 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	/* No AES key found to decrypt the header. Try to check if it's a MTK PKG anyways
 	 * This method can return false for valid packages as the order of partitions isn't fixed
 	 */
-	data = &data[sizeof(struct mtkupg_header) + UPG_HMAC_SIZE];
+	data = &data[sizeof(struct mtkupg_header)];
 
 	/* First pak doesn't have OTA ID fields */
 	struct mtkpkg *cfig = (struct mtkpkg *)data;
@@ -261,7 +266,7 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 	if(is_philips_pkg)
 		header += PHILIPS_HEADER_SIZE;
 
-	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header, 1);
+	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, 1);
 	if(!headerKey){
 		fprintf(stderr, "[!] Cannot find proper AES key for header, ignoring\n");
 		return NULL;
@@ -292,7 +297,7 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 }
 
 void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
-	off_t i = sizeof(struct mtkupg_header) + UPG_HMAC_SIZE;
+	off_t i = sizeof(struct mtkupg_header);
 	if(is_philips_pkg)
 		i += PHILIPS_HEADER_SIZE;
 

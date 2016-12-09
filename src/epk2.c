@@ -14,6 +14,7 @@
 #include "epk2.h"
 #include "crc.h"
 #include "util.h"
+#include "util_crypto.h"
 
 EVP_PKEY *_gpPubKey;
 AES_KEY _gdKeyImage, _geKeyImage;
@@ -113,52 +114,12 @@ void printPAKinfo(struct pak2_t *pak) {
 	}
 }
 
-void SelectAESkey(struct pak2_t *pak, struct config_opts_t *config_opts) {
-	char key_file_name[1024] = "";
-	strcat(key_file_name, config_opts->config_dir);
-	strcat(key_file_name, "/");
-	strcat(key_file_name, "AES.key");
-	FILE *fp = fopen(key_file_name, "r");
-	if (fp == NULL) {
-		printf("\nError: Cannot open AES.key file.\n\n");
-		exit(1);
+int compare_mpak_header(uint8_t *header, size_t headerSize){
+	struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)header;
+	if (!memcmp(decryptedSegmentHeader->pakMagic, "MPAK", 4)) {
+		return 1;
 	}
-
-	int headerSize = sizeof(struct pak2segmentHeader_t);
-	unsigned char decrypted[headerSize];
-	char *line = NULL;
-	size_t len, count;
-	ssize_t read;
-
-	while ((read = getline(&line, &len, fp)) != -1) {
-		char *pos = line;
-		for (count = 0; count < sizeof(aes_key) / sizeof(aes_key[0]); count++) {
-			sscanf(pos, "%2hhx", &aes_key[count]);
-			pos += 2 * sizeof(char);
-		}
-		SWU_CryptoInit_AES(aes_key);
-		printf("Trying AES key (");
-		int i;
-		for (i = 0; i < 16; i++)
-			printf("%02X", aes_key[i]);
-		printf(") for PAK segment decryption...");
-		struct pak2segment_t *PAKsegment = pak->segments[0];
-		decryptImage(PAKsegment->header->signature, headerSize, (unsigned char *)&decrypted);
-		struct pak2segmentHeader_t *decryptedSegmentHeader = (struct pak2segmentHeader_t *)(&decrypted);
-		if (!memcmp(decryptedSegmentHeader->pakMagic, "MPAK", 4)) {
-			printf("Success!\n");
-			fclose(fp);
-			if (line)
-				free(line);
-			return;
-		} else {
-			printf("Failed\n");
-		}
-	}
-	fclose(fp);
-	if (line)
-		free(line);
-	err_exit("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n\n");
+	return 0;
 }
 
 int writePAKsegment(struct pak2_t *pak, const char *filename) {
@@ -613,7 +574,25 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
 	createFolder(config_opts->dest_dir);
 
-	SelectAESkey(pakArray[0], config_opts);
+
+	struct pak2_t *curPak = pakArray[0];
+	struct pak2segment_t *curSeg = curPak->segments[0];
+
+	AES_KEY *pakKey = find_AES_key(
+		(uint8_t *)curSeg->header->signature,
+		headerSize,
+		compare_mpak_header,
+		KEY_ECB,
+		1
+	);
+	if(!pakKey){
+		err_exit("\nFATAL: Can't decrypt PAK. Probably it's decrypted with an unknown key. Aborting now. Sorry.\n\n");
+	}
+	printf("[+] Success\n");
+	
+	memcpy(&_gdKeyImage, pakKey, sizeof(*pakKey));
+	memcpy(&_geKeyImage, pakKey, sizeof(*pakKey));
+	free(pakKey);
 
 	int index;
 	for (index = 0; index < last_index + 1; index++) {

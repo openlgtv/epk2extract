@@ -8,13 +8,12 @@
 #include "config.h"
 
 #define UPG_HEADER_SIZE 0x70
-#define UPG_HMAC_SIZE 0x20 //HMAC-SHA-256
-#define PKG_HMAC_SIZE 0x30 //HMAC-SHA-384
 
 /* Vendor Magics (all 4 bytes) */ 
 #define HISENSE_PKG_MAGIC "hise"
 #define SHARP_PKG_MAGIC "Shar"
-#define PHILIPS_PKG_MAGIC "TPV_"
+#define TPV_PKG_MAGIC "TPV_"
+#define PHILIPS_PKG_MAGIC "PHIL"
 
 #define PHILIPS_HEADER_SIZE 0x80 //at top before MTK header
 #define PHILIPS_SIGNATURE_SIZE 0x100 //RSA-2048 at the bottom
@@ -36,13 +35,16 @@ struct mtkupg_header {
 	uint32_t fileSize;
 	uint32_t platform; //0x50 on sharp. Platform type? (unsure)
 	int8_t product_name[32];
+	uint8_t hmac[16];
+	uint8_t reserved[16];
 };
-
 struct mtkpkg {
 	char pakName[4];
 	uint32_t flags;
 	uint32_t size; //including any extra header, if present
-	uint8_t signature[PKG_HMAC_SIZE];
+	uint8_t info[16]; //unknown
+	uint8_t hmac[16];
+	uint8_t reserved[16];
 	char data[];
 };
 
