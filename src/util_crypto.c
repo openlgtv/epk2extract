@@ -97,7 +97,6 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 				size_t i;
 				for(i=0; i<blocks; i++)
 					AES_ecb_encrypt(&in_data[AES_BLOCK_SIZE * i], &tmp_data[AES_BLOCK_SIZE * i], aesKey, AES_DECRYPT);
-				found = fCompare(tmp_data, in_data_size);
 				break;
 			default:
 				err_exit("Unsupported key type %d\n", key_type);
