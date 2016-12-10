@@ -61,6 +61,6 @@ struct mtkpkg_pad {
 
 MFILE *is_mtk_pkg(const char *pkgfile);
 MFILE *is_lzhs_fs(const char *pkg);
-void extract_mtk_pkg(MFILE *pkg, struct config_opts_t *config_opts);
-void extract_lzhs_fs(MFILE *mf, const char *dest_file, struct config_opts_t *config_opts);
+void extract_mtk_pkg(MFILE *pkg, config_opts_t *config_opts);
+void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opts);
 #endif

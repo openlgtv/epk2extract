@@ -1,120 +1,69 @@
-/**
- * Copyright 2016 Smx <smxdev4@gmail.com>
- * Copyright 2016 lprot
- * Copyright 20?? sirius
- * All right reserved
+/*
+ * epk2.h
+ *
+ *  Created on: 16.02.2011
+ *      Author: sirius
  */
 
-#ifndef EPK2_H_
-#    define EPK2_H_
+#ifndef _EPK2_H_
+#define _EPK2_H_
 
-#    include <stdint.h>
-#    include <sys/stat.h>
-#    include <sys/types.h>
-#    include <openssl/evp.h>
-#    include <openssl/pem.h>
-#    include <openssl/err.h>
-#    include <openssl/aes.h>
-#    include "epk.h"
-#    include <stdbool.h>
+#include <stdint.h>
+#include "mfile.h"
+#include "epk.h"
 
-#define SIGNATURE_SIZE 0x80
+#define EPK2_MAGIC "EPK2"
+#define PAK_MAGIC "MPAK"
 
-typedef enum {
-	RELEASE = 0,
-	DEBUG,
-	TEST,
-	UNKNOWN,
-} build_type_t;
+int compare_pak2_header(uint8_t *header, size_t headerSize);
+int compare_epk2_header(uint8_t *header, size_t headerSize);
+MFILE *isFileEPK2(const char *epk_file);
+void extractEPK2(MFILE *epk, config_opts_t *config_opts); 
 
-struct epk3header_t {
-	unsigned char signature[SIGNATURE_SIZE];
-	unsigned char EPK3magic[4];
-	unsigned char fwVersion[4];
-	unsigned char otaID[32];
-	uint32_t packageInfoSize;
-	uint32_t bChunked;
-};
-
-struct pak3segmentHeader_t {
-	unsigned char unknown1[4];	// 0x01 00 00 00
-	uint32_t infoRecordSize;	// 0x144
-	unsigned char name[128];
-	unsigned char address1[128];
-	unsigned char address2[32];
-	uint32_t pakSize;
-	uint32_t unknown2;			// 0x00 00 00 00
-	uint32_t unknown3;			// 0x01 00 00 00
-	uint32_t segmentNumber;
-	uint32_t totalSegments;
-	uint32_t segmentSize;
-	uint32_t unknown4;			// 0x00 00 00 00
-};
-
-struct pak3_t {
-	uint32_t packageInfoSize;
-	uint32_t numOfSegments;
-	struct pak3segmentHeader_t segment;
-};
-
-/* main epk2 header */
-struct epk2header_t {
-	unsigned char signature[SIGNATURE_SIZE];
-	unsigned char epakMagic[4];	//epak
-	uint32_t fileSize;
-	uint32_t pakCount;
-	unsigned char EPK2magic[4];	//EPK2
-	unsigned char fwVersion[4];
-	unsigned char otaID[32];
-	uint32_t headerLength;
-	uint32_t unknown;
-};
-
-/* package info header */
-struct pak2header_t {
-	unsigned char name[4];
-	uint32_t version;
-	uint32_t maxPAKsegmentSize;
-	uint32_t nextPAKfileOffset;
-	uint32_t nextPAKlength;
-};
-
-/* package chunk header */
-struct pak2segmentHeader_t {
-	unsigned char signature[SIGNATURE_SIZE];
-	unsigned char name[4];
-	unsigned int size;
-	unsigned char platform[15];
-	unsigned char unknown2[49];
-	unsigned char version[4];
-	unsigned char date[4];
-	unsigned int devmode;
+typedef struct {
+	char imageType[4];
+	uint32_t imageSize; //excluded headers and signatures
+	char modelName[64];
+	uint32_t swVersion;
+	uint32_t swDate;
+	BUILD_TYPE_T devMode;
 	uint32_t segmentCount;
-	uint32_t segmentLength;
+	uint32_t segmentSize;
 	uint32_t segmentIndex;
 	char pakMagic[4];
 	unsigned char reserved[24];
-	unsigned int segmentCrc32;
+	uint32_t segmentCrc32;
+} PAK_V2_HEADER_T;
+
+typedef struct {
+	uint32_t imageOffset;
+	uint32_t imageSize; //containing headers (excluded signatures)
+	char imageType[4];
+	uint32_t imageVersion;
+	uint32_t segmentSize;
+} PAK_V2_LOCATION_T;
+
+typedef struct {
+	char fileType[4];
+	uint32_t fileSize;
+	uint32_t fileNum;
+	char epkMagic[4];
+	char epakVersion[4];
+	char otaId[32];
+	PAK_V2_LOCATION_T imageLocation[64];
+} EPK_V2_HEADER_T;
+
+struct epk2_structure {
+	signature_t signature;
+	EPK_V2_HEADER_T epkHeader;
+	uint32_t crc32Info[64];
+	char platformVersion[16];
+	char sdkVersion[16];
 };
 
-/* main segment header */
-struct pak2segment_t {
-	struct pak2segmentHeader_t *header;
-	unsigned char *content;
-	int content_file_offset;
-	int content_len;
+struct pak2_structure {
+	signature_t signature;
+	PAK_V2_HEADER_T pakHeader;
+	unsigned char pData[];
 };
-
-/* main package header */
-struct pak2_t {
-	struct pak2header_t *header;
-	unsigned int segment_count;
-	struct pak2segment_t **segments;
-};
-
-void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts);
-void extractEPK3file(const char *epk_file, struct config_opts_t *config_opts);
-int isFileEPK2(const char *epk_file);
-int isFileEPK3(const char *epk_file);
-
-#endif /* EPK2_H_ */
+#endif

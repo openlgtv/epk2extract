@@ -1,18 +1,33 @@
 /**
- * Copyright 20xx sirius
+ * Copyright 2016 Smx <smxdev4@gmail.com>
  * All right reserved
  */
 
-#ifndef EPK_H_
-#    define EPK_H_
+#ifndef __EPK_H
+#define __EPK_H
+#include <stdint.h>
+#include <stdbool.h>
 
-#    include <stdint.h>
-#    include <sys/stat.h>
-#    include <sys/types.h>
-#    include <openssl/evp.h>
-#    include <openssl/pem.h>
-#    include <openssl/err.h>
-#    include <openssl/aes.h>
-#    include <config.h>
+#define SIGNATURE_SIZE 0x80 //RSA-1024
+typedef unsigned char signature_t[SIGNATURE_SIZE];
 
-#endif /* EPK_H_ */
+typedef enum {
+	RELEASE = 0,
+	DEBUG,
+	TEST,
+	UNKNOWN,
+} BUILD_TYPE_T;
+
+typedef enum {
+    EPK,
+	EPK_V2,
+	EPK_V3,
+    PAK_V2,
+    RAW
+} FILE_TYPE_T;
+
+bool isEpkVersionString(const char *str);
+int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir);
+int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType);
+void extractEPKfile(const char *epk_file, config_opts_t *config_opts);
+#endif

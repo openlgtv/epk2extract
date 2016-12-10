@@ -12,6 +12,13 @@
 
 typedef int (*CompareFunc)(uint8_t *data, size_t size);
 
-AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, int verbose);
+void setKeyFile(const char *keyFile);
+void setKeyFile_LG();
+void setKeyFile_MTK();
+
+AES_KEY *find_AES_key(
+    uint8_t *in_data, size_t in_data_size, CompareFunc fCompare,
+    int key_type, void **dataOut, int verbose
+);
 
 #endif

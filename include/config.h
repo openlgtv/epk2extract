@@ -5,12 +5,14 @@
 #ifndef CONFIG_H_
 #    define CONFIG_H_
 
-struct config_opts_t {
+#include <stdbool.h>
+
+typedef struct {
 	char *config_dir;
 	char *dest_dir;
-};
+} config_opts_t;
 
-extern struct config_opts_t config_opts;
+extern config_opts_t config_opts;
 
 #    define G_DIR_SEPARATOR_S "/"
 

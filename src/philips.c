@@ -27,7 +27,7 @@ MFILE *is_philips_fusion1(const char *filename){
 		return NULL;
 }
 
-void extract_philips_fusion1(MFILE *mf, struct config_opts_t *config_opts){
+void extract_philips_fusion1(MFILE *mf, config_opts_t *config_opts){
 	char *basename = my_basename(mf->path);
 	char *name = remove_ext(basename);
 	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, name);

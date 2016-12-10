@@ -18,9 +18,10 @@
 
 #include "config.h"
 #include "mfile.h"
-
+#include "epk.h"
 #include "epk1.h"		/* EPK v1 */
-#include "epk2.h"		/* EPK v2 and v3 */
+#include "epk2.h"		/* EPK v2 */
+#include "epk3.h"		/* EPK v3 */
 #include "cramfs/cramfs.h"	/* CRAMFS */
 #include "cramfs/cramfsswap.h"
 #include "lz4/lz4.h"	/* LZ4 */
@@ -41,9 +42,9 @@
 #include <mach-o/dyld.h>
 #endif
 
-struct config_opts_t config_opts;
+config_opts_t config_opts;
 
-int handle_file(char *file, struct config_opts_t *config_opts) {
+int handle_file(char *file, config_opts_t *config_opts) {
 	char *dest_dir = config_opts->dest_dir;
 	char *file_name = my_basename(file);
 	
@@ -56,10 +57,8 @@ int handle_file(char *file, struct config_opts_t *config_opts) {
 	MFILE *mf = NULL;
 	if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
-	} else if (isFileEPK2(file)) {
-		extractEPK2file(file, config_opts);
-	} else if(isFileEPK3(file)) {
-		extractEPK3file(file, config_opts);
+	} else if (isFileEPK2(file) || isFileEPK3(file)) {
+		extractEPKfile(file, config_opts);
 	} else if((mf=is_mtk_pkg(file))){
 		extract_mtk_pkg(mf, config_opts);
 	} else if((mf=is_philips_fusion1(file))){

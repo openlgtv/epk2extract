@@ -34,6 +34,6 @@ struct philips_fusion1_upg {
 	uint32_t firstPartition; //offset of first part
 };
 
-void extract_philips_fusion1(MFILE *mf, struct config_opts_t *config_opts);
+void extract_philips_fusion1(MFILE *mf, config_opts_t *config_opts);
 MFILE *is_philips_fusion1(const char *filename);
 #endif

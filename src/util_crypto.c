@@ -12,13 +12,35 @@
 #include "util.h"
 #include "util_crypto.h"
 
-AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, int verbose){
+static char *keyFileName = NULL;
+
+void setKeyFile(const char *keyFile){
+	if(keyFileName != NULL)
+		free(keyFileName);
+	keyFileName = (char *)keyFile;
+}
+
+void setKeyFile_LG(){
+	char *path;
+	asprintf(&path, "%s/AES.key", config_opts.config_dir);
+	setKeyFile(path);
+}
+
+void setKeyFile_MTK(){
+	char *path;
+	asprintf(&path, "%s/MTK.key", config_opts.config_dir);
+	setKeyFile(path);
+}
+
+AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
 	AES_KEY *aesKey = calloc(1, sizeof(AES_KEY));
 	int found = 0;
-	char *key_file_name;
-	asprintf(&key_file_name, "%s/AES.key", config_opts.config_dir);
 
-	FILE *fp = fopen(key_file_name, "r");
+	if(keyFileName == NULL){
+		err_exit("No key file selected!\n");
+	}
+
+	FILE *fp = fopen(keyFileName, "r");
 	if (fp == NULL) {
 		fprintf(stderr, "\nError: Cannot open AES.key file.\n\n");
 		goto exit_e0;
@@ -26,7 +48,8 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 
 	uint8_t key_buf[AES_BLOCK_SIZE];
 	uint8_t iv_buf[AES_BLOCK_SIZE];
-	uint8_t *buf = (uint8_t *)&key_buf;
+	memset(&key_buf, 0x00, sizeof(key_buf));
+	memset(&iv_buf, 0x00, sizeof(iv_buf));
 	
 	ssize_t read;
 	size_t len = 0;
@@ -34,6 +57,7 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 
 	while ((read = getline(&line, &len, fp)) != -1) {
 		char *pos = line;
+		uint8_t *buf = (uint8_t *)&key_buf;
 
 		size_t count;
 		if(verbose){
@@ -51,10 +75,12 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		if(key_type == KEY_CBC && *pos == ','){ //repeat for IV
 			buf = (uint8_t *)&iv_buf;
 			pos++;
+			if(verbose)
+				printf(", IV: ");
 			goto read_key;
 		}
 		if(verbose){
-			printf("\n");
+			printf("%s\n", pos);
 		}
 
 		AES_set_decrypt_key((uint8_t *)&key_buf, 128, aesKey);
@@ -78,9 +104,13 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 				break;
 		}		
 
-		found = fCompare(tmp_data, in_data_size);
+		found = fCompare(tmp_data, in_data_size) > 0;
 
-		free(tmp_data);
+		if(found && dataOut != NULL){
+			*dataOut = tmp_data;
+		} else {
+			free(tmp_data);
+		}
 
 		if(found)
 			break;
@@ -91,7 +121,6 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 	}
 
 	exit_e0:
-	free(key_file_name);
 	if(!found){
 		free(aesKey);
 		return NULL;

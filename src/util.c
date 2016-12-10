@@ -94,6 +94,36 @@ char *my_dirname(const char *path){
 	return ret;
 }
 
+void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...) {
+#if 0
+#ifndef DEBUG
+	if (verbose > G_VERBOSE)
+		return;
+#endif
+#endif
+
+	char *file = my_basename(fn);
+	char *dir = my_dirname(fn);
+	char *parent = my_dirname(dir);
+	
+	char *relative = dir + strlen(parent) + 1;
+	
+	printf("[%s/%s:%d] ", relative, file, lineno);
+
+	free(file);
+	free(dir);
+	free(parent);
+
+	va_list arglist;
+	va_start(arglist, fmt);
+	vprintf(fmt, arglist);
+	va_end(arglist);
+
+	if (newline)
+		printf("\n");
+
+}
+
 void SwapBytes(void *pv, size_t n) {
 	char *p = pv;
 	size_t lo, hi;

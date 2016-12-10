@@ -49,7 +49,7 @@ void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader)
 	sprintf(fw_version, "%02x.%02x.%02x-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
 }
 
-void extract_epk1_file(const char *epk_file, struct config_opts_t *config_opts) {
+void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 	int file;
 	if (!(file = open(epk_file, O_RDONLY))) {
 		err_exit("\nCan't open file %s\n\n", epk_file);

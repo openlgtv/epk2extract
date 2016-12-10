@@ -52,6 +52,7 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 }
 
 MFILE *is_mtk_pkg(const char *pkgfile){
+	setKeyFile_MTK();
 	MFILE *mf = mopen(pkgfile, O_RDONLY);
 	if(!mf){
 		err_exit("Cannot open file %s\n", pkgfile);
@@ -59,14 +60,14 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	
 	uint8_t *data = mdata(mf, uint8_t);
 
-	if(find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, 0) != NULL){
+	if(find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, NULL, 0) != NULL){
 		return mf;
 	}
 
 	/* It failed, but we want to check for Philips.
  	 * Philips has an additional 0x80 header before the normal PKG one
  	 */
-	if(find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, 0) != NULL){
+	if(find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, NULL, 0) != NULL){
 		is_philips_pkg = 1;
 		return mf;
 	}
@@ -163,7 +164,7 @@ void process_block(struct thread_arg *arg){
  * The first header contains the chunk number, and the compressed size includes the outer lzhs header (+16)
  * The second header contains the actual data
  */
-void extract_lzhs_fs(MFILE *mf, const char *dest_file, struct config_opts_t *config_opts){
+void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opts){
 	int is_sharp = 0;
 	uint8_t *data = mdata(mf, uint8_t);
 	if(is_nfsb_mem(mf, SHARP_PKG_HEADER_SIZE)){
@@ -266,7 +267,7 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 	if(is_philips_pkg)
 		header += PHILIPS_HEADER_SIZE;
 
-	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, 1);
+	AES_KEY *headerKey = find_AES_key(header, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, NULL, 1);
 	if(!headerKey){
 		fprintf(stderr, "[!] Cannot find proper AES key for header, ignoring\n");
 		return NULL;
@@ -296,7 +297,7 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 	return hdr;
 }
 
-void extract_mtk_pkg(MFILE *mf, struct config_opts_t *config_opts){
+void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 	off_t i = sizeof(struct mtkupg_header);
 	if(is_philips_pkg)
 		i += PHILIPS_HEADER_SIZE;
