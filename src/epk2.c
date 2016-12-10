@@ -144,7 +144,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		for (curSeg=0; ;){
 			++signatureCount;
 
-			#ifdef TODO_FIX
+			#if 0
 			if(!config_opts->skipSignature && sigCheckAvailable){
 				size_t signed_size = pakLocs[curPak].imageSize;
 

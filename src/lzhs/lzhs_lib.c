@@ -249,9 +249,9 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 
 	if(out_path == NULL){
 		out_bytes = MFILE_ANON(header->uncompressedSize);
-			if(out_bytes == MAP_FAILED){
-				perror("mmap out for lzhs\n");
-				return (cursor_t *)-1;
+		if(out_bytes == MAP_FAILED){
+			perror("mmap out for lzhs\n");
+			return (cursor_t *)-1;
 		}
 	} else {
 		out_file = mfopen(out_path, "w+");
@@ -315,7 +315,7 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	if (checksum != header->checksum)
 		printf("[LZHS] WARNING: Checksum mismatch (got 0x%x, expected 0x%x)!!\n", checksum, header->checksum);
 	if (out_cur.size != header->uncompressedSize)
-		printf("[LZHS] WARNING: Size mismatch (got %zu, expected %d)!!\n", out_cur.size, header->uncompressedSize);	
+		printf("[LZHS] WARNING: Size mismatch (got %zu, expected %u)!!\n", out_cur.size, header->uncompressedSize);	
 	
 	if(out_file != NULL){
 		mclose(out_file);
