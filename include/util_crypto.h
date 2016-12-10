@@ -16,6 +16,9 @@ void setKeyFile(const char *keyFile);
 void setKeyFile_LG();
 void setKeyFile_MTK();
 
+uint8_t *getLastKey();
+uint8_t *getLastIV();
+
 AES_KEY *find_AES_key(
     uint8_t *in_data, size_t in_data_size, CompareFunc fCompare,
     int key_type, void **dataOut, int verbose

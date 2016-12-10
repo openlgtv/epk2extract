@@ -32,6 +32,17 @@ void setKeyFile_MTK(){
 	setKeyFile(path);
 }
 
+static uint8_t key_buf[AES_BLOCK_SIZE];
+static uint8_t iv_buf[AES_BLOCK_SIZE];
+
+uint8_t *getLastKey(){
+	return (uint8_t *)&key_buf;
+}
+
+uint8_t *getLastIV(){
+	return (uint8_t *)&iv_buf;
+}
+
 AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
 	AES_KEY *aesKey = calloc(1, sizeof(AES_KEY));
 	int found = 0;
@@ -42,12 +53,10 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 
 	FILE *fp = fopen(keyFileName, "r");
 	if (fp == NULL) {
-		fprintf(stderr, "\nError: Cannot open AES.key file.\n\n");
+		fprintf(stderr, "Error: Cannot open key file.\n");
 		goto exit_e0;
 	}
 
-	uint8_t key_buf[AES_BLOCK_SIZE];
-	uint8_t iv_buf[AES_BLOCK_SIZE];
 	memset(&key_buf, 0x00, sizeof(key_buf));
 	memset(&iv_buf, 0x00, sizeof(iv_buf));
 	
@@ -80,7 +89,7 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 			goto read_key;
 		}
 		if(verbose){
-			printf("%s\n", pos);
+			printf("%s", pos);
 		}
 
 		AES_set_decrypt_key((uint8_t *)&key_buf, 128, aesKey);
