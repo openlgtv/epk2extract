@@ -186,8 +186,11 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 
 	if(!keyFound){
 		printf("Trying known AES keys...\n");
-		aesKey = find_AES_key(src, datalen, compareFunc, KEY_ECB, (void **)&decryptedData, 1);
-		decrypted = keyFound = (aesKey != NULL);
+		KeyPair *keyPair = find_AES_key(src, datalen, compareFunc, KEY_ECB, (void **)&decryptedData, 1);
+		decrypted = keyFound = (keyPair != NULL);
+		if(decrypted){
+			aesKey = &(keyPair->key);
+		}
 		if(decrypted && type != EPK){
 			memcpy(dest, decryptedData, datalen);
 			free(decryptedData);

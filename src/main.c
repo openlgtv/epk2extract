@@ -60,7 +60,7 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	} else if (isFileEPK2(file) || isFileEPK3(file)) {
 		extractEPKfile(file, config_opts);
 	} else if((mf=is_mtk_pkg(file))){
-		extract_mtk_pkg(mf, config_opts);
+		extract_mtk_pkg(file, config_opts);
 	} else if((mf=is_philips_fusion1(file))){
 		extract_philips_fusion1(mf, config_opts);
 	} else if((mf=is_lzhs_fs(file))){

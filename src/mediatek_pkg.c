@@ -69,8 +69,8 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	}
 	
 	uint8_t *data = mdata(mf, uint8_t);
-	uint8_t *decryptedHeader = NULL;
-	AES_KEY *headerKey = NULL;
+	void *decryptedHeader = NULL;
+	KeyPair *headerKey = NULL;
 
 	if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
 		goto found_return;
@@ -301,7 +301,10 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 	return hdr;
 }
 
-void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
+void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
+	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
+	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+
 	off_t i = sizeof(struct mtkupg_header);
 	if(is_philips_pkg)
 		i += PHILIPS_HEADER_SIZE;
@@ -318,7 +321,8 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 		createFolder(config_opts->dest_dir);
 	}
 	
-	AES_KEY *dataKey = NULL;
+	KeyPair *dataKey = NULL;
+	
 	int pakNo;
 	for(pakNo=0; moff(mf, data) < msize(mf); pakNo++){
 		struct mtkpkg *pak = (struct mtkpkg *)data;
@@ -327,6 +331,7 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 			break;
 		}
 
+		//printf("0x%08X - 0x%08X\n", moff(mf, data), msize(mf));
 		printf("\nPAK #%u (name='%s', offset='0x%lx', size='%u bytes'",
 			pakNo + 1, pak->header.pakName, moff(mf, data), pak->header.pakSize
 		);
@@ -337,8 +342,84 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 		uint8_t *pkgData = pak->content.data.pkgData;
 		size_t pkgSize = pak->header.pakSize;
 
-		char *dest_path;
+		if(pkgSize == 0)
+			goto save_file;
+
+#pragma region FindAesKey
+		uint8_t *decryptedPkgHeader = NULL;
+		
+		bool headerDecrypted = false;
+		if(dataKey == NULL){
+			dataKey = find_AES_key(
+				(void *)&(pak->content.header),
+				sizeof(pak->content.header),
+				compare_content_header,
+				KEY_CBC,
+				(void **)&decryptedPkgHeader,
+				1
+			);
+			int success = dataKey != NULL;
+			if(success){
+				/* Copy the last IV used by find_AES_Key */
+				memcpy((uint8_t *)&(pak->content.header), decryptedPkgHeader, sizeof(pak->content.header));
+				free(decryptedPkgHeader);
+			} else {
+				/* Try to decrypt by using vendorMagic repeated 4 times, ivec 0 */
+				do {
+					AES_KEY aesKey;
+					uint8_t keybuf[16];				
+					uint i;
+					for(i=0; i<4; i++){
+						memcpy(&keybuf[4 * i], hdr->vendor_magic, sizeof(uint32_t));
+					}
+
+					AES_set_decrypt_key((uint8_t *)&keybuf, 128, &aesKey);
+					
+					dataKey = calloc(1, sizeof(KeyPair)); //also fills ivec with zeros
+					memcpy(&(dataKey->key), &aesKey, sizeof(aesKey));
+
+					/* Decrypt the HMAC/info fields */
+					uint8_t iv_tmp[16];
+					memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
+					AES_cbc_encrypt(
+						(void *)&(pak->content.header),
+						(void *)&(pak->content.header),
+						sizeof(pak->content.header),
+						&(dataKey->key),
+						(void *)&iv_tmp,
+						AES_DECRYPT
+					);
+
+					success = compare_content_header((uint8_t *)&(pak->content.header), sizeof(struct mtkpkg_data));
+				} while(0);
+			}
+			if(!success){
+				if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
+					printf("[-] Couldn't decrypt data!\n");
+				} else {
+					printf("[-] Couldn't decrypt header!\n");
+				}
+			}
+			/* We have already decrypted the header while comparing */
+			headerDecrypted = true;
+		}
+#pragma endregion
+
 		struct mtkpkg_plat *ext = (struct mtkpkg_plat *)pkgData;
+		if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
+			/* Decrypt the EXTHDR */
+			uint8_t iv_tmp[16];
+			memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
+			AES_cbc_encrypt(
+				pak->content.data.pkgData,
+				pak->content.data.pkgData,
+				MTK_EXTHDR_SIZE,
+				&(dataKey->key),
+				(void *)&iv_tmp,
+				AES_DECRYPT
+			);
+		}
+
 		/* Parse the fields at the start of pkgData, and skip them */
 		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
 			uint8_t *extData = (uint8_t *)&(ext->otaID_len);
@@ -367,8 +448,11 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 			pkgData += skip;
 			pkgSize -= skip;
 		}
-		printf(")\n");
 
+		save_file:
+		printf(")\n");
+		
+		char *dest_path = NULL;
 		asprintf(&dest_path, "%s/%.*s.pak",
 			config_opts->dest_dir,
 			member_size(struct mtkpkg_header, pakName), pak->header.pakName
@@ -381,88 +465,37 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 
 		printf("Saving partition (%s) to file %s\n\n", pak->header.pakName, dest_path);
 
+		if(pkgSize == 0)
+			goto saved_file;
+
 		mfile_map(out, pkgSize);
 
-		uint8_t *decryptedPkgHeader = NULL;
-		AES_KEY aesKey;
-
-		uint8_t ivec[16];
-		memset(&ivec, 0x00, sizeof(ivec));
-
-		bool headerDecrypted = false;
-#pragma region FindAesKey
-		if(dataKey == NULL){
-			dataKey = find_AES_key(
-				(uint8_t *)&(pak->content),
-				sizeof(pak->content.header),
-				compare_content_header,
-				KEY_CBC,
-				(void **)&decryptedPkgHeader,
-				1
-			);
-			int success = dataKey != NULL;
-			if(success){
-				/* Copy the last IV used by find_AES_Key */
-				memcpy(&ivec, getLastIV(), sizeof(ivec));
-				free(decryptedPkgHeader);
-			} else {
-				/* Try to decrypt by using vendorMagic repeated 4 times, ivec 0 */
-				do {
-					uint8_t keybuf[16];				
-					uint i;
-					for(i=0; i<4; i++){
-						memcpy(&keybuf[4 * i], hdr->vendor_magic, sizeof(uint32_t));
-					}
-
-					struct mtkpkg_header packageInfo;
-
-					AES_set_decrypt_key((uint8_t *)&keybuf, 128, &aesKey);
-					/* Decrypt the HMAC/info fields */
-					AES_cbc_encrypt(
-						(uint8_t *)&(pak->content.header),
-						(void *)&packageInfo,
-						sizeof(pak->content.header),
-						&aesKey,
-						(uint8_t *)&ivec,
-						AES_DECRYPT
-					);
-					dataKey = &aesKey;
-
-					success = compare_content_header((uint8_t *)&packageInfo, sizeof(struct mtkpkg_data));
-				} while(0);
-			}
-			if(!success){
-				if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
-					printf("[-] Couldn't decrypt data!\n");
-				} else {
-					printf("[-] Couldn't decrypt header!\n");
-				}
-			}
-			/* We have already decrypted the header while comparing */
-			headerDecrypted = true;
-		}
-#pragma endregion
-
 		if(dataKey != NULL){
+			/* Decrypt package data */
 			if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
+				uint8_t iv_tmp[16];
+				memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
+				hexdump(&(dataKey->ivec), 16);
 				AES_cbc_encrypt(
 					pak->content.data.pkgData,
 					mdata(out, void),
 					pkgSize,
-					dataKey,
-					(uint8_t *)&ivec,
+					&(dataKey->key),
+					(void *)&iv_tmp,
 					AES_DECRYPT
 				);
 			}
 			if(!headerDecrypted){
 				struct mtkpkg_header packageInfo;
 				/* Decrypt the HMAC/info fields */
+				uint8_t iv_tmp[16];
+				memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
 				AES_cbc_encrypt(
 					(uint8_t *)&(pak->content.header),
 					(void *)&packageInfo,
 					sizeof(pak->content.header),
-					dataKey,
-					(uint8_t *)&ivec,
+					&(dataKey->key),
+					(void *)&iv_tmp,
 					AES_DECRYPT
 				);
 				compare_content_header((uint8_t *)&packageInfo, sizeof(struct mtkpkg_data));
@@ -471,10 +504,15 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 			mwrite(pkgData, pkgSize, 1, out);
 		}
 
+		saved_file:
 		mclose(out);
 
-		handle_file(dest_path, config_opts);
-		free(dest_path);
+		if(dest_path != NULL && pkgSize != 0){
+			handle_file(dest_path, config_opts);
+		}
+		if(dest_path != NULL){
+			free(dest_path);
+		}
 
 		data += pak->header.pakSize;
 	}
@@ -483,10 +521,7 @@ void extract_mtk_pkg(MFILE *mf, config_opts_t *config_opts){
 		free(dataKey);
 	}
 
-	if(hdr != NULL){
-		free(hdr);
-	}
-
 	free(file_name);
 	free(file_base);
+	mclose(mf);
 }

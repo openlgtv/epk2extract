@@ -19,7 +19,13 @@ void setKeyFile_MTK();
 uint8_t *getLastKey();
 uint8_t *getLastIV();
 
-AES_KEY *find_AES_key(
+typedef struct {
+    AES_KEY key;
+    uint8_t keybuf[16];
+    uint8_t ivec[16];
+} KeyPair;
+
+KeyPair *find_AES_key(
     uint8_t *in_data, size_t in_data_size, CompareFunc fCompare,
     int key_type, void **dataOut, int verbose
 );
