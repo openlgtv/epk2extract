@@ -115,7 +115,6 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		if(found){
 			KeyPair *key = calloc(1, sizeof(KeyPair));
 			memcpy(&(key->key), &aesKey, sizeof(aesKey));
-			//memcpy(&(key->keybuf), &key_buf, sizeof(key_buf));
 			if(key_type == KEY_CBC){
 				memcpy(&(key->ivec), &iv_buf, sizeof(iv_buf));
 			}
