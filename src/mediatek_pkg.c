@@ -327,14 +327,11 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	for(pakNo=0; moff(mf, data) < msize(mf); pakNo++){
 		struct mtkpkg *pak = (struct mtkpkg *)data;
 		if(is_philips_pkg && moff(mf, data) + PHILIPS_SIGNATURE_SIZE == msize(mf)){
+			printf("-- RSA 2048 Signature --\n");
+			hexdump(data, PHILIPS_SIGNATURE_SIZE);
 			//Philips RSA-2048 signature
 			break;
 		}
-
-		//printf("0x%08X - 0x%08X\n", moff(mf, data), msize(mf));
-		printf("\nPAK #%u (name='%s', offset='0x%lx', size='%u bytes'",
-			pakNo + 1, pak->header.pakName, moff(mf, data), pak->header.pakSize
-		);
 
 		/* Skip pak header and crypted header */
 		data += sizeof(pak->header) + sizeof(pak->content.header);
@@ -409,7 +406,12 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 				dataSize, &(dataKey->key),
 				(void *)&iv_tmp, AES_DECRYPT
 			);
+			compare_content_header(pkgData, sizeof(struct mtkpkg_data));
 		}
+		
+		printf("\nPAK #%u (name='%s', offset='0x%lx', size='%u bytes'",
+			pakNo + 1, pak->header.pakName, moff(mf, data), pak->header.pakSize
+		);
 
 		struct mtkpkg_plat *ext = (struct mtkpkg_plat *)pkgData;
 
