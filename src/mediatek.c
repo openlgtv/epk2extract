@@ -82,8 +82,6 @@ void split_mtk_tz(MFILE *tz, const char *destdir) {
 
 	free(dest);
 	mclose(out);
-
-	mclose(tz);
 }
 
 MFILE *is_mtk_boot(const char *filename) {
