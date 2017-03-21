@@ -32,8 +32,8 @@ void setKeyFile_MTK(){
 	setKeyFile(path);
 }
 
-AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
-	AES_KEY *aesKey = calloc(1, sizeof(AES_KEY));
+KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
+	AES_KEY aesKey;
 	int found = 0;
 
 	if(keyFileName == NULL){
@@ -42,8 +42,8 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 
 	FILE *fp = fopen(keyFileName, "r");
 	if (fp == NULL) {
-		fprintf(stderr, "\nError: Cannot open AES.key file.\n\n");
-		goto exit_e0;
+		fprintf(stderr, "Error: Cannot open key file.\n");
+		return NULL;
 	}
 
 	uint8_t key_buf[AES_BLOCK_SIZE];
@@ -80,28 +80,29 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 			goto read_key;
 		}
 		if(verbose){
-			printf("%s\n", pos);
+			printf("%s", pos);
 		}
 
-		AES_set_decrypt_key((uint8_t *)&key_buf, 128, aesKey);
+		AES_set_decrypt_key((uint8_t *)&key_buf, 128, &aesKey);
 
 		uint8_t *tmp_data = calloc(1, in_data_size);
 
 		switch(key_type){
-			case KEY_CBC:
-				AES_cbc_encrypt(in_data, tmp_data, in_data_size, aesKey, (uint8_t *)&iv_buf, AES_DECRYPT);
+			case KEY_CBC:;
+				uint8_t iv_tmp[16];
+				memcpy(&iv_tmp, &iv_buf, sizeof(iv_tmp));
+				AES_cbc_encrypt(in_data, tmp_data, in_data_size, &aesKey, (uint8_t *)&iv_tmp, AES_DECRYPT);
 				break;
-			case KEY_ECB:
-				;
+			case KEY_ECB:;
 				size_t blocks = in_data_size / AES_BLOCK_SIZE;
 				size_t i;
 				for(i=0; i<blocks; i++)
-					AES_ecb_encrypt(&in_data[AES_BLOCK_SIZE * i], &tmp_data[AES_BLOCK_SIZE * i], aesKey, AES_DECRYPT);
+					AES_ecb_encrypt(&in_data[AES_BLOCK_SIZE * i], &tmp_data[AES_BLOCK_SIZE * i], &aesKey, AES_DECRYPT);
 				break;
 			default:
 				err_exit("Unsupported key type %d\n", key_type);
 				break;
-		}		
+		}	
 
 		found = fCompare(tmp_data, in_data_size) > 0;
 
@@ -111,19 +112,19 @@ AES_KEY *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 			free(tmp_data);
 		}
 
-		if(found)
-			break;
+		if(found){
+			KeyPair *key = calloc(1, sizeof(KeyPair));
+			memcpy(&(key->key), &aesKey, sizeof(aesKey));
+			if(key_type == KEY_CBC){
+				memcpy(&(key->ivec), &iv_buf, sizeof(iv_buf));
+			}
+			return key;
+		}
 	}
 
 	if(line != NULL){
 		free(line);
 	}
 
-	exit_e0:
-	if(!found){
-		free(aesKey);
-		return NULL;
-	}
-
-	return aesKey;
+	return NULL;
 }
