@@ -9,6 +9,7 @@ endif()
 set(CMAKE_CXX_FLAGS_TEST "-Ofast")
 set(CMAKE_C_FLAGS_TEST "-Ofast -funroll-loops -fprefetch-loop-arrays -march=native")
 
+set(CMAKE_C_STANDARD 99)
 
 add_definitions(-D_GNU_SOURCE -D__USE_XOPEN_EXTENDED)
 add_definitions(-DUSE_MMAP) #for gzip
