@@ -95,11 +95,12 @@ The build script automatically copies required shared libraries to the ./build_c
 
 
 =====================
-
-To enable compiler optimization, you can compile epk2extract with this command
+### How to speed up extraction process
+You can build the test build, which contains compiler optimizations, with this command
 ```shell
 CMAKE_FLAGS=-DCMAKE_BUILD_TYPE=Test ./build.sh
 ```
+The Test build is orders of magnitude faster than the Debug build
 
 ### To use:
 
