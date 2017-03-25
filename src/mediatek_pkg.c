@@ -406,12 +406,11 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 				(void *)&iv_tmp, AES_DECRYPT
 			);
 			int success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
-			if(success){
-				// Skip the mtk header (reserved inc)
-				pkgData += sizeof(struct mtkpkg_crypted_header);
-			} else {
+			if(!success){
 				fprintf(stderr, "[!] WARNING: MTK Crypted header not found, continuing anyways...\n");
 			}
+			// Skip the mtk header (reserved inc)
+			pkgData += sizeof(struct mtkpkg_crypted_header);
 		}
 		
 		printf("\nPAK #%u %s (name='%s', offset='0x%lx', size='%u bytes'",
