@@ -55,7 +55,6 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 int compare_content_header(uint8_t *header, size_t headerSize){
 	struct mtkpkg_data *data = (struct mtkpkg_data *)header;
 	if ( !strncmp(data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) ){
-		hexdump(header, sizeof(data->header));
 		return 1;
 	}
 	return 0;
@@ -406,11 +405,21 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 				dataSize, &(dataKey->key),
 				(void *)&iv_tmp, AES_DECRYPT
 			);
-			compare_content_header(pkgData, sizeof(struct mtkpkg_data));
+			int success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
+			if(success){
+				// Skip the mtk header (reserved inc)
+				pkgData += sizeof(struct mtkpkg_crypted_header);
+			} else {
+				fprintf(stderr, "[!] WARNING: MTK Crypted header not found, continuing anyways...\n");
+			}
 		}
 		
-		printf("\nPAK #%u (name='%s', offset='0x%lx', size='%u bytes'",
-			pakNo + 1, pak->header.pakName, moff(mf, data), pak->header.pakSize
+		printf("\nPAK #%u %s (name='%s', offset='0x%lx', size='%u bytes'",
+			pakNo + 1,
+			((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED) ? "[ENCRYPTED]" : "",
+			pak->header.pakName,
+			moff(mf, data),
+			pak->header.pakSize
 		);
 
 		struct mtkpkg_plat *ext = (struct mtkpkg_plat *)pkgData;
@@ -464,8 +473,6 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 			goto saved_file;
 
 		mfile_map(out, pkgSize);
-
-		pkgData += sizeof(pak->content.header);
 		mwrite(pkgData, pkgSize, 1, out);
 
 		saved_file:
