@@ -26,10 +26,10 @@ Supported Formats:
 | gzip		| 
 | jffs2		| 
 | lzhs		| Special compression for MTK bootloaders (boot.pak, tzfw.pak), uses lzss + huffman
-| lzhs_fs   | LZHS compressed filesystem used in Hisense upgrade files
-| mtdinfo/partinfo |  Partition table format (mtdi.pak, part.pak)
+| lzhs_fs   | LZHS compressed filesystem used in MTK Upgrade files for the external writable partition (3rdw)
+| mtdinfo/partinfo |  LG Partition table format (mtdi.pak, part.pak)
 | str/pif	| PVR recording format that can be found in netcast models
-| sym		| Debugging symbols. Can extract function names and addresses to an IDA script file (idc)
+| sym		| LG Debugging symbols. Can extract function names and addresses to an IDA script file (idc)
 
 Although epk2extract is only tested on LG firmware files, you may use it to extract other files like a general unpack tool, as long as they are supported according to the table above.
 
