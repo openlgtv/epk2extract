@@ -936,7 +936,7 @@ int write_file(struct inode *inode, char *pathname) {
 	}
 
 	free(block_list);
-	return TRUE;
+	close(file_fd);return TRUE;
 }
 
 int create_inode(char *pathname, struct inode *i) {
