@@ -184,6 +184,12 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 	int decrypted = 0;
 	uint8_t *decryptedData = NULL;
 
+	// Check if we need decryption
+	if(type != RAW && compareFunc(src, datalen)){
+		decrypted = 1;
+		return decrypted;
+	}
+
 	if(!keyFound){
 		printf("Trying known AES keys...\n");
 		KeyPair *keyPair = find_AES_key(src, datalen, compareFunc, KEY_ECB, (void **)&decryptedData, 1);
@@ -218,18 +224,8 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
  * Verifies if a string contains 2 dots and numbers (x.y.z)
  */
 bool isEpkVersionString(const char *str){
-	int i, n=0;
-	for(i=0; i<member_size(struct epk2_structure, platformVersion); i++){
-		if(!isdigit(str[i]) && str[i] != 0x00){
-			if(str[i] == '.'){
-				n++;
-			} else {
-				return false;
-			}
-		}
-	}
-	
-	return n == 2;
+	// Size of string is the same across EPK2 and EPK3, for both Platform and SDK versions
+	return count_tokens(str, '.', member_size(struct epk2_structure, platformVersion)) == 2;
 }
 
 /*
@@ -250,10 +246,12 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 		EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
 		
 		int result;
-		if(!compare_epk2_header((uint8_t *)epkHeader, sizeof(*epkHeader))){
+		FILE_TYPE_T epkType;
+		if(compare_epk2_header((uint8_t *)epkHeader, sizeof(*epkHeader))){
+			epkType = EPK_V2;
+		} else {
 			printf("\nTrying to decrypt EPK header...\n");
 			/* Detect if the file is EPK v2 or EPK v3 */
-			FILE_TYPE_T epkType;
 			result = wrap_decryptimage(
 				epkHeader,
 				sizeof(EPK_V2_HEADER_T),
@@ -265,17 +263,17 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 			if(result < 0){
 				break;
 			}
+		}
 
-			switch(epkType){
-				case EPK_V2:
-					printf("[+] EPK v2 Detected\n");
-					extractEPK2(epk, config_opts);
-					break;
-				case EPK_V3:
-					printf("[+] EPK v3 Detected\n");
-					extractEPK3(epk, config_opts);
-					break;
-			}
+		switch(epkType){
+			case EPK_V2:
+				printf("[+] EPK v2 Detected\n");
+				extractEPK2(epk, config_opts);
+				break;
+			case EPK_V3:
+				printf("[+] EPK v3 Detected\n");
+				extractEPK3(epk, config_opts);
+				break;
 		}
 	} while(0);
 }

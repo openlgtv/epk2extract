@@ -53,16 +53,21 @@ MFILE *isFileEPK2(const char *epk_file) {
 		goto checkOk;
 	}
 
-	if(isEpkVersionString(epk2->platformVersion) && isEpkVersionString(epk2->sdkVersion))
+	bool has_versions = false;
+	if(isEpkVersionString(epk2->platformVersion) && isEpkVersionString(epk2->sdkVersion)){
+		has_versions = true;
 		goto checkOk;
+	}
 
 	checkFail:
 		mclose(file);
 		return NULL;
 
 	checkOk:
-		printf("[EPK2] Platform Version: %.*s\n", sizeof(epk2->platformVersion), epk2->platformVersion);
-		printf("[EPK2] SDK Version: %.*s\n", sizeof(epk2->sdkVersion), epk2->sdkVersion);
+		if(has_versions){
+			printf("[EPK2] Platform Version: %.*s\n", sizeof(epk2->platformVersion), epk2->platformVersion);
+			printf("[EPK2] SDK Version: %.*s\n", sizeof(epk2->sdkVersion), epk2->sdkVersion);
+		}
 		return file;
 
 }
@@ -214,7 +219,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		
 			size_t pakContentSize = pak->pakHeader.segmentSize;	
 
-			//printf("Decrypting PAK DATA @0x%x\n", (uintptr_t)pak-(uintptr_t)epk2);			
+			//printf("Decrypting PAK DATA @0x%x\n", (uintptr_t)pak-(uintptr_t)epk2);
 			//decrypt the pak data
 			wrap_decryptimage(
 				&(pak->pData),

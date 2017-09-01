@@ -94,6 +94,15 @@ char *my_dirname(const char *path){
 	return ret;
 }
 
+int count_tokens(const char *str, char tok, int sz){
+	int no = 0;
+	for(int i=0; i<sz; i++){
+		if(str[i] == tok)
+			no++;
+	}
+	return no;
+}
+
 void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...) {
 #if 0
 #ifndef DEBUG

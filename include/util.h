@@ -18,6 +18,7 @@
 
 char *my_basename(const char *path);
 char *my_dirname(const char *path);
+int count_tokens(const char *str, char token, int sz);
 void getch(void);
 void hexdump(void *pAddressIn, long lSize);
 void rmrf(const char *path);
