@@ -75,7 +75,7 @@ if [ "$rel" == "build_cygwin" ]; then
 		$white; echo "Installing $cyglib"; $normal
 		islibok=$(which "$cyglib" &>/dev/null; echo $?)
 		if [ $islibok == 0 ]; then
-			cp `which $cyglib` ../$rel
+			cp `which $cyglib` $installdir/
 		else
 			$lred
 			echo "Something wrong! $cyglib not found."
