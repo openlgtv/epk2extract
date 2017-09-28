@@ -49,8 +49,8 @@ MFILE *isFileEPK3(const char *epk_file) {
 		return NULL;
 
 	checkOk:
-		printf("[EPK3] Platform Version: %.*s\n", sizeof(epk3->platformVersion), epk3->platformVersion);
-		printf("[EPK3] SDK Version: %.*s\n", sizeof(epk3->sdkVersion), epk3->sdkVersion);
+		printf("[EPK] Platform Version: %.*s\n", sizeof(epk3->platformVersion), epk3->platformVersion);
+		printf("[EPK] SDK Version: %.*s\n", sizeof(epk3->sdkVersion), epk3->sdkVersion);
 		return file;
 }
 
