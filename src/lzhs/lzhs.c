@@ -362,8 +362,8 @@ void lzss(struct lzhs_ctx *ctx, FILE * infile, FILE * outfile, unsigned long int
 	unsigned char code_buf[32], mask;
 
 	InitTree(ctx);
-	ctx->code_buf[0] = 0;
-	ctx->code_buf_ptr = mask = 1;
+	code_buf[0] = 0;
+	code_buf_ptr = mask = 1;
 	s = ctx->codesize = 0;
 	r = N - F;
 
@@ -378,20 +378,20 @@ void lzss(struct lzhs_ctx *ctx, FILE * infile, FILE * outfile, unsigned long int
 			ctx->match_length = len;
 		if (ctx->match_length <= THRESHOLD) {
 			ctx->match_length = 1;
-			ctx->code_buf[0] |= mask;
-			ctx->code_buf[code_buf_ptr++] = ctx->text_buf[r];
+			code_buf[0] |= mask;
+			code_buf[code_buf_ptr++] = ctx->text_buf[r];
 		} else {
-			ctx->code_buf[ctx->code_buf_ptr++] = ctx->match_length - THRESHOLD - 1;
-			ctx->code_buf[ctx->code_buf_ptr++] = (ctx->match_position >> 8) & 0xff;
-			ctx->code_buf[ctx->code_buf_ptr++] = ctx->match_position;
+			code_buf[code_buf_ptr++] = ctx->match_length - THRESHOLD - 1;
+			code_buf[code_buf_ptr++] = (ctx->match_position >> 8) & 0xff;
+			code_buf[code_buf_ptr++] = ctx->match_position;
 		}
 		if ((mask <<= 1) == 0) {
-			for (i = 0; i < ctx->code_buf_ptr; i++) {
-				putc(ctx->code_buf[i], outfile);
+			for (i = 0; i < code_buf_ptr; i++) {
+				putc(code_buf[i], outfile);
 				ctx->codesize++;
 			}
-			ctx->code_buf[0] = 0;
-			ctx->code_buf_ptr = mask = 1;
+			code_buf[0] = 0;
+			code_buf_ptr = mask = 1;
 		}
 		last_match_length = ctx->match_length;
 		for (i = 0; i < last_match_length && (c = getc(infile)) != EOF; i++) {
