@@ -19,6 +19,7 @@ Supported Formats:
 | epk v2	| Introduces signing and encryption, keys needed
 | epk v3   	| Introduced with WebOS. Keys needed
 | Mediatek pkg | UPG/PKG files used by Hisense/Sharp/Philips (missing Philips AES key) and possibly others
+| Philips "fusion" | Upgrade files used by some Philips TVs
 | squashfs	| 
 | cramfs	| 
 | lz4		| Slightly modified version with header magic
