@@ -70,15 +70,14 @@ int SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
 int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize) { 
 	unsigned char md_value[0x40];
 	unsigned int md_len = 0;
-	EVP_MD_CTX ctx1, ctx2;
-	EVP_DigestInit(&ctx1, EVP_get_digestbyname("sha1"));
-	EVP_DigestUpdate(&ctx1, data, imageSize);
-	EVP_DigestFinal(&ctx1, (unsigned char *)&md_value, &md_len);
-	EVP_DigestInit(&ctx2, EVP_sha1());
-	EVP_DigestUpdate(&ctx2, (unsigned char *)&md_value, md_len);
-	int result = EVP_VerifyFinal(&ctx2, signature, SIGNATURE_SIZE, _gpPubKey);
-	EVP_MD_CTX_cleanup(&ctx1);
-	EVP_MD_CTX_cleanup(&ctx2);
+	EVP_MD_CTX *md_ctx;
+	EVP_DigestInit(&md_ctx, EVP_get_digestbyname("sha1"));
+	EVP_DigestUpdate(&md_ctx, data, imageSize);
+	EVP_DigestFinal(&md_ctx, (unsigned char *)&md_value, &md_len);
+	EVP_DigestInit(&md_ctx, EVP_sha1());
+	EVP_DigestUpdate(&md_ctx, (unsigned char *)&md_value, md_len);
+	int result = EVP_VerifyFinal(&md_ctx, signature, SIGNATURE_SIZE, _gpPubKey);
+	EVP_MD_CTX_free(md_ctx);
 	if(result == 1){
 		return result;	
 	}
