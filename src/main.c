@@ -31,7 +31,7 @@
 #include "squashfs/unsquashfs.h"	/* SQUASHFS */
 #include "minigzip.h"	/* GZIP */
 #include "symfile.h"	/* SYM */
-#include "tsfile.h"		/* STR and PIF */
+#include "stream/tsfile.h"		/* STR and PIF */
 #include "mediatek.h"	/* MTK Boot */
 #include "mediatek_pkg.h"	/* MTK UPG */
 #include "philips.h"
@@ -141,13 +141,11 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	/* PVR STR (ts/m2ts video) */
 	} else if (isSTRfile(file)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
-		setKey();
-		printf("\nConverting %s file to TS: %s\n", file, dest_file);
-		convertSTR2TS(file, dest_file, 0);
+		printf("\nConverting %s file to TS\n", file);
+		convertSTR2TS(file, 0);
 	/* PVR PIF (Program Information File) */ 
-	} else if (!memcmp(&file[strlen(file) - 3], "PIF", 3)) {
+	} else if (!strncasecmp(&file[strlen(file) - 3], "PIF", 3)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
-		setKey();
 		printf("\nProcessing PIF file: %s\n", file);
 		processPIF(file, dest_file);
 	/* SYM File (Debugging information) */

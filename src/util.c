@@ -78,6 +78,10 @@ char *get_ext(const char *mystr) {
 	return retstr;
 }
 
+/**
+ * basename and dirname might modify the source path.
+ * they also return a pointer to static memory that might be overwritten in subsequent calls
+ */
 char *my_basename(const char *path){
 	char *cpy = strdup(path);
 	char *ret = basename(cpy);
