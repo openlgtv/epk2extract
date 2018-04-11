@@ -268,13 +268,27 @@ int do_decompress(FILE * fi, FILE * fo) {
 
 	method = xgetc(fi);
 
+	if (method != 1) {
+		// check for different LZO header including version
+		// TODO: convert this to structs with MFILE
+		fseek(fi, -1, SEEK_CUR);
+
+		uint32_t version = xread32(fi);
+		if(version != 1){
+			header_error:
+				printf("header error - invalid method %d (version: %d) (level %d)\n", method, version, level);
+				r = 2;
+				goto err;
+		}
+
+		method = xgetc(fi);
+		if(method != 1){
+			goto header_error;
+		}
+	}
+
 	level = xgetc(fi);
 
-	if (method != 1) {
-		printf("header error - invalid method %d (level %d)\n", method, level);
-		r = 2;
-		goto err;
-	}
 	block_size = xread32(fi);
 	if (block_size < 1024 || block_size > 8 * 1024 * 1024L) {
 		printf("header error - invalid block size %ld\n", (long)block_size);
