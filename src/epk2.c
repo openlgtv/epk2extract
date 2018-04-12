@@ -77,7 +77,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 	EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
 	int result;
 	
-	{
+	if(config_opts->enableSignatureChecking){
 		size_t signed_size = (
 			member_size(struct epk2_structure, epkHeader) +
 			member_size(struct epk2_structure, crc32Info)
@@ -189,12 +189,14 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 				}
 			}
 			
-			wrap_verifyimage(
-				pak->signature,
-				&(pak->pakHeader),
-				signed_size,
-				config_opts->config_dir
-			);
+			if(config_opts->enableSignatureChecking){
+				wrap_verifyimage(
+					pak->signature,
+					&(pak->pakHeader),
+					signed_size,
+					config_opts->config_dir
+				);
+			}
 
 
 			//printf("Decrypting PAK Header @0x%x\n", (uintptr_t)&(pak->pakHeader)-(uintptr_t)epk2);

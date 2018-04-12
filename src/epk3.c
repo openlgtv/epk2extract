@@ -86,7 +86,7 @@ void extractEPK3(MFILE *epk, config_opts_t *config_opts){
 		return;
 	}
 
-	{
+	if(config_opts->enableSignatureChecking){
 		size_t signed_size = epkHeader->packageInfoSize;
 
 		wrap_verifyimage(

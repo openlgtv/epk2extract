@@ -184,7 +184,8 @@ int main(int argc, char *argv[]) {
 		printf("Thanks to xeros, tbage, jenya, Arno1, rtokarev, cronix, lprot, Smx and all other guys from openlgtv project for their kind assistance.\n\n");
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
 		printf("Options:\n");
-		printf("  -c : extract to current directory instead of source file directory\n\n");
+		printf("  -c : extract to current directory instead of source file directory\n");
+		printf("  -s : enable signature checking for EPK files\n\n");
 		return err_ret("");
 	}
 
@@ -208,10 +209,15 @@ int main(int argc, char *argv[]) {
 	
 	config_opts.config_dir = my_dirname(exe_dir);
 	config_opts.dest_dir = calloc(1, PATH_MAX);
+	config_opts.enableSignatureChecking = 0;
 
 	int opt;
-	while ((opt = getopt(argc, argv, "c")) != -1) {
+	while ((opt = getopt(argc, argv, "cs")) != -1) {
 		switch (opt) {
+		case 's':{
+			config_opts.enableSignatureChecking = 1;
+			break;
+		}
 		case 'c':{
 				strcpy(config_opts.dest_dir, current_dir);
 				break;
