@@ -58,6 +58,21 @@ void extractEPK3(MFILE *epk, config_opts_t *config_opts){
 	struct epk3_structure *epk3 = mdata(epk, struct epk3_structure);
 	EPK_V3_HEADER_T *epkHeader = &(epk3->epkHeader);
 
+	{
+		size_t signed_size = (
+			member_size(struct epk3_structure, epkHeader) +
+			member_size(struct epk3_structure, crc32Info) + 
+			member_size(struct epk3_structure, reserved)
+		);
+
+		wrap_verifyimage(
+			epk3->signature,
+			epkHeader,
+			signed_size,
+			config_opts->config_dir
+		);
+	}
+
 	int result = wrap_decryptimage(
 		epkHeader,
 		sizeof(EPK_V3_HEADER_T),
@@ -69,6 +84,17 @@ void extractEPK3(MFILE *epk, config_opts_t *config_opts){
 
 	if(result < 0){
 		return;
+	}
+
+	{
+		size_t signed_size = epkHeader->packageInfoSize;
+
+		wrap_verifyimage(
+			epk3->packageInfo_signature,
+			(void *)&(epk3->packageInfo),
+			signed_size,
+			config_opts->config_dir
+		);
 	}
 
 	printf("\nFirmware info\n");

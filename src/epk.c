@@ -24,7 +24,9 @@
 
 static EVP_PKEY *_gpPubKey;
 static AES_KEY *aesKey;
-int keyFound = 0, sigCheckAvailable = 0;
+static int keyFound = 0;
+static int sigCheckAvailable = 0;
+static int firstAttempt = 1;
 
 /*
  * Checks if the given data is an EPK2 or EPK3 header
@@ -88,13 +90,19 @@ int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize) {
 /*
  * Wrapper for signature verification. Retries by decrementing size if it fails
  */
-int wrap_SWU_VerifyImage(void *signature, void* data, size_t signedSize){
+int wrap_SWU_VerifyImage(
+	void *signature, void* data,
+	size_t signedSize, size_t *effectiveSignedSize
+){
 	size_t curSize = signedSize;
 	int verified;
 	//int skipped = 0;
 	while (curSize > 0) {
 		verified = API_SWU_VerifyImage(signature, data, curSize);
 		if (verified) {
+			if(effectiveSignedSize != NULL){
+				*effectiveSignedSize = curSize;
+			}
 			//printf("Success!\nDigital signature is OK. Signed bytes: %d\n", curSize);
 			//printf("Subtracted: %d\n", skipped);
 			return 0;
@@ -111,17 +119,27 @@ int wrap_SWU_VerifyImage(void *signature, void* data, size_t signedSize){
  * High level wrapper for signature verification
  */
 int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir){
+	size_t effectiveSignedSize;
 	int result = -1;
-	DIR* dirFile = opendir(config_dir);
 	if(!sigCheckAvailable){
-		if (dirFile) {
+		// No key available, fail early
+		if(!firstAttempt){
+			return -1;
+		}
+		firstAttempt = 0;
+		printf("Verifying %zu bytes\n", signSize);
+
+		DIR* dirFile = opendir(config_dir);
+		if (dirFile == NULL){
+			fprintf(stderr, "Failed to open dir '%s'\n", config_dir);
+		} else {
 			struct dirent* hFile;
 			while ((hFile = readdir(dirFile)) != NULL) {
 				if (!strcmp(hFile->d_name, ".") || !strcmp(hFile->d_name, "..") || hFile->d_name[0] == '.') continue;
 				if (strstr(hFile->d_name, ".pem") || strstr(hFile->d_name, ".PEM")) {
 					printf("Trying RSA key: %s...\n", hFile->d_name);
 					SWU_CryptoInit_PEM(config_dir, hFile->d_name);
-					result = wrap_SWU_VerifyImage(signature, data, signSize);
+					result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize);
 					if(result > -1){
 						sigCheckAvailable = 1;
 						break;
@@ -131,11 +149,13 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 			closedir(dirFile);
 		}
 	} else {
-		result = wrap_SWU_VerifyImage(signature, data, signSize);
+		result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize);
 	}
 
 	if (result < 0) {
-		printf("WARNING: Cannot verify digital signature (maybe you don't have proper PEM file)\n\n");
+		fprintf(stderr, "WARNING: Cannot verify digital signature (maybe you don't have proper PEM file)\n\n");
+	} else {
+		printf("Succesfully verified 0x%x out of 0x%x bytes\n", effectiveSignedSize, signSize);
 	}
 	return result;
 }

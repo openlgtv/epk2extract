@@ -40,6 +40,12 @@ typedef struct {
 	uint32_t segmentSize;
 } PAK_V2_LOCATION_T;
 
+/**
+ * NOTE: the number of partitions is hardcoded in the structure
+ * 16 - GP2
+ * 32 - (not sure if some sets use 32)
+ * 64 - NC4
+ **/
 typedef struct {
 	char fileType[4];
 	uint32_t fileSize;
@@ -54,6 +60,7 @@ struct epk2_structure {
 	signature_t signature;
 	EPK_V2_HEADER_T epkHeader;
 	uint32_t crc32Info[64];
+	uint32_t reserved;
 	char platformVersion[16];
 	char sdkVersion[16];
 };

@@ -77,17 +77,30 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 	EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
 	int result;
 	
-	printf("\nVerifying digital signature of EPK2 firmware header...\n");
-	result = wrap_verifyimage(
-		// Signature to check against
-		epk2->signature,
-		// Header to verify
-		epkHeader,
-		// Size to verify (epkHeader and crc32Info)
-		member_size(struct epk2_structure, epkHeader) + member_size(struct epk2_structure, crc32Info),
-		// Folder containing keys
-		config_opts->config_dir
-	);
+	{
+		size_t signed_size = (
+			member_size(struct epk2_structure, epkHeader) +
+			member_size(struct epk2_structure, crc32Info)
+		);
+		
+		/**
+		 * Note: 
+		 * The signature check is not strict but tries the given size and
+		 * tries with smaller sizes if unsuccesful.
+		 * This allows us to work with EPK2 headers of different size by using
+		 * the biggest header as base (64 partitions)
+		 */
+		printf("\nVerifying digital signature of EPK2 firmware header...\n");
+		result = wrap_verifyimage(
+			// Signature to check against
+			epk2->signature,
+			// Header to verify
+			epkHeader,
+			signed_size,
+			// Folder containing keys
+			config_opts->config_dir
+		);
+	}
 
 	result = wrap_decryptimage(
 		epkHeader,
@@ -149,43 +162,40 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		for (curSeg=0; ;){
 			++signatureCount;
 
-			#if 0
-			if(!config_opts->skipSignature && sigCheckAvailable){
-				size_t signed_size = pakLocs[curPak].imageSize;
+			size_t signed_size = pakLocs[curPak].imageSize;
 
-				/* if the package is splitted, fallback to the segment size */
-				if(signed_size > pakLocs[curPak].segmentSize){
-					signed_size = pakLocs[curPak].segmentSize + sizeof(PAK_V2_HEADER_T);
+			/* if the package is splitted, fallback to the segment size */
+			if(signed_size > pakLocs[curPak].segmentSize){
+				signed_size = pakLocs[curPak].segmentSize + sizeof(PAK_V2_HEADER_T);
 
-					/*
-					* We now need to check if the segment is trailing. If it is, we'd overflow into the next
-					* package. Calculate the distance between us and the next package. If less than the segment size, truncate
-					*/
-					size_t distance;
-					struct pak2_structure *nextPak = (struct pak2_structure *)(
-						(uintptr_t)(epkHeader) + pakLocs[curPak + 1].imageOffset + (sizeof(signature_t) * signatureCount)
-					);
-					
-					// No need to subtract signature, as it's included in both (so it cancels out)
-					distance = (size_t)(
-						(uintptr_t)&(nextPak->pakHeader) - (uintptr_t)&(pak->pakHeader)
-					);
-
-					// Last pak will have a distance < than the segment size
-					// Because the data contained is less
-					if(distance < pakLocs[curPak].segmentSize){
-						signed_size = distance - sizeof(signature_t);
-					}
-				}
-				
-				wrap_verifyimage(
-					pak->signature,
-					&(pak->pakHeader),
-					signed_size,
-					config_opts->config_dir
+				/*
+				* We now need to check if the segment is trailing. If it is, we'd overflow into the next
+				* package. Calculate the distance between us and the next package. If less than the segment size, truncate
+				*/
+				size_t distance;
+				struct pak2_structure *nextPak = (struct pak2_structure *)(
+					(uintptr_t)(epkHeader) + pakLocs[curPak + 1].imageOffset + (sizeof(signature_t) * signatureCount)
 				);
+				
+				// No need to subtract signature, as it's included in both (so it cancels out)
+				distance = (size_t)(
+					(uintptr_t)&(nextPak->pakHeader) - (uintptr_t)&(pak->pakHeader)
+				);
+
+				// Last pak will have a distance < than the segment size
+				// Because the data contained is less
+				if(distance < pakLocs[curPak].segmentSize){
+					signed_size = distance - sizeof(signature_t);
+				}
 			}
-			#endif
+			
+			wrap_verifyimage(
+				pak->signature,
+				&(pak->pakHeader),
+				signed_size,
+				config_opts->config_dir
+			);
+
 
 			//printf("Decrypting PAK Header @0x%x\n", (uintptr_t)&(pak->pakHeader)-(uintptr_t)epk2);
 			//decrypt the pak header

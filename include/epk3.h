@@ -61,9 +61,9 @@ struct  __attribute__((packed)) epk3_structure {
 	signature_t signature;
 	EPK_V3_HEADER_T epkHeader;
 	uint32_t crc32Info[384];
+	uint32_t reserved; //or unknown
 	char platformVersion[16];
 	char sdkVersion[16];
-    uint32_t reserved; //or unknown
     signature_t packageInfo_signature;
 	PAK_V3_LISTHEADER_T packageInfo;
 };
