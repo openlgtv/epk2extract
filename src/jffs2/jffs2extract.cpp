@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "lzo/lzo1x.h"
 #include "lzma.h"
 
 #ifdef __APPLE__
@@ -231,6 +232,21 @@ long lzma_decompress(unsigned char *data_in, unsigned char *cpage_out,
 	return destlen;
 }
 
+long lzo_decompress(unsigned char *data_in, unsigned char *cpage_out,
+				 uint32_t srclen, uint32_t destlen)
+{
+	size_t dl = destlen;
+	int ret;
+
+	ret = lzo1x_decompress_safe(data_in, srclen, cpage_out, &dl, NULL);
+
+	if (ret != LZO_E_OK || dl != destlen)
+		return -1;
+
+	return dl;
+}
+
+
 int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 	switch (type) {
 	case JFFS2_COMPR_NONE:
@@ -254,8 +270,7 @@ int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 	case JFFS2_COMPR_ZLIB:
 		return zlib_decompress((unsigned char *)src, (unsigned char *)dst, srclen, dstlen);
 	case JFFS2_COMPR_LZO:
-		printf("LZO Compression currently unsupported!\n");
-		return -1;
+		return lzo_decompress((unsigned char *)src, (unsigned char *)dst, srclen, dstlen);
 	case JFFS2_COMPR_LZMA:
 		return lzma_decompress((unsigned char *)src, (unsigned char *)dst, srclen, dstlen);
 	}
