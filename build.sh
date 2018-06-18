@@ -13,7 +13,11 @@ white='printf \033[01;37m'
 cwd=$(pwd)
 srcdir=$(dirname $(readlink -f $0))
 
-exe=("epk2extract" "tools/lzhsenc" "tools/lzhs_scanner" "tools/idb_extract")
+exe=(
+	"epk2extract" "tools/lzhsenc"
+	"tools/lzhs_scanner" "tools/idb_extract"
+	"tools/jffs2extract"
+)
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
 elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux
@@ -46,9 +50,11 @@ fi
 
 cd $objdir
 
+NUM_THREADS=$(grep processor /proc/cpuinfo | wc -l)
+
 case "$1" in
 	"-v")
-		MAKE_FLAGS="${MAKE_ARGS} VERBOSE=1"
+		MAKE_FLAGS="${MAKE_ARGS} VERBOSE=1 -j${NUM_THREADS}"
 		;;
 esac
 

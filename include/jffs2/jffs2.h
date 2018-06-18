@@ -223,6 +223,7 @@ union jffs2_device_node {
 #ifdef __cplusplus
 extern "C" {
 #endif
+void init_eraseblock_size(unsigned int erase_size);
 int jffs2extract(char *infile, char *outdir, char *inendian);
 #ifdef __cplusplus
 }

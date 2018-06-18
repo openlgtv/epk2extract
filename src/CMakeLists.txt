@@ -1,5 +1,14 @@
 set(INC ${CMAKE_SOURCE_DIR}/include)
-include_directories(${INC} ${INC}/cramfs ${INC}/lzo ${INC}/squashfs ${INC}/lz4 ${INC}/jffs2 ${INC}/lzhs ${INC}/u-boot)
+include_directories(
+	${INC}
+	${INC}/cramfs
+	${INC}/lzo
+	${INC}/squashfs
+	${INC}/lz4
+	${INC}/jffs2
+	${INC}/lzhs
+	${INC}/u-boot
+)
 if(APPLE)
  include_directories(${INC}/osx)
 endif(APPLE)
@@ -12,6 +21,7 @@ target_link_libraries(utils ${OPENSSL_LIBRARIES} mfile)
 add_subdirectory(cramfs)
 add_subdirectory(squashfs)
 add_subdirectory(lz4)
+add_subdirectory(lzma)
 add_subdirectory(jffs2)
 add_subdirectory(lzhs)
 add_subdirectory(stream)
@@ -23,4 +33,9 @@ add_executable(epk2extract
 	mediatek_pkg.c
 	mediatek.c philips.c symfile.c partinfo.c minigzip.c lzo-lg.c
 )
-target_link_libraries(epk2extract mfile utils cramfs squashfs lz4 jffs2 lzhs stream ${ZLIB_LIBRARIES} ${LZO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})
+target_link_libraries(epk2extract
+	mfile utils cramfs squashfs
+	lz4 jffs2 lzhs stream
+	${ZLIB_LIBRARIES} ${LZO_LIBRARIES}
+	${CMAKE_THREAD_LIBS_INIT} ${M_LIB}
+)

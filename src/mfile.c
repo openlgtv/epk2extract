@@ -41,6 +41,11 @@ int _mfile_update_info(MFILE *file, const char *path){
 	return 0;
 }
 
+void mfile_flush(void *mem, size_t length){
+	msync(mem, length, MS_INVALIDATE);
+	//madvise(mem, length, MADV_REMOVE);
+}
+
 /*
  * Wrapper to mmap
  */
@@ -57,7 +62,9 @@ void *_mfile_map(MFILE *file, size_t mapSize, int mapFlags){
 		err_exit("mmap failed: %s (%d)\n", strerror(errno), errno);
 		return NULL;
 	}
-	
+
+	// enable read ahead and trash previously read pages
+	madvise(file->pMem, mapSize, MADV_SEQUENTIAL);
 	return file->pMem;
 }
 

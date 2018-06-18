@@ -29,21 +29,27 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "lzma.h"
+
 #ifdef __APPLE__
 #    include <machine/endian.h>
 #else
 #    include <endian.h>
 #endif
 
-extern unsigned long crc32_no_comp(unsigned long crc, const unsigned char *buf, int len);
-
-#define ES 0x1ff
-
 #include "os_byteswap.h"
 #include "jffs2/mini_inflate.h"
 #include "jffs2/jffs2.h"
 
+extern unsigned long crc32_no_comp(unsigned long crc, const unsigned char *buf, int len);
+
+static uint32_t ES = 0x1ff;
+
 int swap_words;
+
+static CLzmaEncHandle *p;
+static uint8_t propsEncoded[LZMA_PROPS_SIZE];
+static size_t propsSize = sizeof(propsEncoded);
 
 unsigned short fix16(unsigned short c) {
 	if (swap_words)
@@ -60,6 +66,35 @@ unsigned long fix32(unsigned long c) {
 }
 
 typedef __u32 u32;
+
+void lzma_free_workspace(void)
+{
+	LzmaEnc_Destroy(p, &lzma_alloc, &lzma_alloc);
+}
+
+
+int lzma_alloc_workspace(CLzmaEncProps *props)
+{
+	if ((p = (CLzmaEncHandle *)LzmaEnc_Create(&lzma_alloc)) == NULL)
+	{
+		PRINT_ERROR("Failed to allocate lzma deflate workspace\n");
+		return -ENOMEM;
+	}
+
+	if (LzmaEnc_SetProps(p, props) != SZ_OK)
+	{
+		lzma_free_workspace();
+		return -1;
+	}
+	
+	if (LzmaEnc_WriteProperties(p, propsEncoded, &propsSize) != SZ_OK)
+	{
+		lzma_free_workspace();
+		return -1;
+	}
+
+        return 0;
+}
 
 #define RUBIN_REG_SIZE   16
 #define UPPER_BIT_RUBIN    (((long) 1)<<(RUBIN_REG_SIZE-1))
@@ -179,6 +214,23 @@ long zlib_decompress(unsigned char *data_in, unsigned char *cpage_out, __u32 src
 	return (decompress_block(cpage_out, data_in + 2, memcpy));
 }
 
+long lzma_decompress(unsigned char *data_in, unsigned char *cpage_out,
+				 uint32_t srclen, uint32_t destlen)
+{
+	int ret;
+	size_t dl = (size_t)destlen;
+	size_t sl = (size_t)srclen;
+	ELzmaStatus status;
+	
+	ret = LzmaDecode(cpage_out, &dl, data_in, &sl, propsEncoded,
+		propsSize, LZMA_FINISH_ANY, &status, &lzma_alloc);
+
+	if (ret != SZ_OK || status == LZMA_STATUS_NOT_FINISHED || dl != (size_t)destlen)
+		return -1;
+
+	return destlen;
+}
+
 int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 	switch (type) {
 	case JFFS2_COMPR_NONE:
@@ -204,6 +256,8 @@ int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 	case JFFS2_COMPR_LZO:
 		printf("LZO Compression currently unsupported!\n");
 		return -1;
+	case JFFS2_COMPR_LZMA:
+		return lzma_decompress((unsigned char *)src, (unsigned char *)dst, srclen, dstlen);
 	}
 	printf("  ** unknown compression type %d!\n", type);
 	return -1;
@@ -357,6 +411,10 @@ void do_list(int inode, std::string root = "") {
 		do_list(*i, root + inodes[inode].c_str() + "/");
 }
 
+extern "C" void init_eraseblock_size(unsigned int erase_size){
+	ES = erase_size;
+}
+
 extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
 	int errors = 0;
 	int verbose = 0;
@@ -440,15 +498,16 @@ extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
 					printf("  compr_size: %d, uncompr_size: %d\n", compr_size, uncompr_size);
 				unsigned char compr[compr_size], uncomp[uncompr_size];
 				fread(compr, compr_size, 1, fd);
+				int extracted_size;
 				if (crc32_no_comp(0, compr, compr_size) != fix32(node.i.data_crc)) {
 					errors++;
 					printf("  ** wrong data crc **\n");
 				} else {
 					if (verbose)
 						printf("  data crc ok\n");
-					if (do_uncompress(uncomp, uncompr_size, compr, compr_size, node.i.compr) != uncompr_size) {
+					if ((extracted_size=do_uncompress(uncomp, uncompr_size, compr, compr_size, node.i.compr)) != uncompr_size) {
 						errors++;
-						printf("  ** data uncompress failed!\n");
+						printf("  ** data uncompress failed! (%u =! %u)\n", extracted_size, uncompr_size);
 					} else {
 						nodedata[fix32(node.i.ino)][fix32(node.i.version)] = nodedata_s(uncomp, uncompr_size, fix32(node.i.offset), fix32(node.i.isize), fix32(node.i.gid), fix32(node.i.uid), fix32(node.i.mode));
 #if 0

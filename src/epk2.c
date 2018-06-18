@@ -282,6 +282,8 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 				break;
 			}
 
+			mfile_flush(&(pak->pData), pak->pakHeader.segmentSize);
+
 			pakLoc += sizeof(*pak) + pakContentSize;
 			pak = (struct pak2_structure *)pakLoc;
 		}

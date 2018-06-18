@@ -98,7 +98,7 @@ int process_idb(MFILE *mf){
 	}
 
 	/* Smx: this is either wrong or we're not extracting all of the pictures */
-	printf("[IDB] Extracting %zu pictures\n", idb.num_img);
+	printf("[IDB] Extracting %lu pictures\n", idb.num_img);
 
 	struct idb_entry *entry = (struct idb_entry *)p;
 	off_t hdr_end = entry->offset;

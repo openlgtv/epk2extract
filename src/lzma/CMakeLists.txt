@@ -1,0 +1,1 @@
+add_library(lzma LzFind.c LzmaDec.c LzmaEnc.c)

@@ -67,6 +67,8 @@ MFILE *mopen_private(const char *path, int oflags);
 MFILE *mfopen(const char *path, const char *mode);
 MFILE *mfopen_private(const char *path, const char *mode);
 
+void mfile_flush(void *mem, size_t length);
+
 int mgetc(MFILE *stream);
 int mputc(int c, MFILE *stream);
 
