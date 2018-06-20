@@ -5,6 +5,11 @@
  */
 #ifndef __UTIL_H
 #define __UTIL_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -58,5 +63,9 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 #   define LLX "%llx"
 #   define LU "%u"
 #endif 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

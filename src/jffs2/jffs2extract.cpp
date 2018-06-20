@@ -28,9 +28,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#include "lzo/lzo1x.h"
-#include "lzma.h"
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #ifdef __APPLE__
 #    include <machine/endian.h>
@@ -38,15 +37,35 @@
 #    include <endian.h>
 #endif
 
+#include <map>
+#include <string>
+#include <list>
+#include <vector>
+#include <set>
+
+#include "mfile.h"
+#include "common.h"
+#include "lzo/lzo1x.h"
+#include "lzma.h"
+#include "util.h"
+
 #include "os_byteswap.h"
 #include "jffs2/mini_inflate.h"
 #include "jffs2/jffs2.h"
 
+#define PAD_U32(x) ((x + 3) & ~3)
+#define PAD_X(x, y) ((x + (y - 1) & ~(y - 1)))
+
+#define RUBIN_REG_SIZE   16
+#define UPPER_BIT_RUBIN    (((long) 1)<<(RUBIN_REG_SIZE-1))
+#define LOWER_BITS_RUBIN   ((((long) 1)<<(RUBIN_REG_SIZE-1))-1)
+
 extern unsigned long crc32_no_comp(unsigned long crc, const unsigned char *buf, int len);
 
-static uint32_t ES = 0x1ff;
-
-int swap_words;
+static int swap_words = -1;
+static int verbose = 0;
+static bool guess_es = false;
+static bool keep_unlinked = true;
 
 static CLzmaEncHandle *p;
 static uint8_t propsEncoded[LZMA_PROPS_SIZE];
@@ -96,10 +115,6 @@ int lzma_alloc_workspace(CLzmaEncProps *props)
 
         return 0;
 }
-
-#define RUBIN_REG_SIZE   16
-#define UPPER_BIT_RUBIN    (((long) 1)<<(RUBIN_REG_SIZE-1))
-#define LOWER_BITS_RUBIN   ((((long) 1)<<(RUBIN_REG_SIZE-1))-1)
 
 void rubin_do_decompress(unsigned char *bits, unsigned char *in, unsigned char *page_out, __u32 destlen) {
 	register unsigned char *curr = page_out;
@@ -252,11 +267,9 @@ int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 	case JFFS2_COMPR_NONE:
 		memcpy(dst, src, dstlen);
 		return dstlen;
-		break;
 	case JFFS2_COMPR_ZERO:
 		memset(dst, 0, dstlen);
 		return dstlen;
-		break;
 	case JFFS2_COMPR_RTIME:
 		rtime_decompress((unsigned char *)src, (unsigned char *)dst, srclen, dstlen);
 		return dstlen;
@@ -278,13 +291,8 @@ int do_uncompress(void *dst, int dstlen, void *src, int srclen, int type) {
 	return -1;
 }
 
-#include <map>
-#include <string>
-#include <list>
-#include <vector>
-
 std::map <int, std::string> inodes;
-std::map <int, int> node_type;
+std::map <int, __u8> node_type;
 std::map <int, std::list <int> > childs;
 
 struct nodedata_s {
@@ -316,7 +324,7 @@ struct nodedata_s {
 	}
 };
 
-std::map <int, std::map <int, struct nodedata_s> > nodedata;
+std::map <int, std::map <int, struct nodedata_s>> nodedata;
 
 int whine = 0;
 std::string prefix;
@@ -325,11 +333,13 @@ FILE *devtab;
 void do_list(int inode, std::string root = "") {
 	std::string pathname = prefix + root + inodes[inode];
 
-	std::map < int, struct nodedata_s >&data = nodedata[inode];
+	std::map <int, struct nodedata_s> &data = nodedata[inode];
+	
+	//printf("inode %d -> %s\n", inode, inodes[inode].c_str());
 
 	int max_size = 0, gid = 0, uid = 0, mode = 0755;
 	if (!data.empty()) {
-		std::map < int, struct nodedata_s >::iterator last = data.end();
+		std::map <int, struct nodedata_s>::iterator last = data.end();
 		--last;
 		max_size = last->second.isize;
 		mode = last->second.mode;
@@ -343,28 +353,29 @@ void do_list(int inode, std::string root = "") {
 	unsigned char *merged_data = (unsigned char *)calloc(1, max_size + 1);
 	int devtab_type = 0, major = 0, minor = 0;
 
-	for (std::map < int, struct nodedata_s >::iterator i(data.begin()); i != data.end(); ++i) {
-		int size = i->second.size;
-		int offset = i->second.offset;
+	for (auto i : data) {
+		int size = i.second.size;
+		int offset = i.second.offset;
 		if (offset + size > max_size)
 			size = max_size - offset;
 		if (size > 0)
-			memcpy(merged_data + i->second.offset, i->second.data, i->second.size);
+			memcpy(merged_data + i.second.offset, i.second.data, i.second.size);
 	}
 
 	switch (node_type[inode]) {
 	case DT_DIR:
-		if (mkdir(pathname.c_str(), mode & 0777))
-			perror(pathname.c_str());
+		if (mkdir(pathname.c_str(), mode & 0777)){
+			fprintf(stderr, "mkdir '%s' failed (%s)\n", pathname.c_str(), strerror(errno));
+		}
 		devtab_type = 'd';
 		break;
 
 	case DT_REG:
 		{
 			FILE *f = fopen(pathname.c_str(), "wb");
-			if (!f)
-				perror(pathname.c_str());
-			else {
+			if (!f){
+				fprintf(stderr, "fopen '%s' failed (%s)\n", pathname.c_str(), strerror(errno));
+			} else {
 				fwrite(merged_data, max_size, 1, f);
 				fclose(f);
 			}
@@ -382,8 +393,9 @@ void do_list(int inode, std::string root = "") {
 			major = merged_data[1];
 			minor = merged_data[0];
 			if (mknod(pathname.c_str(), ((node_type[inode] == DT_BLK) ? S_IFBLK : S_IFCHR) | (mode & 07777), makedev(major, minor))) {
-				if (!whine++)
-					perror("mknod");
+				if (!whine++){
+					fprintf(stderr, "mknod '%s' failed (%s)\n", pathname.c_str(), strerror(errno));
+				}
 			}
 
 			if (node_type[inode] == DT_BLK)
@@ -395,136 +407,340 @@ void do_list(int inode, std::string root = "") {
 	case DT_FIFO:
 		{
 			if (mkfifo(pathname.c_str(), mode) < 0)
-				printf("warning:fail to make FIFO(%s) !\n", pathname.c_str());
+				fprintf(stderr, "failed to create FIFO(%s) (%s)\n", pathname.c_str(), strerror(errno));
 			break;
 		}
-	case DT_SOCK:
+	case DT_SOCK: {
+		// create and close a TCP Unix Socket
+		int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+		const char *cpath = pathname.c_str();
+		
+		if(sock_fd < 0){
+			fprintf(stderr, "failed to create unix socket '%s' (%s)\n", cpath, strerror(errno));
+			break;
+		}
+		struct sockaddr_un addr;
+		addr.sun_family = AF_UNIX;
+		
+		strncpy(addr.sun_path, cpath, sizeof(addr.sun_path));
+		
+		int opt_val = 1;
+		setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
+		if(bind(sock_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0){
+			fprintf(stderr, "failed to bind unix socket '%s' (%s)\n", cpath, strerror(errno));
+		}
+		close(sock_fd);
+		break;
+	}
 	case DT_WHT:
+		goto node_warn_uhnandled;
 	case DT_UNKNOWN:
-		printf("warning:unhandled inode type(%d) !\n", node_type[inode]);
+		//deletion node
+		if(inode == 0){
+			const char *cpath = pathname.c_str();
+		
+			if(keep_unlinked){
+				int nidx = 0;
+				std::string suffix = "";
+
+				while(access((pathname + suffix).c_str(), F_OK ) != -1){
+					suffix = std::to_string(nidx++);
+				}
+
+				std::string new_name = pathname + suffix;
+				
+				MFILE *f_src = mopen(cpath, O_RDONLY);
+				MFILE *f_dst = mfopen(new_name.c_str(), "w+");
+				if(!f_src || !f_dst){
+					fprintf(stderr, "failed to copy '%s' to '%s'\n", cpath, new_name.c_str());
+					if(f_src)
+						mclose(f_src);
+					if(f_dst)
+						mclose(f_dst);
+				} else {
+					mfile_map(f_dst, msize(f_src));
+					memcpy(
+						mdata(f_dst, void),
+						mdata(f_src, void),
+						msize(f_src)
+					);
+					mclose(f_dst);
+					mclose(f_src);
+				}
+			}
+		} else {
+			node_warn_uhnandled:
+			printf("warning:unhandled inode type(%d) for inode %d\n", node_type[inode], inode);
+		}
 		break;
 	}
 
-	if (devtab_type && devtab && (inode != 1))
-		fprintf(devtab, "%s %c %o %d %d %d %d - - -\n", (root + inodes[inode]).c_str(), devtab_type, mode & 07777, uid, gid, major, minor);
+	if (devtab_type && devtab && (inode != 1)){
+		fprintf(devtab, "%s %c %o %d %d %d %d - - -\n",
+			(root + inodes[inode]).c_str(),
+			devtab_type,
+			mode & 07777,
+			uid, gid, major, minor
+		);
+	}
 
 	if (node_type[inode] != DT_LNK) {
 		if (chmod(pathname.c_str(), mode))
-			if (!whine++)
-				perror("chmod");
+			if (!whine++){
+				fprintf(stderr, "chmod failed for '%s' (%s)\n", pathname.c_str(), strerror(errno));
+			}
 
 		if (chown(pathname.c_str(), uid, gid)) {
 #ifndef __CYGWIN__
 			if (!whine++)
-				perror("chown");
+				fprintf(stderr, "chown failed for '%s' (%s)\n", pathname.c_str(), strerror(errno));
 #endif
 		}
 	}
 //  printf("%s (%d)\n", pathname.c_str(), max_size);
 	std::list < int >&child = childs[inode];
-	for (std::list < int >::iterator i(child.begin()); i != child.end(); ++i)
-		do_list(*i, root + inodes[inode].c_str() + "/");
+	for (auto i : child)
+		do_list(i, root + inodes[inode].c_str() + "/");
 }
 
-extern "C" void init_eraseblock_size(unsigned int erase_size){
-	ES = erase_size;
+
+inline int is_jffs2_magic(uint16_t val){
+	if(val == KSAMTIB_CIGAM_2SFFJ){
+		fputs("invalid endianess detected\n", stderr);
+		return -1;
+	}
+	return (val == JFFS2_MAGIC_BITMASK);
 }
 
-extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
+size_t contiguos_region_size(MFILE *mf, off_t offset, uint8_t match_pattern){
+	uint8_t *pStart = mdata(mf, uint8_t);
+	uint8_t *cursor = pStart + offset;
+	size_t fileSz = msize(mf);
+	
+	for(; moff(mf, cursor) < fileSz; cursor++){
+		if(*cursor != match_pattern)
+			break;
+	}
+	return (cursor - pStart) - offset;
+}
+
+uint32_t try_guess_es(MFILE *mf, bool *is_reliable){
+	uint8_t *data = mdata(mf, uint8_t);
+	size_t fileSz = msize(mf);
+	
+	*is_reliable = false;
+	
+	uint8_t blk16[16];
+	memset(&blk16, 0xFF, sizeof(blk16));
+	
+	// find start of remaining data
+	off_t off = 0;
+	for(; off < fileSz; off += sizeof(blk16)){
+		if(!memcmp(data + off, &blk16, sizeof(blk16)))
+			break;
+	}
+	
+	if(off == fileSz)
+		return 0;
+	
+	// align to 16
+	int remainder = off % 16;
+	while(remainder > 0){
+		if(*(data + (off++)) != 0xFF)
+			return off;
+	}
+	
+	// find end
+	for(; off < fileSz; off += sizeof(blk16)){
+		if(memcmp(data + off, &blk16, sizeof(blk16)) != 0)
+			break;
+	}
+	
+	// align to next JFFS2 header
+	for(int i=0; i<=32; i++, off++){
+		union jffs2_node_union *hdr = (union jffs2_node_union *)(data + off);
+		if((is_jffs2_magic(hdr->u.magic)) &&
+			crc32_no_comp(0, (uint8_t *)hdr, sizeof(hdr->u) - 4) == fix32(hdr->u.hdr_crc)
+		){
+			break;
+		}
+	}
+	
+	*is_reliable = true;
+	return off;
+}
+
+union jffs2_node_union *find_next_node(MFILE *mf, off_t cur_off, int erase_size){
+	uint8_t *data = mdata(mf, uint8_t);
+	size_t fileSz = msize(mf);
+	
+	// find empty FS data
+	{
+		size_t empty_fsdata_sz = contiguos_region_size(mf, cur_off, 0x0);
+		if(empty_fsdata_sz != 0){
+			if(verbose)
+				printf("region(0x00) = 0x%x\n", empty_fsdata_sz);
+		}
+	
+		cur_off += empty_fsdata_sz;
+	}
+	
+	if(erase_size > -1){
+		cur_off = PAD_X(cur_off, erase_size);
+		goto find_jffs2;
+	}
+	
+	// find empty eraseblocks
+	{
+		size_t empty_esblks_sz = contiguos_region_size(mf, cur_off, 0xFF);
+		if(empty_esblks_sz != 0){
+			if(verbose)
+				printf("region(0xFF) = 0x%x\n", empty_esblks_sz);
+		}
+		
+		cur_off += empty_esblks_sz;
+	}
+	
+	find_jffs2:
+	off_t off;
+	for(off = cur_off; off < fileSz;){
+		union jffs2_node_union *node = (union jffs2_node_union *)(data + off);
+		int r;
+		if((r=is_jffs2_magic(node->u.magic)) &&
+			crc32_no_comp(0, (uint8_t *)node, sizeof(node->u) - 4) == fix32(node->u.hdr_crc)
+		){
+			return node;
+		}
+		
+		// if something unusual happened, stop search
+		if(r < 0){
+			break;
+		}
+		
+		if(erase_size > -1){
+			off += erase_size;
+		} else {
+			off += 4;
+		}
+	}
+	if(off == msize(mf)){
+		return NULL;
+	}
+}
+
+extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args args) {
 	int errors = 0;
-	int verbose = 0;
 
-	/*if (argc != 4)
-	   {
-	   fprintf(stderr, "usage: %s <jffs2 file> <output directory> <endianess>\n", *argv);
-	   fprintf(stderr, "\t\tendianess must be %d (be) or %d (le)\n", BIG_ENDIAN, LITTLE_ENDIAN);
-	   return 1;
-	   } */
-
-	FILE *fd = fopen(infile, "r");
-	if (!fd) {
-		perror(infile);
+	verbose = args.verbose;
+	keep_unlinked = args.keep_unlinked;
+	
+	MFILE *mf = mopen(infile, O_RDONLY);
+	if (!mf) {
+		fprintf(stderr, "Failed to open '%s'\n", infile);
 		return 1;
 	}
+	
+	union jffs2_node_union *node = mdata(mf, union jffs2_node_union);
 
-	int endianess = atoi(inendian);
-	if ((endianess != BIG_ENDIAN) && (endianess != LITTLE_ENDIAN)) {
-		fprintf(stderr, "endianess must be %d (be) or %d (le)!\n", BIG_ENDIAN, LITTLE_ENDIAN);
-		return 2;
+	swap_words = (node->u.magic == KSAMTIB_CIGAM_2SFFJ);
+	
+	bool es_reliable = false;
+	uint32_t es;
+	if(args.erase_size > -1){
+		es = args.erase_size;
+	} else if(guess_es){
+		es = try_guess_es(mf, &es_reliable);
+		printf("> Guessed Erase Size: 0x%x (reliable=%d)\n", es, es_reliable);
 	}
 
-	swap_words = endianess != BYTE_ORDER;
+	uint8_t *data = mdata(mf, uint8_t);
 
-	while (1) {
-		union jffs2_node_union node;
-		int off = ftell(fd);
-		if (fread(&node, 1, sizeof(node), fd) != sizeof(node))
-			break;
-
-		if (node.u.magic == KSAMTIB_CIGAM_2SFFJ) {
-			fprintf(stderr, "ERROR: reverse endianess detected!\n");
-			break;
-		}
-		if (node.u.magic == 0xFFFF) {
-			if (verbose)
-				printf("%08x: empty marker - going to next eraseblock\n", off);
-			if (fseek(fd, (off + ES + 1) & ~ES, SEEK_SET) < 0)
-				break;
-			continue;
-		}
-		if (verbose)
-			printf("at %08x: %04x | %04x (%lu bytes): ", off, fix16(node.u.magic), fix16(node.u.nodetype), fix32(node.u.totlen));
-
-		if (crc32_no_comp(0, (unsigned char *)&node, sizeof(node.u) - 4) != fix32(node.u.hdr_crc)) {
-			++errors;
-			printf(" ** wrong crc **\n");
-		}
-
-		switch (fix16(node.u.nodetype)) {
-		case JFFS2_NODETYPE_DIRENT:
-			{
-				fseek(fd, off + sizeof(struct jffs2_raw_dirent), SEEK_SET);
-				char name[node.d.nsize + 1];
-				fread(name, node.d.nsize, 1, fd);
-				name[node.d.nsize] = 0;
-				if (verbose)
-					printf("DIRENT, ino %lu (%s), parent=%lu\n", fix32(node.d.ino), name, fix32(node.d.pino));
-
-				inodes[fix32(node.d.ino)] = name;
-				node_type[fix32(node.d.ino)] = node.d.type;
-				childs[fix32(node.d.pino)].push_back(fix32(node.d.ino));
+	off_t off = moff(mf, node);
+	while(off + sizeof(*node) < msize(mf)){
+		node = (union jffs2_node_union *)&data[off];		
+		if(!is_jffs2_magic(node->u.magic) || node->u.totlen == 0){
+			printf("invalid node - scanning next node... (offset: %p)\n", off);
+			
+			int use_es = -1;
+			if(es_reliable){
+				use_es = es;
+			}
+			node = find_next_node(mf, off, use_es);
+			if(node == NULL){
+				// reached EOF
 				break;
 			}
-		case JFFS2_NODETYPE_INODE:
+			off_t prev_off = off;
+			off = moff(mf, node);
+			printf("found at %p, after 0x%x bytes\n", off, off - prev_off);
+		}
+		
+		off += PAD_U32(node->u.totlen);
+		if (verbose)
+			printf("at %08x: %04x | %04x (%lu bytes): ", off, fix16(node->u.magic), fix16(node->u.nodetype), fix32(node->u.totlen));
+
+		if (crc32_no_comp(0, (unsigned char *)node, sizeof(node->u) - 4) != fix32(node->u.hdr_crc)) {
+			++errors;
+			printf(" ** wrong crc **\n");
+			continue;
+		}
+		
+		switch (fix16(node->u.nodetype)) {
+			case JFFS2_NODETYPE_DIRENT:
 			{
+				char name[node->d.nsize + 1];
+				strncpy(name, (char *)node->d.name, node->d.nsize);
+				name[node->d.nsize] = 0;
+				
+				if (verbose)
+					printf("DIRENT, ino %lu (%s), parent=%lu\n", fix32(node->d.ino), name, fix32(node->d.pino));
+
+				uint32_t ino = fix32(node->d.ino);
+				uint32_t pino = fix32(node->d.pino);
+				
+				inodes[ino] = name;
+				node_type[ino] = node->d.type;
+				childs[pino].push_back(ino);
+				break;
+			}
+			case JFFS2_NODETYPE_INODE:
+			{		
 				if (verbose)
 					printf("\n");
-				if (crc32_no_comp(0, (unsigned char *)&node.i, sizeof(struct jffs2_raw_inode) - 8) != fix32(node.i.node_crc)) {
+				if (crc32_no_comp(0, (unsigned char *)&(node->i), sizeof(struct jffs2_raw_inode) - 8) != fix32(node->i.node_crc)) {
 					errors++;
 					printf("  ** wrong node crc **\n");
+					continue;
 				}
 				if (verbose) {
-					printf("  INODE, ino %lu (version %lu) at %08lx\n", fix32(node.i.ino), fix32(node.i.version), fix32(node.i.offset));
-					printf("  compression: %d, user compression requested: %d\n", node.i.compr, node.i.usercompr);
+					printf("  INODE, ino %lu (version %lu) at %08lx\n", fix32(node->i.ino), fix32(node->i.version), fix32(node->i.offset));
+					printf("  compression: %d, user compression requested: %d\n", node->i.compr, node->i.usercompr);
 				}
-				int compr_size = fix32(node.i.csize);
-				int uncompr_size = fix32(node.i.dsize);
+				int compr_size = fix32(node->i.csize);
+				int uncompr_size = fix32(node->i.dsize);
 				if (verbose)
 					printf("  compr_size: %d, uncompr_size: %d\n", compr_size, uncompr_size);
-				unsigned char compr[compr_size], uncomp[uncompr_size];
-				fread(compr, compr_size, 1, fd);
+				
+				uint8_t *compr = node->i.data;
+				uint8_t uncomp[uncompr_size];
+
 				int extracted_size;
-				if (crc32_no_comp(0, compr, compr_size) != fix32(node.i.data_crc)) {
+				if (crc32_no_comp(0, compr, compr_size) != fix32(node->i.data_crc)) {
 					errors++;
 					printf("  ** wrong data crc **\n");
+					continue;
 				} else {
 					if (verbose)
 						printf("  data crc ok\n");
-					if ((extracted_size=do_uncompress(uncomp, uncompr_size, compr, compr_size, node.i.compr)) != uncompr_size) {
+					if ((extracted_size=do_uncompress(uncomp, uncompr_size, compr, compr_size, node->i.compr)) != uncompr_size) {
 						errors++;
 						printf("  ** data uncompress failed! (%u =! %u)\n", extracted_size, uncompr_size);
 					} else {
-						nodedata[fix32(node.i.ino)][fix32(node.i.version)] = nodedata_s(uncomp, uncompr_size, fix32(node.i.offset), fix32(node.i.isize), fix32(node.i.gid), fix32(node.i.uid), fix32(node.i.mode));
+						nodedata[fix32(node->i.ino)][fix32(node->i.version)] = nodedata_s(
+							uncomp, uncompr_size, fix32(node->i.offset),
+							fix32(node->i.isize), fix32(node->i.gid),
+							fix32(node->i.uid), fix32(node->i.mode)
+						);
 #if 0
 						int i;
 						for (i = 0; i < ((uncompr_size + 15) & ~15); ++i) {
@@ -542,29 +758,21 @@ extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
 				}
 				break;
 			}
-		case JFFS2_NODETYPE_CLEANMARKER:
-			if (verbose)
-				printf("CLEANMARKER\n");
-			break;
-		case JFFS2_NODETYPE_PADDING:
-			if (verbose)
-				printf("PADDING\n");
-			break;
-		case JFFS2_NODETYPE_SUMMARY:
-			if (verbose)
-				printf("SUMMARY\n");
-			break;
-		default:
-			errors++;
-			printf(" ** INVALID ** - nodetype %04x\n", fix16(node.u.nodetype));
-		}
-
-		if (fix32(node.u.totlen))
-			fseek(fd, (off + fix32(node.u.totlen) + 3) & ~3, SEEK_SET);
-		else {
-			errors++;
-			printf(" ** INVALID NODE SIZE. skipping to next eraseblock\n");
-			fseek(fd, (off + ES + 1) & ~ES, SEEK_SET);
+			case JFFS2_NODETYPE_CLEANMARKER:
+				if (verbose)
+					printf("CLEANMARKER\n");
+				break;
+			case JFFS2_NODETYPE_PADDING:
+				if (verbose)
+					printf("PADDING\n");
+				break;
+			case JFFS2_NODETYPE_SUMMARY:
+				if (verbose)
+					printf("SUMMARY\n");
+				break;
+			default:
+				errors++;
+				printf(" ** INVALID ** - nodetype %04x (offset: %p)\n", fix16(node->u.nodetype), off);
 		}
 	}
 
@@ -573,14 +781,17 @@ extern "C" int jffs2extract(char *infile, char *outdir, char *inendian) {
 			printf("there were errors, but some valid stuff was detected. continuing.\n");
 		else {
 			fprintf(stderr, "errors present and no valid data.\n");
+			mclose(mf);
 			return 2;
 		}
 	}
+	
 	node_type[1] = DT_DIR;
 	prefix = outdir;
 	devtab = fopen((prefix + ".devtab").c_str(), "wb");
 	do_list(1);
 	fclose(devtab);
 
+	mclose(mf);
 	return 0;
 }

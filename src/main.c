@@ -137,7 +137,14 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		asprintf(&dest_file, "%s/%s.unjffs2", dest_dir, file_name);
 		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
-		jffs2extract(file, dest_file, "1234");
+		
+		struct jffs2_main_args args = {
+			.erase_size = -1,
+			.keep_unlinked = false,
+			.verbose = 0
+		};
+		
+		jffs2extract(file, dest_file, args);
 	/* PVR STR (ts/m2ts video) */
 	} else if (isSTRfile(file)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);

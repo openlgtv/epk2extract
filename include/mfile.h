@@ -4,6 +4,11 @@
 */
 #ifndef __MFILE_H
 #define __MFILE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include <fcntl.h>
@@ -76,4 +81,9 @@ int cgetc(cursor_t *stream);
 int cputc(int c, cursor_t *stream);
 
 int mclose(MFILE *mfile);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
