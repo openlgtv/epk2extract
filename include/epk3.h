@@ -9,10 +9,12 @@
 #include "epk.h"
 
 #define EPK3_MAGIC "EPK3"
+#define PACKAGEINFO_MAGIC 0x52603554 //Little Endian
 
 int compare_epk3_header(uint8_t *header, size_t headerSize);
+int compare_epk3_new_header(uint8_t *header, size_t headerSize);
 MFILE *isFileEPK3(const char *epk_file);
-void extractEPK3(MFILE *epk, config_opts_t *config_opts);
+void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts);
 
 typedef struct __attribute__((packed)) {
 	char epkMagic[4];
@@ -21,6 +23,18 @@ typedef struct __attribute__((packed)) {
 	uint32_t packageInfoSize;
 	uint32_t bChunked;
 } EPK_V3_HEADER_T;
+
+typedef struct __attribute__((packed)) {
+	char epkMagic[4];
+	char epkVersion[4];
+	char otaId[32];
+	uint32_t packageInfoSize;
+	uint32_t bChunked;
+	uint32_t pakInfoMagic;
+	uint8_t encryptType[6];
+	uint8_t updateType[3];
+	uint8_t reserved[1399];
+} EPK_V3_NEW_HEADER_T;
 
 typedef struct __attribute__((packed)) {
 	// SegmentInfo
@@ -57,15 +71,42 @@ typedef struct __attribute__((packed)) {
 	PAK_V3_HEADER_T packages[];
 } PAK_V3_LISTHEADER_T;
 
-struct  __attribute__((packed)) epk3_structure {
+typedef struct __attribute__((packed)) {
+	uint32_t packageInfoListSize;
+	uint32_t packageInfoCount;
+	uint32_t pakInfoMagic;
+	PAK_V3_HEADER_T packages[];
+} PAK_V3_NEW_LISTHEADER_T;
+
+struct __attribute__((packed)) epk3_head_structure {
 	signature_t signature;
 	EPK_V3_HEADER_T epkHeader;
 	uint32_t crc32Info[384];
 	uint32_t reserved; //or unknown
 	char platformVersion[16];
 	char sdkVersion[16];
+};
+
+struct __attribute__((packed)) epk3_new_head_structure {
+	signature_t signature;
+	EPK_V3_NEW_HEADER_T epkHeader;
+	char platformVersion[16];
+	char sdkVersion[16];
+};
+
+struct  __attribute__((packed)) epk3_structure {
+	struct epk3_head_structure head;
     signature_t packageInfo_signature;
 	PAK_V3_LISTHEADER_T packageInfo;
+};
+
+struct __attribute__((packed)) epk3_new_structure {
+	signature_t signature;
+	struct epk3_new_head_structure head;
+
+	signature_t packageInfo_signature;
+	signature_t sig2;
+	PAK_V3_NEW_LISTHEADER_T packageInfo;
 };
 
 struct __attribute__((packed)) pak3_structure {

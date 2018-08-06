@@ -22,6 +22,7 @@ typedef enum {
     EPK,
 	EPK_V2,
 	EPK_V3,
+	EPK_V3_NEW,
     PAK_V2,
     RAW
 } FILE_TYPE_T;

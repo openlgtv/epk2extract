@@ -21,7 +21,7 @@ extern "C" {
 /* Gets the size of the memory mapped file */
 #define msize(mfile) mfile->statBuf.st_size
 /* Gets the data, casted to the type specified in the second argument */
-#define mdata(mfile, type) (type *)(mfile->pMem)
+#define mdata(mfile, type) ((type *)(mfile->pMem))
 /* Gets the file handler (for mfopen) */
 #define mfh(mfile) mfile->fh
 /* Gets the file offset */
