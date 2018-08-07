@@ -9,7 +9,6 @@
 #include "epk.h"
 
 #define EPK3_MAGIC "EPK3"
-#define PACKAGEINFO_MAGIC 0x52603554 //Little Endian
 
 int compare_epk3_header(uint8_t *header, size_t headerSize);
 int compare_epk3_new_header(uint8_t *header, size_t headerSize);

@@ -149,10 +149,6 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	if(epkType == EPK_V3_NEW){
 		EPK_V3_NEW_HEADER_T *extHeader = (EPK_V3_NEW_HEADER_T *)epkHeader;
-		if(extHeader->pakInfoMagic != PACKAGEINFO_MAGIC){
-			printf("Invalid packageInfo magic %04X\n", extHeader->pakInfoMagic);
-			return;
-		}
 		
 		printf("EncryptType: %.*s\n",
 			sizeof(extHeader->encryptType),
