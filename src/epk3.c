@@ -84,6 +84,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	}
 	
 	EPK_V3_HEADER_T *epkHeader = &(head->epkHeader);
+	EPK_V3_NEW_HEADER_T *epkHeaderNew = (EPK_V3_NEW_HEADER_T *)epkHeader;
 	if(config_opts->enableSignatureChecking)
 	{	
 		size_t signed_size = (
@@ -146,17 +147,15 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	);
 	printf("packageInfoSize: %d\n", epkHeader->packageInfoSize);
 	printf("bChunked: %d\n", epkHeader->bChunked);
-
-	if(epkType == EPK_V3_NEW){
-		EPK_V3_NEW_HEADER_T *extHeader = (EPK_V3_NEW_HEADER_T *)epkHeader;
-		
+	
+	if(epkType == EPK_V3_NEW){	
 		printf("EncryptType: %.*s\n",
-			sizeof(extHeader->encryptType),
-			extHeader->encryptType
+			sizeof(epkHeaderNew->encryptType),
+			epkHeaderNew->encryptType
 		);
 		printf("UpdateType:  %.*s\n",
-			sizeof(extHeader->updateType),
-			extHeader->updateType
+			sizeof(epkHeaderNew->updateType),
+			epkHeaderNew->updateType
 		);
 	}
 	
@@ -190,7 +189,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			dataPtr = (uintptr_t)packageInfo;
 			break;
 		case EPK_V3_NEW:
-			packageInfoNew = &(epk3_new->packageInfo);		
+			packageInfoNew = &(epk3_new->packageInfo);
 			pak = &(packageInfoNew->packages[i]);
 			dataPtr = (uintptr_t)packageInfoNew;
 			break;
@@ -208,6 +207,16 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	
 	if(result < 0){
 		return;
+	}
+	
+	if(epkType == EPK_V3_NEW){
+		if(packageInfoNew->pakInfoMagic != epkHeaderNew->pakInfoMagic){
+			printf("pakInfoMagic mismatch! (expected: %04X, actual: %04X)\n", 
+					epkHeaderNew->pakInfoMagic,
+					packageInfoNew->pakInfoMagic
+			);
+			return;
+		}
 	}
 		
 	dataPtr += epkHeader->packageInfoSize;
