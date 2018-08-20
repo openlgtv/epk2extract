@@ -419,16 +419,6 @@ void do_list(int inode, std::string root = "") {
 			fprintf(stderr, "failed to create unix socket '%s' (%s)\n", cpath, strerror(errno));
 			break;
 		}
-		struct sockaddr_un addr;
-		addr.sun_family = AF_UNIX;
-		
-		strncpy(addr.sun_path, cpath, sizeof(addr.sun_path));
-		
-		int opt_val = 1;
-		setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
-		if(bind(sock_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0){
-			fprintf(stderr, "failed to bind unix socket '%s' (%s)\n", cpath, strerror(errno));
-		}
 		close(sock_fd);
 		break;
 	}
