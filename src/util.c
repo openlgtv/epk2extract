@@ -373,11 +373,9 @@ int isSTRfile(const char *filename) {
 int isdatetime(char *datetime) {
 	time_t rawtime = time(NULL);
 	struct tm time_val;
-	struct tm *systime = localtime(&rawtime);
-	
+
 	// datetime format is YYYYMMDD
 	if (strptime(datetime, "%Y%m%d", &time_val) != 0
-		&& (systime->tm_year >= time_val.tm_year)
 		&& ((time_val.tm_year+1900) > 2005)) {
 		return 1;
 	} else {
