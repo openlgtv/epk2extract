@@ -466,6 +466,8 @@ void do_list(int inode, std::string root = "") {
 		break;
 	}
 
+	free(merged_data);
+
 	if (devtab_type && devtab && (inode != 1)){
 		fprintf(devtab, "%s %c %o %d %d %d %d - - -\n",
 			(root + inodes[inode]).c_str(),
