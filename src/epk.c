@@ -36,6 +36,8 @@ int compare_epak_header(uint8_t *header, size_t headerSize){
 		return EPK_V2;
 	} else if(compare_epk3_header(header, headerSize)){
 		return EPK_V3;
+	} else if(compare_epk3_new_header(header, headerSize)){
+		return EPK_V3_NEW;
 	}
 
 	return 0;
@@ -302,8 +304,9 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 				extractEPK2(epk, config_opts);
 				break;
 			case EPK_V3:
+			case EPK_V3_NEW:
 				printf("[+] EPK v3 Detected\n");
-				extractEPK3(epk, config_opts);
+				extractEPK3(epk, epkType, config_opts);
 				break;
 		}
 	} while(0);

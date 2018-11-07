@@ -34,6 +34,7 @@
 #include "stream/tsfile.h"		/* STR and PIF */
 #include "mediatek.h"	/* MTK Boot */
 #include "mediatek_pkg.h"	/* MTK UPG */
+#include "realtek.h"
 #include "philips.h"
 #include "u-boot/partinfo.h"	/* PARTINFO */
 #include "util.h"
@@ -109,6 +110,10 @@ int handle_file(char *file, config_opts_t *config_opts) {
 
 		printf("[MTK] Extracting embedded LZHS files...\n");
 		extract_lzhs(mf);
+	/* Realtek BSPFW partition */
+	} else if ((mf=is_rtk_bspfw(file))) {
+		printf("[RTK] Splitting bspfw.pak...\n");
+		split_rtk_bspfw(mf, dest_dir);
 	/* CRAMFS Big Endian */
 	} else if (is_cramfs_image(file, "be")) {
 		asprintf(&dest_file, "%s/%s.cramswap", dest_dir, file_name);

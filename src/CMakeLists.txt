@@ -32,6 +32,7 @@ add_executable(epk2extract
 	epk.c epk1.c epk2.c epk3.c
 	mediatek_pkg.c
 	mediatek.c philips.c symfile.c partinfo.c minigzip.c lzo-lg.c
+	realtek.c
 )
 target_link_libraries(epk2extract
 	mfile utils cramfs squashfs
