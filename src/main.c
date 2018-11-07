@@ -264,7 +264,6 @@ int main(int argc, char *argv[]) {
 	free(exe_dir);
 	free(current_dir);
 
-	lzhs_init_lookup();
 	int exit_code = handle_file(input_file, &config_opts);
 	
 	if (exit_code == EXIT_FAILURE)

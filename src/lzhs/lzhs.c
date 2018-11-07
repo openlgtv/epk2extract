@@ -26,8 +26,11 @@
 static t_code(*huff_charlen)[1] = (void *)&charlen_table;	// Raw LZSS Characters + Length of LZSS match
 static t_code(*huff_pos)[1] = (void *)&pos_table;		// Position of LZSS match
 
-static int32_t lookup_charlen[131072];	//2^(13 + 4 bits for len)
-static int32_t lookup_charpos[512];		//2^( 6 + 3 bits for len)
+/*** Huffman lookup tables ***/
+// indices 0-287 for charlen, 0-31 for charpos
+// signed -1 is used as the invalid/unpopulated index
+static int16_t lookup_charlen[131072];	//2^(13 + 4 bits for key_charlen)
+static int16_t lookup_charpos[512];		//2^( 6 + 3 bits for key_charpos)
 
 /*
  * Pack together length and code to create a key for the lookup table
@@ -36,7 +39,7 @@ static int32_t lookup_charpos[512];		//2^( 6 + 3 bits for len)
 static inline uint32_t key_charlen(uint32_t code, uint32_t len){
 	return ((len & 0xF) << 13) | (code & 0x1FFF);
 }
-static inline uint32_t key_charpos(uint32_t code, uint32_t len){
+static inline uint16_t key_charpos(uint32_t code, uint32_t len){
 	return ((len & 0x7) << 6) | (code & 0x3F);
 }
 

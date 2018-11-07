@@ -18,6 +18,8 @@
 
 #define LZHS_SIZE_THRESHOLD (20 * 1024 * 1024) //20 MB (a random sane value)
 
+static bool lzhs_lookup_initialized = false;
+
 bool _is_lzhs_mem(struct lzhs_header *header){
 	if (
 		!memcmp(header->spare, "\0\0\0\0\0\0\0", sizeof(header->spare)) &&
@@ -224,6 +226,11 @@ void lzhs_encode(const char *infile, const char *outfile) {
 }
 
 cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_t *out_checksum){
+	if(!lzhs_lookup_initialized){
+		lzhs_init_lookup();
+		lzhs_lookup_initialized = true;
+	}
+
 	struct lzhs_header *header = (struct lzhs_header *)(mdata(in_file, uint8_t) + offset);
 	printf("\n---LZHS details---\n");
 	printf("Compressed:\t%u\n", header->compressedSize);
