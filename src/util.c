@@ -318,20 +318,34 @@ void unnfsb(const char *filename, const char *extractedFile) {
 	close(fdin);
 }
 
-int is_gzip(const char *filename) {
-	FILE *file = fopen(filename, "rb");
+MFILE *is_gzip(const char *filename) {
+	MFILE *file = mopen(filename, O_RDONLY);
 	if (file == NULL) {
 		err_exit("Can't open file %s\n", filename);
+		return NULL;
 	}
-	size_t headerSize = 0x3;
-	unsigned char buffer[sizeof(char) * headerSize];
-	int read = fread(buffer, 1, headerSize, file);
-	int result = 0;
-	if (read == headerSize) {
-		result = !memcmp(&buffer[0x0], "\x1F\x8B\x08", 3);	//gzip magic check
+
+	if(msize(file) < 16){
+		mclose(file);
+		return NULL;
 	}
-	fclose(file);
-	return result;
+
+	if(memcmp(mdata(file, uint8_t *), "\x1F\x8B\x08", 3) != 0){
+		mclose(file);
+		return NULL;
+	}
+
+	char *gzfilename = mdata(file, char) + 10;
+	
+	int i;
+	for(i=0; isprint(*(int *)(gzfilename + i)); i++);
+
+	if(i > 0 && gzfilename[i + 1] == 0x00){
+		return file;
+	}
+	
+	mclose(file);
+	return NULL;
 }
 
 int is_jffs2(const char *filename) {

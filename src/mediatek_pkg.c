@@ -16,8 +16,16 @@
 #include "util_crypto.h"
 #include "thpool.h"
 
+enum mtkpkg_variant {
+	OLD,
+	NEW
+};
+
 static int is_philips_pkg = 0, is_sharp_pkg = 0;
-struct mtkupg_header packageHeader;
+static enum mtkpkg_variant upg_variant = OLD;
+
+static struct mtkupg_header packageHeader;
+static bool was_decrypted = false;
 
 int compare_pkg_header(uint8_t *header, size_t headerSize){
 	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
@@ -31,7 +39,9 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 		is_sharp_pkg = 1;
 		return 1;
 	}
-	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ){
+	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ||
+		!strncmp(hdr->vendor_magic, TPV_PKG_MAGIC2,strlen(TPV_PKG_MAGIC2))
+	){
 		printf("[+] Found PHILIPS(TPV) Package\n");
 		return 1;
 	}
@@ -60,8 +70,27 @@ int compare_content_header(uint8_t *header, size_t headerSize){
 	return 0;
 }
 
+bool is_known_partition(struct mtkpkg *pak){
+	const char *likelyPartitionNames[] = {
+		"cfig",
+		"ixml",
+		"tzbp",
+		NULL
+	};
+	
+	char **curPartName = likelyPartitionNames;
+	for(int nameIndex=0; *curPartName != NULL; nameIndex++){
+		if(!strcmp(pak->header.pakName, *curPartName)){
+			return true;
+		}
+		curPartName++;
+	}
+	return false;
+}
+
 MFILE *is_mtk_pkg(const char *pkgfile){
 	setKeyFile_MTK();
+	
 	MFILE *mf = mopen(pkgfile, O_RDONLY);
 	if(!mf){
 		err_exit("Cannot open file %s\n", pkgfile);
@@ -82,6 +111,7 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 		is_philips_pkg = 1;
 
 		found_return:
+			was_decrypted = true;
 			memcpy(&packageHeader, decryptedHeader, sizeof(packageHeader));
 			free(headerKey);
 			return mf;
@@ -90,21 +120,18 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	/* No AES key found to decrypt the header. Try to check if it's a MTK PKG anyways
 	 * This method can return false for valid packages as the order of partitions isn't fixed
 	 */
-	data = &data[sizeof(struct mtkupg_header)];
 
-	/* First pak doesn't have OTA ID fields */
-	struct mtkpkg *cfig = (struct mtkpkg *)data;
-	if(
-		(	/* Hisense and Sharp first partition */
-			!strcmp(cfig->header.pakName, "cfig") &&
-			!strncmp(cfig->content.data.pkgData, "START", 5)
-		) || (
-			!strcmp(cfig->header.pakName, "ixml") //Philips first partition
-		)
-	){
-		/* Checking for END may be desirable */
+	/* First pak doesn't have extended fields */
+	struct mtkpkg *firstPak = (struct mtkpkg *)(data + sizeof(struct mtkupg_header));
+	if(is_known_partition(firstPak))
+		return mf;
+	
+	firstPak = (struct mtkpkg *)(data + sizeof(struct mtkupg_header_new));
+	if(is_known_partition(firstPak)){
+		upg_variant = NEW;
 		return mf;
 	}
+
 	mclose(mf);
 	return NULL;
 }
@@ -277,12 +304,7 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 	}
 }
 
-struct mtkupg_header *process_pkg_header(MFILE *mf){
-	uint8_t *header = mdata(mf, uint8_t);
-	if(is_philips_pkg)
-		header += PHILIPS_HEADER_SIZE;
-
-	struct mtkupg_header *hdr = &packageHeader;
+void print_pkg_header(struct mtkupg_header *hdr){
 	hexdump(hdr, sizeof(*hdr));
 
 	printf("======== Firmware Info ========\n");
@@ -296,29 +318,32 @@ struct mtkupg_header *process_pkg_header(MFILE *mf){
 	printf("| File Size: %u bytes\n", hdr->fileSize);
 	printf("| Platform Type: 0x%02X\n", hdr->platform);
 	printf("======== Firmware Info ========\n");
-
-	return hdr;
 }
 
 void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
 	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
 
-	off_t i = sizeof(struct mtkupg_header);
+	off_t offset = (upg_variant == OLD) ? sizeof(struct mtkupg_header) : sizeof(struct mtkupg_header_new);
 	if(is_philips_pkg)
-		i += PHILIPS_HEADER_SIZE;
+		offset += PHILIPS_HEADER_SIZE;
 
-	uint8_t *data = mdata(mf, uint8_t) + i;
+	uint8_t *data = mdata(mf, uint8_t) + offset;
 
 	char *file_name = my_basename(mf->path);
 	char *file_base = remove_ext(file_name);
 
-	struct mtkupg_header *hdr = process_pkg_header(mf);
+	struct mtkupg_header *hdr = (was_decrypted) ? &packageHeader : NULL;
+	if(hdr != NULL)
+		print_pkg_header(hdr);
+	
 	if(hdr != NULL){
 		// Use product name for now (version would be better)
 		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, hdr->product_name);
-		createFolder(config_opts->dest_dir);
+	} else {
+		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
 	}
+	createFolder(config_opts->dest_dir);
 	
 	KeyPair *dataKey = NULL;
 	
@@ -332,8 +357,10 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 			break;
 		}
 
+		size_t cryptedHeaderSize = (upg_variant == OLD) ? sizeof(pak->content.header) : 0;
+		
 		/* Skip pak header and crypted header */
-		data += sizeof(pak->header) + sizeof(pak->content.header);
+		data += sizeof(pak->header) + cryptedHeaderSize;
 
 		uint8_t *pkgData = (uint8_t *)&(pak->content.header);
 		size_t dataSize = sizeof(pak->content.header);
@@ -349,66 +376,71 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 #pragma region FindAesKey
 		uint8_t *decryptedPkgData = NULL;
 		
-		if(dataKey == NULL){
-			dataKey = find_AES_key(
-				pkgData,
-				dataSize,
-				compare_content_header,
-				KEY_CBC,
-				(void **)&decryptedPkgData,
-				1
-			);
-			int success = dataKey != NULL;
-			if(success){
-				/* Copy decrypted data */
-				memcpy(pkgData, decryptedPkgData, dataSize);
-				free(decryptedPkgData);
-			} else {
-				/* Try to decrypt by using vendorMagic repeated 4 times, ivec 0 */
-				do {
-					AES_KEY aesKey;
-					uint8_t keybuf[16];				
-					uint i;
-					for(i=0; i<4; i++){
-						memcpy(&keybuf[4 * i], hdr->vendor_magic, sizeof(uint32_t));
+		if(was_decrypted){
+			if(dataKey == NULL){
+				dataKey = find_AES_key(
+					pkgData,
+					dataSize,
+					compare_content_header,
+					KEY_CBC,
+					(void **)&decryptedPkgData,
+					1
+				);
+				int success = dataKey != NULL;
+				if(success){
+					/* Copy decrypted data */
+					memcpy(pkgData, decryptedPkgData, dataSize);
+					free(decryptedPkgData);
+				} else if(was_decrypted) {
+					/* Try to decrypt by using vendorMagic repeated 4 times, ivec 0 */
+					do {
+						AES_KEY aesKey;
+						uint8_t keybuf[16];				
+						uint i;
+						for(i=0; i<4; i++){
+							memcpy(&keybuf[4 * i], hdr->vendor_magic, sizeof(uint32_t));
+						}
+
+						AES_set_decrypt_key((uint8_t *)&keybuf, 128, &aesKey);
+
+						dataKey = calloc(1, sizeof(KeyPair)); //also fills ivec with zeros
+						memcpy(&(dataKey->key), &aesKey, sizeof(aesKey));
+
+						uint8_t iv_tmp[16];
+						memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
+						AES_cbc_encrypt(
+							pkgData, pkgData,
+							dataSize, &(dataKey->key),
+							(void *)&iv_tmp, AES_DECRYPT
+						);
+
+						success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
+					} while(0);
+				}
+				if(!success){
+					if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
+						printf("[-] Couldn't decrypt data!\n");
+					} else {
+						printf("[-] Couldn't decrypt header!\n");
 					}
-
-					AES_set_decrypt_key((uint8_t *)&keybuf, 128, &aesKey);
-					
-					dataKey = calloc(1, sizeof(KeyPair)); //also fills ivec with zeros
-					memcpy(&(dataKey->key), &aesKey, sizeof(aesKey));
-
-					uint8_t iv_tmp[16];
-					memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
-					AES_cbc_encrypt(
-						pkgData, pkgData,
-						dataSize, &(dataKey->key),
-						(void *)&iv_tmp, AES_DECRYPT
-					);
-
-					success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
-				} while(0);
-			}
-			if(!success){
-				if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
-					printf("[-] Couldn't decrypt data!\n");
-				} else {
-					printf("[-] Couldn't decrypt header!\n");
+				}
+			} else {
+	#pragma endregion
+				uint8_t iv_tmp[16];
+				memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
+				AES_cbc_encrypt(
+					pkgData, pkgData,
+					dataSize, &(dataKey->key),
+					(void *)&iv_tmp, AES_DECRYPT
+				);
+				int success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
+				if(!success){
+					fprintf(stderr, "[!] WARNING: MTK Crypted header not found, continuing anyways...\n");
 				}
 			}
-		} else {
-#pragma endregion
-			uint8_t iv_tmp[16];
-			memcpy(&iv_tmp, &(dataKey->ivec), sizeof(iv_tmp));
-			AES_cbc_encrypt(
-				pkgData, pkgData,
-				dataSize, &(dataKey->key),
-				(void *)&iv_tmp, AES_DECRYPT
-			);
-			int success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
-			if(!success){
-				fprintf(stderr, "[!] WARNING: MTK Crypted header not found, continuing anyways...\n");
-			}
+		}
+		
+		if(upg_variant == OLD){
 			// Skip the mtk header (reserved inc)
 			pkgData += sizeof(struct mtkpkg_crypted_header);
 		}
@@ -426,7 +458,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 		/* Parse the fields at the start of pkgData, and skip them */
 		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
 			uint8_t *extData = (uint8_t *)&(ext->otaID_len);
-			/* the otaID_len field acts as flag, being 0 when there's no otaID */
+			/* otaID is optional. if we have it, it's preceded by its length. If we don't have it, we have the iPAD magic instead */
 			int has_otaID = strncmp(extData, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC)) != 0;
 			if(has_otaID){
 				printf(", platform='%s', otaid='%s'", ext->platform, ext->otaID);

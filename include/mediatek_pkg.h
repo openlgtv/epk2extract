@@ -13,6 +13,7 @@
 #define HISENSE_PKG_MAGIC "hise"
 #define SHARP_PKG_MAGIC "Shar"
 #define TPV_PKG_MAGIC "TPV_"
+#define TPV_PKG_MAGIC2 "TPV\0"
 #define PHILIPS_PKG_MAGIC "PHIL"
 
 #define PHILIPS_HEADER_SIZE 0x80 //at top before MTK header
@@ -31,7 +32,7 @@
 
 struct __attribute__((packed)) mtkupg_header {
 	int8_t vendor_magic[4];
-	int8_t mtk_magic[8];
+	int8_t mtk_magic[8]; //MTK_FIRMWARE_MAGIC
 	int8_t vendor_info[60]; //version and other stuff
 	uint32_t fileSize;
 	uint32_t platform; //0x50 on sharp. Platform type? (unsure)
@@ -39,6 +40,11 @@ struct __attribute__((packed)) mtkupg_header {
 	uint32_t unk; //0x51
 	uint32_t unk1; //0
 	uint8_t hmac[16];
+};
+
+// unknown: same size as mtkupg_header + 8 bytes
+struct __attribute__((packed)) mtkupg_header_new {
+	uint8_t unknown[sizeof(struct mtkupg_header) + 8];
 };
 
 struct mtkpkg_plat {
@@ -53,7 +59,7 @@ struct mtkpkg_pad {
 };
 
 struct __attribute__((packed)) mtkpkg_crypted_header {
-	uint8_t mtk_reserved[16];
+	uint8_t mtk_reserved[16]; //MTK_RESERVED_MAGIC
 	uint8_t hmac[16];
 	uint8_t vendor_reserved[16];
 };

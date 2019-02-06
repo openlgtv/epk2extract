@@ -95,7 +95,7 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		rmrf(dest_file);
 		unsquashfs(file, dest_file);
 	/* GZIP */
-	} else if (is_gzip(file)) {
+	} else if ((mf=is_gzip(file))) {
 		asprintf(&dest_file, "%s/", dest_dir);
 		printf("UnGZIP %s to folder %s\n", file, dest_file);
 		char *gz_name = file_uncompress_origname(file, dest_file);

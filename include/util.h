@@ -36,7 +36,7 @@ MFILE *is_lz4(const char *lz4file);
 bool is_nfsb_mem(MFILE *file, off_t offset);
 MFILE *is_nfsb(const char *filename);
 void unnfsb(const char *filename, const char *extractedFile);
-int is_gzip(const char *filename);
+MFILE *is_gzip(const char *filename);
 int is_jffs2(const char *filename);
 int isSTRfile(const char *filename);
 int isdatetime(char *datetime);
