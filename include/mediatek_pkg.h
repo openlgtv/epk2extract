@@ -43,7 +43,7 @@ struct __attribute__((packed)) mtkupg_header {
 };
 
 // unknown: same size as mtkupg_header + 8 bytes
-struct __attribute__((packed)) mtkupg_header_new {
+struct __attribute__((packed)) mtkupg_header_old {
 	uint8_t unknown[sizeof(struct mtkupg_header) + 8];
 };
 

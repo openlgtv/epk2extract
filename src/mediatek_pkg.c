@@ -22,7 +22,7 @@ enum mtkpkg_variant {
 };
 
 static int is_philips_pkg = 0, is_sharp_pkg = 0;
-static enum mtkpkg_variant upg_variant = OLD;
+static enum mtkpkg_variant upg_variant = NEW;
 
 static struct mtkupg_header packageHeader;
 static bool was_decrypted = false;
@@ -126,9 +126,9 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	if(is_known_partition(firstPak))
 		return mf;
 	
-	firstPak = (struct mtkpkg *)(data + sizeof(struct mtkupg_header_new));
+	firstPak = (struct mtkpkg *)(data + sizeof(struct mtkupg_header_old));
 	if(is_known_partition(firstPak)){
-		upg_variant = NEW;
+		upg_variant = OLD;
 		return mf;
 	}
 
@@ -324,7 +324,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
 	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
 
-	off_t offset = (upg_variant == OLD) ? sizeof(struct mtkupg_header) : sizeof(struct mtkupg_header_new);
+	off_t offset = (upg_variant == NEW) ? sizeof(struct mtkupg_header) : sizeof(struct mtkupg_header_old);
 	if(is_philips_pkg)
 		offset += PHILIPS_HEADER_SIZE;
 
@@ -357,7 +357,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 			break;
 		}
 
-		size_t cryptedHeaderSize = (upg_variant == OLD) ? sizeof(pak->content.header) : 0;
+		size_t cryptedHeaderSize = (upg_variant == NEW) ? sizeof(pak->content.header) : 0;
 		
 		/* Skip pak header and crypted header */
 		data += sizeof(pak->header) + cryptedHeaderSize;
@@ -440,7 +440,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 			}
 		}
 		
-		if(upg_variant == OLD){
+		if(upg_variant == NEW){
 			// Skip the mtk header (reserved inc)
 			pkgData += sizeof(struct mtkpkg_crypted_header);
 		}
