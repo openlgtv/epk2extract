@@ -18,8 +18,12 @@
 
 enum mtkpkg_variant {
 	OLD,
-	NEW
+	NEW,
+	THOMPSON
 };
+
+#define SIZEOF_THOMPSON_HEADER 0x170
+#define SIZEOF_OLD_HEADER 0x98
 
 static int is_philips_pkg = 0, is_sharp_pkg = 0;
 static enum mtkpkg_variant upg_variant = NEW;
@@ -80,7 +84,7 @@ bool is_known_partition(struct mtkpkg *pak){
 	
 	char **curPartName = likelyPartitionNames;
 	for(int nameIndex=0; *curPartName != NULL; nameIndex++){
-		if(!strcmp(pak->header.pakName, *curPartName)){
+		if(!strncmp(pak->header.pakName, *curPartName, sizeof(pak->header.pakName))){
 			return true;
 		}
 		curPartName++;
@@ -126,9 +130,15 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	if(is_known_partition(firstPak))
 		return mf;
 	
-	firstPak = (struct mtkpkg *)(data + sizeof(struct mtkupg_header_old));
+	firstPak = (struct mtkpkg *)(data + SIZEOF_OLD_HEADER);
 	if(is_known_partition(firstPak)){
 		upg_variant = OLD;
+		return mf;
+	}
+
+	firstPak = (struct mtkpkg *)(data + SIZEOF_THOMPSON_HEADER);
+	if(is_known_partition(firstPak)){
+		upg_variant = THOMPSON;
 		return mf;
 	}
 
@@ -324,7 +334,20 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
 	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
 
-	off_t offset = (upg_variant == NEW) ? sizeof(struct mtkupg_header) : sizeof(struct mtkupg_header_old);
+	bool has_content_header = false;
+	off_t offset = 0;
+	switch(upg_variant){
+		case NEW:
+			offset = sizeof(struct mtkupg_header);
+			break;
+		case OLD:
+			offset = SIZEOF_OLD_HEADER;
+			break;
+		case THOMPSON:
+			offset = SIZEOF_THOMPSON_HEADER;
+			upg_variant = NEW;
+	}
+
 	if(is_philips_pkg)
 		offset += PHILIPS_HEADER_SIZE;
 

@@ -42,11 +42,6 @@ struct __attribute__((packed)) mtkupg_header {
 	uint8_t hmac[16];
 };
 
-// unknown: same size as mtkupg_header + 8 bytes
-struct __attribute__((packed)) mtkupg_header_old {
-	uint8_t unknown[sizeof(struct mtkupg_header) + 8];
-};
-
 struct mtkpkg_plat {
 	char platform[8];
 	uint32_t otaID_len;
