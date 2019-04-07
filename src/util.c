@@ -338,9 +338,9 @@ MFILE *is_gzip(const char *filename) {
 	char *gzfilename = mdata(file, char) + 10;
 	
 	int i;
-	for(i=0; isprint(*(int *)(gzfilename + i)); i++);
+	for(i=0; gzfilename[i] != 0x00 && isprint(gzfilename[i]); i++);
 
-	if(i > 0 && gzfilename[i + 1] == 0x00){
+	if(i > 0 && gzfilename[i] == 0x00){
 		return file;
 	}
 	
