@@ -181,7 +181,7 @@ void symfile_write_idc(const char *fname) {
 			fprintf(outfile, "if(SegName(0x%x)==\".text\") {\n", addr);
 			fprintf(outfile, "   MakeCode(0x%x);\n", addr);
 			fprintf(outfile, "   MakeFunction(0x%x, 0x%x);\n", addr, end);
-			fprintf(outfile, "};\n", addr);
+			fprintf(outfile, "};\n");
 
 	}
 
