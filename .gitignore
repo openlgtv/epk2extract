@@ -23,3 +23,10 @@ install_manifest.txt
 # build
 build_linux
 build_cygwin
+
+# Linux build artifacts
+src/epk2extract
+src/tools/idb_extract
+src/tools/jffs2extract
+src/tools/lzhs_scanner
+src/tools/lzhsenc
