@@ -385,7 +385,6 @@ int isSTRfile(const char *filename) {
 }
 
 int isdatetime(char *datetime) {
-	time_t rawtime = time(NULL);
 	struct tm time_val;
 
 	// datetime format is YYYYMMDD
