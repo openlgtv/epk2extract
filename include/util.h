@@ -51,7 +51,7 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 #define PRINT(...) print(0, 0 , WHEREARG, __VA_ARGS__)
 #define VERBOSE(N,...) print(N, 0, WHEREARG, __VA_ARGS__)
 #define VERBOSE_NN(N,...) print(N, 0, WHEREARG, __VA_ARGS__)
-#define PERROR_SE(fmt, ...) print(0, 0, WHEREARG, "ERROR: "fmt" (%s)", ## __VA_ARGS__, strerror(errno))
+#define PERROR_SE(fmt, ...) print(0, 0, WHEREARG, "ERROR: " fmt " (%s)", ## __VA_ARGS__, strerror(errno))
 #define PERROR(...) print(0, 1, WHEREARG, "ERROR: " __VA_ARGS__)
 
 #if __WORDSIZE == 64
