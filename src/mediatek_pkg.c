@@ -334,7 +334,6 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
 	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
 
-	bool has_content_header = false;
 	off_t offset = 0;
 	switch(upg_variant){
 		case NEW:
