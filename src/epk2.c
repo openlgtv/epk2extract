@@ -267,7 +267,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 					printf("build=TEST");
 					break;
 				default:
-					printf("build=UNKNOWN %0x%x\n", pak->pakHeader.devMode);
+					printf("build=UNKNOWN 0x%x\n", pak->pakHeader.devMode);
 					break;
 			}
 			printf(")\n");
