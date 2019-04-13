@@ -197,9 +197,9 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	
 	/* Decrypt packageInfo */
 	result = wrap_decryptimage(
-		dataPtr,
+		(void *)dataPtr,
 		epkHeader->packageInfoSize,
-		dataPtr,
+		(void *)dataPtr,
 		config_opts->dest_dir,
 		RAW,
 		NULL
