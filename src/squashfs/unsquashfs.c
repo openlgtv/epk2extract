@@ -2019,7 +2019,7 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 			}
 		}
 
-		if(opened_files >= max_files){
+		if(opened_files > max_files){
 			EXIT_UNSQUASH("Too many open files");
 		}
 

@@ -28,7 +28,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/sysmacros.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -36,6 +35,7 @@
 #    include <machine/endian.h>
 #else
 #    include <endian.h>
+#    include <sys/sysmacros.h>
 #endif
 
 #include <map>

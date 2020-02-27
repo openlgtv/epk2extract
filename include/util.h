@@ -21,6 +21,10 @@ extern "C" {
 #define err_exit(fmt, ...) \
 	exit(err_ret(fmt, ##__VA_ARGS__))
 
+#ifdef __APPLE__
+typedef    unsigned int    uint;
+#endif
+
 char *my_basename(const char *path);
 char *my_dirname(const char *path);
 int count_tokens(const char *str, char token, int sz);

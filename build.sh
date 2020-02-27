@@ -11,7 +11,7 @@ lblue='printf \033[01;34m'
 white='printf \033[01;37m'
 
 cwd=$(pwd)
-srcdir=$(dirname $(readlink -f $0))
+srcdir=`cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd`
 
 exe=(
 	"epk2extract" "tools/lzhsenc"
@@ -50,7 +50,7 @@ fi
 
 cd $objdir
 
-NUM_THREADS=$(grep processor /proc/cpuinfo | wc -l)
+NUM_THREADS=$(nproc)
 
 case "$1" in
 	"-v")
