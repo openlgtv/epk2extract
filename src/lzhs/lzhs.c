@@ -19,6 +19,7 @@
 #include <string.h>
 #include <assert.h>
 #include "common.h"
+#include "util.h"
 #include "lzhs/lzhs.h"
 #include "lzhs/tables.h"
 

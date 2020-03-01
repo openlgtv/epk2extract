@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <asm/types.h>
 #include <errno.h>
 #include "jffs2/jffs2.h"
 #ifndef PAGE_SIZE
@@ -18,6 +17,10 @@
 #define PRINT_ERROR(msg) fprintf(stderr, msg)
 #define INIT
 #define STATIC
+
+#ifndef __APPLE__
+#    include <asm/types.h>
+#endif
 
 #include "lzma/LzmaDec.h"
 #include "lzma/LzmaEnc.h"

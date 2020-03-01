@@ -28,7 +28,6 @@
 #    define FALSE 0
 #    include <stdio.h>
 #    include <sys/types.h>
-#    include <sys/sysmacros.h>
 #    include <unistd.h>
 #    include <stdlib.h>
 #    include <sys/stat.h>
@@ -47,6 +46,10 @@
 #    include <math.h>
 #    include <sys/ioctl.h>
 #    include <sys/time.h>
+
+#    ifndef __APPLE__
+#        include <sys/sysmacros.h>
+#    endif
 
 #    if defined(__CYGWIN__) || defined(__APPLE__)
 #        define FNM_EXTMATCH  (1 << 5)

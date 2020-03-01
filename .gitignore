@@ -23,6 +23,7 @@ install_manifest.txt
 # build
 build_linux
 build_cygwin
+build_osx
 
 # Linux build artifacts
 src/epk2extract
