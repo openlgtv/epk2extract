@@ -2031,7 +2031,7 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 			max_files -= margin;
 
 
-		printf("Max Files: %u, Opened Files: %u, Allocated: %u (Margin: %u)\n",
+		printf("Max Files: %zu, Opened Files: %u, Allocated: %u (Margin: %u)\n",
 			rlim.rlim_cur, opened_files, max_files, margin
 		);
 		free(fds);

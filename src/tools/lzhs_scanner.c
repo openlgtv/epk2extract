@@ -39,7 +39,7 @@ void scan_lzhs(const char *filename, int extract) {
 				fstring="LZHS header";
 			}
 
-			printf("Found possible %-12s at offset @0x%08X (Checksum: 0x%02X, compressedSize: 0x%08X, uncompressedSize: 0x%08X)\n",
+			printf("Found possible %-12s at offset @0x%08zX (Checksum: 0x%02X, compressedSize: 0x%08X, uncompressedSize: 0x%08X)\n",
 				fstring, fileOff, header->checksum, header->compressedSize, header->uncompressedSize
 			);
 

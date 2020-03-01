@@ -9,6 +9,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <openssl/evp.h>
 #include <openssl/aes.h>
@@ -168,7 +169,7 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 	if (result < 0) {
 		fprintf(stderr, "WARNING: Cannot verify digital signature (maybe you don't have proper PEM file)\n\n");
 	} else {
-		printf("Succesfully verified 0x%x out of 0x%x bytes\n", effectiveSignedSize, signSize);
+		printf("Succesfully verified 0x%zx out of 0x%zx bytes\n", effectiveSignedSize, signSize);
 	}
 	return result;
 }
@@ -212,13 +213,18 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 		case EPK_V3:
 			compareFunc = compare_epk3_header;
 			break;
+		case RAW:
+			break;
+		default:
+			assert(false);
+			break;
 	}
 
 	int decrypted = 0;
 	uint8_t *decryptedData = NULL;
 
 	// Check if we need decryption
-	if(type != RAW && compareFunc(src, datalen)){
+	if(compareFunc != NULL && compareFunc(src, datalen)){
 		decrypted = 1;
 		return decrypted;
 	}
@@ -236,10 +242,7 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 		}
 	} else {
 		decryptImage(src, datalen, dest);
-		if(type == RAW)
-			decrypted = 1;
-		else
-			decrypted = compareFunc(dest, datalen);
+		decrypted = (compareFunc != NULL) ? compareFunc(dest, datalen) : 1;
 	}
 	if (!decrypted){
 		PERROR("Cannot decrypt EPK content (proper AES key is missing).\n");
@@ -273,7 +276,7 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 		//Make it R/W
 		mprotect(epk->pMem, msize(epk), PROT_READ | PROT_WRITE);
 
-		printf("File size: %d bytes\n", msize(epk));
+		printf("File size: %zd bytes\n", msize(epk));
 		
 		struct epk2_structure *epk2 = mdata(epk, struct epk2_structure);
 		EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
@@ -307,6 +310,9 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 			case EPK_V3_NEW:
 				printf("[+] EPK v3 Detected\n");
 				extractEPK3(epk, epkType, config_opts);
+				break;
+			default:
+				assert(false);
 				break;
 		}
 	} while(0);

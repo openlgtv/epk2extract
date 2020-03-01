@@ -65,8 +65,8 @@ MFILE *isFileEPK2(const char *epk_file) {
 
 	checkOk:
 		if(has_versions){
-			printf("[EPK2] Platform Version: %.*s\n", sizeof(epk2->platformVersion), epk2->platformVersion);
-			printf("[EPK2] SDK Version: %.*s\n", sizeof(epk2->sdkVersion), epk2->sdkVersion);
+			printf("[EPK2] Platform Version: %.*s\n", (int)sizeof(epk2->platformVersion), epk2->platformVersion);
+			printf("[EPK2] SDK Version: %.*s\n", (int)sizeof(epk2->sdkVersion), epk2->sdkVersion);
 		}
 		return file;
 
@@ -251,7 +251,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 				(pak->pakHeader.swVersion >> 16) & 0xff,
 				(pak->pakHeader.swVersion >> 8 ) & 0xff,
 				(pak->pakHeader.swVersion      ) & 0xff);
-			printf(" platform='%s', offset='0x%x', size='%u bytes', ",
+			printf(" platform='%s', offset='0x%zx', size='%zu bytes', ",
 				pak->pakHeader.modelName,
 				moff(epk, pak),
 				pakContentSize);

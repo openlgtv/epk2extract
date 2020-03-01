@@ -34,30 +34,31 @@ static bool was_decrypted = false;
 int compare_pkg_header(uint8_t *header, size_t headerSize){
 	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
 
-	if( !strncmp(hdr->vendor_magic, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
+	const char *pMagic = (const char *)hdr->vendor_magic;
+	if( !strncmp(pMagic, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
 		printf("[+] Found HISENSE Package\n");
 		return 1;
 	}
-	if( !strncmp(hdr->vendor_magic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
+	if( !strncmp(pMagic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
 		printf("[+] Found SHARP Package\n");
 		is_sharp_pkg = 1;
 		return 1;
 	}
-	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ||
-		!strncmp(hdr->vendor_magic, TPV_PKG_MAGIC2,strlen(TPV_PKG_MAGIC2))
+	if( !strncmp(pMagic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ||
+		!strncmp(pMagic, TPV_PKG_MAGIC2,strlen(TPV_PKG_MAGIC2))
 	){
 		printf("[+] Found PHILIPS(TPV) Package\n");
 		return 1;
 	}
 	
-	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
+	if( !strncmp(pMagic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
 		printf("[+] Found PHILIPS Package\n");
 		return 1;
 	}
 
-	if( !strncmp(hdr->mtk_magic, MTK_FIRMWARE_MAGIC, strlen(MTK_FIRMWARE_MAGIC)) ){
+	if( !strncmp(pMagic, MTK_FIRMWARE_MAGIC, strlen(MTK_FIRMWARE_MAGIC)) ){
 		printf("[+] Found UNKNOWN Package (Magic: '%.*s')\n",
-			member_size(struct mtkupg_header, vendor_magic),
+			(int)member_size(struct mtkupg_header, vendor_magic),
 			hdr->vendor_magic
 		);
 		return 1;
@@ -68,7 +69,7 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 
 int compare_content_header(uint8_t *header, size_t headerSize){
 	struct mtkpkg_data *data = (struct mtkpkg_data *)header;
-	if ( !strncmp(data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) ){
+	if ( !strncmp((const char *)data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) ){
 		return 1;
 	}
 	return 0;
@@ -82,7 +83,7 @@ bool is_known_partition(struct mtkpkg *pak){
 		NULL
 	};
 	
-	char **curPartName = likelyPartitionNames;
+	const char **curPartName = (const char **)likelyPartitionNames;
 	for(int nameIndex=0; *curPartName != NULL; nameIndex++){
 		if(!strncmp(pak->header.pakName, *curPartName, sizeof(pak->header.pakName))){
 			return true;
@@ -258,7 +259,7 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data; 
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
 
-		printf("\n[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
+		printf("\n[0x%08zX] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
 			moff(mf, main_hdr),
 			main_hdr->checksum,
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
@@ -320,10 +321,11 @@ void print_pkg_header(struct mtkupg_header *hdr){
 	printf("======== Firmware Info ========\n");
 	printf("| Product Name: %s\n", hdr->product_name);
 	printf("| Firmware ID : %.*s\n",
-		member_size(struct mtkupg_header, vendor_magic) + 
-		member_size(struct mtkupg_header, mtk_magic) + 
-		member_size(struct mtkupg_header, vendor_info),
-		hdr->vendor_magic
+		(int)(
+			member_size(struct mtkupg_header, vendor_magic) + 
+			member_size(struct mtkupg_header, mtk_magic) + 
+			member_size(struct mtkupg_header, vendor_info)
+		), hdr->vendor_magic
 	);
 	printf("| File Size: %u bytes\n", hdr->fileSize);
 	printf("| Platform Type: 0x%02X\n", hdr->platform);
@@ -479,7 +481,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 
 		/* Parse the fields at the start of pkgData, and skip them */
 		if(!strncmp(ext->platform, MTK_PAK_MAGIC, strlen(MTK_PAK_MAGIC))){
-			uint8_t *extData = (uint8_t *)&(ext->otaID_len);
+			const char *extData = (const char *)&(ext->otaID_len);
 			/* otaID is optional. if we have it, it's preceded by its length. If we don't have it, we have the iPAD magic instead */
 			int has_otaID = strncmp(extData, MTK_PAD_MAGIC, strlen(MTK_PAD_MAGIC)) != 0;
 			if(has_otaID){
@@ -512,7 +514,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 		char *dest_path = NULL;
 		asprintf(&dest_path, "%s/%.*s.pak",
 			config_opts->dest_dir,
-			member_size(struct mtkpkg_header, pakName), pak->header.pakName
+			(int)member_size(struct mtkpkg_header, pakName), pak->header.pakName
 		);
 
 		MFILE *out = mfopen(dest_path, "w+");

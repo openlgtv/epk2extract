@@ -247,7 +247,6 @@ int do_decompress(FILE * fi, FILE * fo) {
 	unsigned char m[sizeof(magic)];
 	lzo_uint32 flags, UNUSED(decomp_size);
 	int method;
-	int level;
 	lzo_uint block_size;
 	lzo_uint32 checksum;
 
@@ -276,7 +275,7 @@ int do_decompress(FILE * fi, FILE * fo) {
 		uint32_t version = xread32(fi);
 		if(version != 1){
 			header_error:
-				printf("header error - invalid method %d (version: %d) (level %d)\n", method, version, level);
+				printf("header error - invalid method %d (version: %d)\n", method, version);
 				r = 2;
 				goto err;
 		}
@@ -287,7 +286,7 @@ int do_decompress(FILE * fi, FILE * fo) {
 		}
 	}
 
-	level = xgetc(fi);
+	/*level =*/ xgetc(fi);
 
 	block_size = xread32(fi);
 	if (block_size < 1024 || block_size > 8 * 1024 * 1024L) {

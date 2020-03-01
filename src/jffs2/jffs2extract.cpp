@@ -55,7 +55,7 @@
 #include "jffs2/jffs2.h"
 
 #define PAD_U32(x) ((x + 3) & ~3)
-#define PAD_X(x, y) ((x + (y - 1) & ~(y - 1)))
+#define PAD_X(x, y) (((x + (y - 1)) & ~(y - 1)))
 
 #define RUBIN_REG_SIZE   16
 #define UPPER_BIT_RUBIN    (((long) 1)<<(RUBIN_REG_SIZE-1))
@@ -193,8 +193,8 @@ void dynrubin_decompress(unsigned char *data_in, unsigned char *cpage_out, unsig
 
 void rtime_decompress(unsigned char *data_in, unsigned char *cpage_out, u32 srclen, u32 destlen) {
 	int positions[256];
-	int outpos;
-	int pos;
+	u32 outpos;
+	u32 pos;
 	int i;
 
 	outpos = pos = 0;
@@ -203,8 +203,8 @@ void rtime_decompress(unsigned char *data_in, unsigned char *cpage_out, u32 srcl
 
 	while (outpos < destlen) {
 		unsigned char value;
-		int backoffs;
-		int repeat;
+		uint8_t backoffs;
+		uint8_t repeat;
 
 		value = data_in[pos++];
 		cpage_out[outpos++] = value;	/* first the verbatim copied byte */
@@ -508,7 +508,7 @@ inline int is_jffs2_magic(uint16_t val){
 size_t contiguos_region_size(MFILE *mf, off_t offset, uint8_t match_pattern){
 	uint8_t *pStart = mdata(mf, uint8_t);
 	uint8_t *cursor = pStart + offset;
-	size_t fileSz = msize(mf);
+	ssize_t fileSz = msize(mf);
 	
 	for(; moff(mf, cursor) < fileSz; cursor++){
 		if(*cursor != match_pattern)
@@ -519,7 +519,7 @@ size_t contiguos_region_size(MFILE *mf, off_t offset, uint8_t match_pattern){
 
 uint32_t try_guess_es(MFILE *mf, bool *is_reliable){
 	uint8_t *data = mdata(mf, uint8_t);
-	size_t fileSz = msize(mf);
+	ssize_t fileSz = msize(mf);
 	
 	*is_reliable = false;
 	
@@ -565,14 +565,14 @@ uint32_t try_guess_es(MFILE *mf, bool *is_reliable){
 
 union jffs2_node_union *find_next_node(MFILE *mf, off_t cur_off, int erase_size){
 	uint8_t *data = mdata(mf, uint8_t);
-	size_t fileSz = msize(mf);
+	ssize_t fileSz = msize(mf);
 	
 	// find empty FS data
 	{
 		size_t empty_fsdata_sz = contiguos_region_size(mf, cur_off, 0x0);
 		if(empty_fsdata_sz != 0){
 			if(verbose)
-				printf("region(0x00) = 0x%x\n", empty_fsdata_sz);
+				printf("region(0x00) = 0x%zx\n", empty_fsdata_sz);
 		}
 	
 		cur_off += empty_fsdata_sz;
@@ -588,7 +588,7 @@ union jffs2_node_union *find_next_node(MFILE *mf, off_t cur_off, int erase_size)
 		size_t empty_esblks_sz = contiguos_region_size(mf, cur_off, 0xFF);
 		if(empty_esblks_sz != 0){
 			if(verbose)
-				printf("region(0xFF) = 0x%x\n", empty_esblks_sz);
+				printf("region(0xFF) = 0x%zx\n", empty_esblks_sz);
 		}
 		
 		cur_off += empty_esblks_sz;
@@ -616,9 +616,7 @@ union jffs2_node_union *find_next_node(MFILE *mf, off_t cur_off, int erase_size)
 			off += 4;
 		}
 	}
-	if(off == msize(mf)){
-		return NULL;
-	}
+	return NULL;
 }
 
 extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args args) {
@@ -649,10 +647,11 @@ extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args a
 	uint8_t *data = mdata(mf, uint8_t);
 
 	off_t off = moff(mf, node);
-	while(off + sizeof(*node) < msize(mf)){
+	size_t fileSize = msize(mf);
+	while(off + sizeof(*node) < fileSize){
 		node = (union jffs2_node_union *)&data[off];		
 		if(!is_jffs2_magic(node->u.magic) || node->u.totlen == 0){
-			printf("invalid node - scanning next node... (offset: %p)\n", off);
+			printf("invalid node - scanning next node... (offset: 0x%zx)\n", off);
 			
 			int use_es = -1;
 			if(es_reliable){
@@ -665,12 +664,12 @@ extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args a
 			}
 			off_t prev_off = off;
 			off = moff(mf, node);
-			printf("found at %p, after 0x%x bytes\n", off, off - prev_off);
+			printf("found at 0x%zx, after 0x%zx bytes\n", off, off - prev_off);
 		}
 		
 		off += PAD_U32(node->u.totlen);
 		if (verbose)
-			printf("at %08x: %04x | %04x (%lu bytes): ", off, fix16(node->u.magic), fix16(node->u.nodetype), fix32(node->u.totlen));
+			printf("at %08zx: %04x | %04x (%lu bytes): ", off, fix16(node->u.magic), fix16(node->u.nodetype), fix32(node->u.totlen));
 
 		if (crc32_no_comp(0, (unsigned char *)node, sizeof(node->u) - 4) != fix32(node->u.hdr_crc)) {
 			++errors;
@@ -765,7 +764,7 @@ extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args a
 				break;
 			default:
 				errors++;
-				printf(" ** INVALID ** - nodetype %04x (offset: %p)\n", fix16(node->u.nodetype), off);
+				printf(" ** INVALID ** - nodetype %04x (offset: 0x%zx)\n", fix16(node->u.nodetype), off);
 		}
 	}
 

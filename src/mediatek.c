@@ -35,7 +35,7 @@ void extract_mtk_1bl(MFILE *in, const char *outname) {
 	else
 		err_exit("Cannot detect PBL size\n");
 
-	printf("[MTK] PBL Size: 0x%08X\n", pbl_size);
+	printf("[MTK] PBL Size: 0x%08zX\n", pbl_size);
 
 	mfile_map(out, pbl_size);
 	memcpy(

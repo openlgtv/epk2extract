@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 #include "main.h"
 #include "config.h"
@@ -59,8 +60,8 @@ MFILE *isFileEPK3(const char *epk_file) {
 		return NULL;
 
 	checkOk:
-		printf("[EPK3] Platform Version: %.*s\n", sizeof(head->platformVersion), head->platformVersion);
-		printf("[EPK3] SDK Version: %.*s\n", sizeof(head->sdkVersion), head->sdkVersion);
+		printf("[EPK3] Platform Version: %.*s\n", (int)sizeof(head->platformVersion), head->platformVersion);
+		printf("[EPK3] SDK Version: %.*s\n", (int)sizeof(head->sdkVersion), head->sdkVersion);
 		return file;
 }
 
@@ -75,8 +76,11 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			case EPK_V3:
 				head = &((struct epk3_structure *)data)->head;
 				break;
-			case EPK_V3_NEW:
-				head = &((struct epk3_new_structure *)data)->head;
+			case EPK_V3_NEW:;
+				struct epk3_new_head_structure *head_new = &((struct epk3_new_structure *)data)->head;
+				// NOTE! this cast is deemed safe only due to our limited use in this function
+				// some fields are not at the same location
+				head = (struct epk3_head_structure *)head_new;
 				break;
 			default:
 				err_exit("Unsupported EPK3 variant\n");
@@ -108,6 +112,9 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			break;
 		case EPK_V3_NEW:
 			headerSize = sizeof(EPK_V3_NEW_HEADER_T);
+			break;
+		default:
+			assert(false);
 			break;
 	}
 	
@@ -150,11 +157,11 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	
 	if(epkType == EPK_V3_NEW){	
 		printf("EncryptType: %.*s\n",
-			sizeof(epkHeaderNew->encryptType),
+			(int)sizeof(epkHeaderNew->encryptType),
 			epkHeaderNew->encryptType
 		);
 		printf("UpdateType:  %.*s\n",
-			sizeof(epkHeaderNew->updateType),
+			(int)sizeof(epkHeaderNew->updateType),
 			epkHeaderNew->updateType
 		);
 	}
@@ -193,6 +200,9 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			pak = &(packageInfoNew->packages[i]);
 			dataPtr = (uintptr_t)packageInfoNew;
 			break;
+		default:
+			assert(false);
+			break;
 	}
 	
 	/* Decrypt packageInfo */
@@ -230,11 +240,14 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		case EPK_V3_NEW:
 			packageInfoCount = packageInfoNew->packageInfoCount;
 			break;
+		default:
+			assert(false);
+			break;
 	}
 	
 	for(; i<packageInfoCount;){
 		if(pak->packageInfoSize != sizeof(*pak)){
-			printf("Warning: Unexpected packageInfoSize '%d', expected '%d'\n",
+			printf("Warning: Unexpected packageInfoSize '%d', expected '%zd'\n",
 					pak->packageInfoSize, sizeof(*pak)
 			);
 		}

@@ -42,7 +42,7 @@ static int setKey(char *keyPath) {
 			doUnwrap = true;
 			break;
 		default:
-			fprintf(stderr, "Unknown or invalid key found (key size=%d)\n", statBuf.st_size);
+			fprintf(stderr, "Unknown or invalid key found (key size=%zu)\n", statBuf.st_size);
 			break;
 	}
 	int keySz = statBuf.st_size;

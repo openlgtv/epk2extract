@@ -48,7 +48,7 @@ struct __attribute__((packed)) idb_entry {
 
 int process_idb(MFILE *mf){
 	uint8_t *data = mdata(mf, uint8_t);
-	uint8_t *p = data;
+	char *p = (char *)data;
 
 	struct idb_file idb;
 
@@ -59,7 +59,7 @@ int process_idb(MFILE *mf){
 
 	p += strlen(IDB_VERSION);
 	if(strncmp(p, IDB_V1, strlen(IDB_V1))){
-		fprintf(stderr, "Unsupported version %.*s\n", READ_TO(mf, p, '\n') - (char *)p, p);
+		fprintf(stderr, "Unsupported version %.*s\n", (int)(READ_TO(mf, p, '\n') - (char *)p), p);
 		return -1;
 	}
 
