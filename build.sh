@@ -21,7 +21,9 @@ exe=(
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
 elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux
-elif [[ "$OSTYPE" =~ "darwin" ]]; then rel=build_osx
+elif [[ "$OSTYPE" =~ "darwin" ]]; then
+	rel=build_osx
+	CMAKE_FLAGS="-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ${CMAKE_FLAGS}"
 else
 	$lred; "Can't build - unknown OS type. Aborting..."; $normal
 	exit 1
