@@ -15,6 +15,36 @@
 #define TS_PACKET_SIZE 192
 static AES_KEY AESkey;
 
+static int do_unwrap_func(uint8_t unwrap_key[], uint8_t aes_key[], uint8_t unwrapped_key[]){
+	uint8_t zero_cnt = 0;
+		
+	puts("Wrapped key: ");
+	for(int i = 0; i<24; i++){
+		printf("%02X", aes_key[i]);
+	}
+	
+	// B7..B7..
+	uint8_t wrap_iv[8];
+	memset(&wrap_iv, 0xB7, sizeof(wrap_iv));
+	
+	// unwrap 'aes_key' with 'unwrap_key' into 'unwrapped_key'
+	AES_set_decrypt_key(unwrap_key, 128, &AESkey);
+	AES_unwrap_key(&AESkey, wrap_iv, unwrapped_key, aes_key, 24);
+	
+	puts("\nUnwrapped key: ");
+	for (int i = 0; i < 16; i++){
+		printf("%02X", unwrapped_key[i]);
+		zero_cnt = zero_cnt + unwrapped_key[i]; // check if all Bits are zero
+	}
+	puts("\n");
+	if(zero_cnt == 0) {
+		return -1;
+	}
+	else {
+		return 0;
+	}
+}
+
 static int setKey(char *keyPath) {
 	int ret = -1;
 	
@@ -42,8 +72,8 @@ static int setKey(char *keyPath) {
 			doUnwrap = true;
 			break;
 		default:
-			fprintf(stderr, "Unknown or invalid key found (key size=%d)\n", statBuf.st_size);
-			break;
+			fprintf(stderr, "Unknown or invalid key found (key size=%ld)\n", statBuf.st_size);
+			return -1;
 	}
 	int keySz = statBuf.st_size;
 	
@@ -59,35 +89,24 @@ static int setKey(char *keyPath) {
 	
 	if(doUnwrap){
 		uint8_t unwrapped_key[16];
-		
-		puts("Wrapped key: ");
-		for(int i = 0; i<keySz; i++){
-			printf("%hhX", aes_key[i]);
-		}
-		
-		// 01..02..03....
 		uint8_t unwrap_key[16];
+		// set unwrap_key: 0x01, 0x02, 0x03, ... 0x0F
 		for (int i = 0; i < sizeof(unwrap_key); i++){
 			unwrap_key[i] = i;
-			printf("%hhX", unwrap_key[i]);
+			//printf("%02X", unwrap_key[i]);
 		}
-		
-		// B7..B7..
-		uint8_t wrap_iv[8];
-		memset(&wrap_iv, 0xB7, sizeof(wrap_iv));
-		
-		// unwrap 'aes_key' with 'unwrap_key' into 'unwrapped_key'
-		AES_set_decrypt_key(unwrap_key, 128, &AESkey);
-		AES_unwrap_key(&AESkey, wrap_iv, unwrapped_key, aes_key, 24);
-		
-		puts("\nUnwrapped key: ");
-		for (int i = 0; i < sizeof(unwrapped_key); i++){
-			printf("%hhX", unwrapped_key[i]);
+		printf("\n");
+		if (0 != do_unwrap_func(unwrap_key, aes_key, unwrapped_key)){ // if failed try alternative unwrap from ww#8543
+			puts("Unwrap key failed, try alternative unwrap key\n");
+			uint8_t unwrap_key2[16] = {0xb1, 0x52, 0x73, 0x3f, 0x68, 0x61, 0x3b, 0x6a, 0x40, 0x6c, 0x7a, 0xa4, 0xbe, 0x28, 0xb8, 0xb6};
+			if (0 != do_unwrap_func(unwrap_key2, aes_key, unwrapped_key)){
+				puts("Unwrap key failed\n");
+				return -1;
+			}
 		}
-		puts("\n");
-		
 		AES_set_decrypt_key(unwrapped_key, 128, &AESkey);
-	} else {
+	}
+	else {
 		AES_set_decrypt_key(aes_key, 128, &AESkey);
 	}
 	
@@ -265,7 +284,10 @@ void convertSTR2TS(char *inFilename, int notOverwrite) {
 	char *keyPath;
 	
 	asprintf(&keyPath, "%s/dvr", baseDir);
-	setKey(keyPath);
+	if (0 != setKey(keyPath)){
+		free(keyPath);
+		err_exit("Load DVR Key-file failed for %s/dvr\n", baseDir);
+	}
 	free(keyPath);
 
 	char *baseName = my_basename(inFilename);
