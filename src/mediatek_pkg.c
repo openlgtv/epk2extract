@@ -17,16 +17,17 @@
 #include "thpool.h"
 
 enum mtkpkg_variant {
-	OLD,
-	NEW,
-	THOMPSON
+	OLD = 1 << 0,
+	NEW = 1 << 1,
+	THOMPSON = 1 << 2,
+	PHILIPS = 1 << 3,
+	SHARP = 1 << 4
 };
 
 #define SIZEOF_THOMPSON_HEADER 0x170
 #define SIZEOF_OLD_HEADER 0x98
 
-static int is_philips_pkg = 0, is_sharp_pkg = 0;
-static enum mtkpkg_variant upg_variant = NEW;
+static int mtkpkg_variant_flags = NEW;
 
 static struct mtkupg_header packageHeader;
 static bool was_decrypted = false;
@@ -40,7 +41,7 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 	}
 	if( !strncmp(hdr->vendor_magic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
 		printf("[+] Found SHARP Package\n");
-		is_sharp_pkg = 1;
+		mtkpkg_variant_flags |= SHARP;
 		return 1;
 	}
 	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ||
@@ -112,7 +113,7 @@ MFILE *is_mtk_pkg(const char *pkgfile){
  	 * Philips has an additional 0x80 header before the normal PKG one
  	 */
 	if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
-		is_philips_pkg = 1;
+		mtkpkg_variant_flags |= PHILIPS;
 
 		found_return:
 			was_decrypted = true;
@@ -132,18 +133,48 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	
 	firstPak = (struct mtkpkg *)(data + SIZEOF_OLD_HEADER);
 	if(is_known_partition(firstPak)){
-		upg_variant = OLD;
+		mtkpkg_variant_flags = OLD;
+		return mf;
+	}
+
+	firstPak = (struct mtkpkg *)(data + SIZEOF_OLD_HEADER + PHILIPS_HEADER_SIZE);
+	if(is_known_partition(firstPak)){
+		mtkpkg_variant_flags = OLD | PHILIPS;
 		return mf;
 	}
 
 	firstPak = (struct mtkpkg *)(data + SIZEOF_THOMPSON_HEADER);
 	if(is_known_partition(firstPak)){
-		upg_variant = THOMPSON;
+		mtkpkg_variant_flags = NEW | THOMPSON;
 		return mf;
 	}
 
 	mclose(mf);
 	return NULL;
+}
+
+#define SIZEOF_FIRM_HEADERS 0x90
+
+MFILE *is_firm_image(const char *pkg){
+	MFILE *mf = mopen(pkg, O_RDONLY);
+	if(!mf){
+		err_exit("Cannot open file %s\n", pkg);
+	}
+
+	if(msize(mf) < (SIZEOF_FIRM_HEADERS + 16)){
+		mclose(mf);
+		return NULL;
+	}
+
+	if(is_lzhs_mem(mf, SIZEOF_FIRM_HEADERS)){
+		return mf;
+	}
+	mclose(mf);
+	return NULL;
+}
+
+int extract_firm_image(MFILE *mf){
+	return process_segment(mf, SIZEOF_FIRM_HEADERS, "firm");
 }
 
 MFILE *is_lzhs_fs(const char *pkg){
@@ -335,20 +366,18 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
 
 	off_t offset = 0;
-	switch(upg_variant){
-		case NEW:
-			offset = sizeof(struct mtkupg_header);
-			break;
-		case OLD:
-			offset = SIZEOF_OLD_HEADER;
-			break;
-		case THOMPSON:
-			offset = SIZEOF_THOMPSON_HEADER;
-			upg_variant = NEW;
-	}
 
-	if(is_philips_pkg)
+	if((mtkpkg_variant_flags & NEW) == NEW){
+		offset += sizeof(struct mtkupg_header);
+	} else if((mtkpkg_variant_flags & OLD) == OLD){
+		offset += SIZEOF_OLD_HEADER;
+	}
+	
+	if((mtkpkg_variant_flags & PHILIPS) == PHILIPS){
 		offset += PHILIPS_HEADER_SIZE;
+	} else if((mtkpkg_variant_flags & THOMPSON) == THOMPSON){
+		offset += SIZEOF_THOMPSON_HEADER;
+	}
 
 	uint8_t *data = mdata(mf, uint8_t) + offset;
 
@@ -372,14 +401,14 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	int pakNo;
 	for(pakNo=0; moff(mf, data) < msize(mf); pakNo++){
 		struct mtkpkg *pak = (struct mtkpkg *)data;
-		if(is_philips_pkg && moff(mf, data) + PHILIPS_SIGNATURE_SIZE == msize(mf)){
+		if((mtkpkg_variant_flags & PHILIPS) == PHILIPS && moff(mf, data) + PHILIPS_SIGNATURE_SIZE == msize(mf)){
 			printf("-- RSA 2048 Signature --\n");
 			hexdump(data, PHILIPS_SIGNATURE_SIZE);
 			//Philips RSA-2048 signature
 			break;
 		}
 
-		size_t cryptedHeaderSize = (upg_variant == NEW) ? sizeof(pak->content.header) : 0;
+		size_t cryptedHeaderSize = ((mtkpkg_variant_flags & NEW) == NEW) ? sizeof(pak->content.header) : 0;
 		
 		/* Skip pak header and crypted header */
 		data += sizeof(pak->header) + cryptedHeaderSize;
@@ -462,7 +491,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 			}
 		}
 		
-		if(upg_variant == NEW){
+		if((mtkpkg_variant_flags & NEW) == NEW){
 			// Skip the mtk header (reserved inc)
 			pkgData += sizeof(struct mtkpkg_crypted_header);
 		}

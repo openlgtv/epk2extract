@@ -380,13 +380,21 @@ int process_segment(MFILE *in_file, off_t offset, const char *name){
 
 int extract_lzhs(MFILE *in_file) {
 	int r;
-	if(is_lzhs_mem(in_file, MTK_LOADER_OFF) && (r=process_segment(in_file, MTK_LOADER_OFF, "mtkloader")) < 0)
+	if(is_lzhs_mem(in_file, MTK_LOADER_OFF) && (r=process_segment(in_file, MTK_LOADER_OFF, "mtkloader")) < 0){
 		return r;
+	} else if(is_lzhs_mem(in_file, MTK_LOADER_OFF1) && (r=process_segment(in_file, MTK_LOADER_OFF1, "mtkloader")) < 0){
+		return r;
+	}
+
 	if(is_lzhs_mem(in_file, MTK_UBOOT_OFF) && (r=process_segment(in_file, MTK_UBOOT_OFF, "uboot")) < 0)
 		return r;
 	if(is_lzhs_mem(in_file, MTK_HISENSE_UBOOT_OFF) && (r=process_segment(in_file, MTK_HISENSE_UBOOT_OFF, "uboot")) < 0)
 		return r;	
 		
+
+	if(msize(in_file) < MTK_UBOOT_OFF){
+		return 0;
+	}
 	struct lzhs_header *uboot_hdr = (struct lzhs_header *)(&(mdata(in_file, uint8_t))[MTK_UBOOT_OFF]);
 
 	uint pad;

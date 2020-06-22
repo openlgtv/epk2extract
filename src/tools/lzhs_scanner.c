@@ -28,6 +28,11 @@ void scan_lzhs(const char *filename, int extract) {
 	for (i = 0; i<msize(file); i += sizeof(*header)) {
 		header = (struct lzhs_header *)(mdata(file, uint8_t) + i);
 		if (_is_lzhs_mem(header)) {
+
+			if(moff(file, header) + header->compressedSize >= msize(file)){
+				continue;
+			}
+
 			count++;
 			off_t fileOff = moff(file, header);
 			char *fstring;
@@ -56,7 +61,7 @@ void scan_lzhs(const char *filename, int extract) {
 				}
 				
 				mfile_map(out, sizeof(*header) + header->compressedSize);
-				
+
 				memcpy(
 					mdata(out, void),
 					(uint8_t *)header,

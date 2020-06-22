@@ -16,6 +16,7 @@
 #define MTK_PBL_MAGIC "MTK/DTV/ROMCODE/MSDCBOOT" //First Bootloader (MSDC: Mediatek SD Controller, eMMC)
 #define MTK_PBL_SIZE 0x9FFF
 #define MTK_LOADER_OFF 0xA040
+#define MTK_LOADER_OFF1 0x4040
 #define MTK_UBOOT_OFF 0x80000
 
 #define MTK_HISENSE_UBOOT_OFF 0xA0000

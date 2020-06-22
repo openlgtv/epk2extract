@@ -80,6 +80,8 @@ struct __attribute__((packed)) mtkpkg {
 
 MFILE *is_mtk_pkg(const char *pkgfile);
 MFILE *is_lzhs_fs(const char *pkg);
+MFILE *is_firm_image(const char *pkg);
 void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts);
 void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opts);
+int extract_firm_image(MFILE *mf);
 #endif

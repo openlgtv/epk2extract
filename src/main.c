@@ -62,6 +62,8 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		extractEPKfile(file, config_opts);
 	} else if((mf=is_mtk_pkg(file))){
 		extract_mtk_pkg(file, config_opts);
+	} else if((mf=is_firm_image(file))){
+		extract_firm_image(mf);
 	} else if((mf=is_philips_fusion1(file))){
 		extract_philips_fusion1(mf, config_opts);
 	} else if((mf=is_lzhs_fs(file))){
