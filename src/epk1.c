@@ -29,24 +29,24 @@ int isFileEPK1(const char *epk_file) {
 
 void printHeaderInfo(struct epk1Header_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
-	printf("Firmware version: %02x.%02x.%02x.%02x\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
+	printf("Firmware version: " EPK_VERSION_FORMAT "\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
 	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
 void printNewHeaderInfo(struct epk1NewHeader_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
-	printf("Firmware version: %02x.%02x.%02x.%02x\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
+	printf("Firmware version: " EPK_VERSION_FORMAT "\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
 	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
 void constructVerString(char *fw_version, struct epk1Header_t *epakHeader) {
-	sprintf(fw_version, "%02x.%02x.%02x-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+	sprintf(fw_version, EPK_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
 }
 
 void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader) {
-	sprintf(fw_version, "%02x.%02x.%02x-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+	sprintf(fw_version, EPK_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
 }
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
@@ -79,11 +79,19 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 
 		uint32_t *fwVer = buffer + epakHeader->offset - 4;
 		printf("\nFirmware otaID: %s\n", (char *)(buffer + epakHeader->offset + 8));
-		printf("Firmware version: %02x.%02x.%02x.%02x\n", (fwVer[0] >> (8 * 0)) & 0xff, (fwVer[0] >> (8 * 1)) & 0xff, (fwVer[0] >> (8 * 2)) & 0xff, (fwVer[0] >> (8 * 3)) & 0xff);
+		printf("Firmware version: " EPK_VERSION_FORMAT "\n",
+			(fwVer[0] >> (8 * 0)) & 0xff,
+			(fwVer[0] >> (8 * 1)) & 0xff,
+			(fwVer[0] >> (8 * 2)) & 0xff,
+			(fwVer[0] >> (8 * 3)) & 0xff);
 		printf("PAK count: %d\n", epakHeader->pakCount);
 		printf("PAKs total size: %d\n", epakHeader->fileSize);
 
-		sprintf(verString, "%02x.%02x.%02x", (fwVer[0] >> (8 * 1)) & 0xff, (fwVer[0] >> (8 * 2)) & 0xff, (fwVer[0] >> (8 * 3)) & 0xff);
+		sprintf(verString, EPK_VERSION_FORMAT,
+			(fwVer[0] >> (8 * 0)) & 0xff,
+			(fwVer[0] >> (8 * 1)) & 0xff,
+			(fwVer[0] >> (8 * 2)) & 0xff,
+			(fwVer[0] >> (8 * 3)) & 0xff);
 		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 

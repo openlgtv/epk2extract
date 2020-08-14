@@ -17,7 +17,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts);
 
 typedef struct __attribute__((packed)) {
 	char epkMagic[4];
-	char epkVersion[4];
+	uint8_t epkVersion[4];
 	char otaId[32];
 	uint32_t packageInfoSize;
 	uint32_t bChunked;

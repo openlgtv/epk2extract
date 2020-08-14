@@ -139,7 +139,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	printf("-------------\n");
 	printf("Firmware magic: %.*s\n", 4, epkHeader->epkMagic);
 	printf("Firmware otaID: %s\n", epkHeader->otaId);
-	printf("Firmware version: %02x.%02x.%02x.%02x\n",
+	printf("Firmware version: " EPK_VERSION_FORMAT "\n",
 		epkHeader->epkVersion[3],
 		epkHeader->epkVersion[2],
 		epkHeader->epkVersion[1],
@@ -160,7 +160,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	}
 	
 	char *fwVersion;
-	asprintf(&fwVersion, "%02x.%02x.%02x.%02x-%s",
+	asprintf(&fwVersion, EPK_VERSION_FORMAT "-%s",
 		epkHeader->epkVersion[3],
 		epkHeader->epkVersion[2],
 		epkHeader->epkVersion[1],

@@ -51,7 +51,7 @@ typedef struct {
 	uint32_t fileSize;
 	uint32_t fileNum;
 	char epkMagic[4];
-	char epakVersion[4];
+	uint8_t epakVersion[4];
 	char otaId[32];
 	PAK_V2_LOCATION_T imageLocation[64];
 } EPK_V2_HEADER_T;

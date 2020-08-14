@@ -122,7 +122,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 	printf("Firmware magic: %.*s\n", 4, epkHeader->fileType);
 	printf("Firmware type: %.*s\n", 4, epkHeader->epkMagic);
 	printf("Firmware otaID: %s\n", epkHeader->otaId);
-	printf("Firmware version: %02x.%02x.%02x.%02x\n",
+	printf("Firmware version: " EPK_VERSION_FORMAT "\n",
 		epkHeader->epakVersion[3],
 		epkHeader->epakVersion[2],
 		epkHeader->epakVersion[1],
@@ -133,7 +133,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 	printf("Header length: %d\n\n", pakLocs[0].imageOffset); //first image after header
 	
 	char *fwVersion;
-	asprintf(&fwVersion, "%02x.%02x.%02x.%02x-%s",
+	asprintf(&fwVersion, EPK_VERSION_FORMAT "-%s",
 		epkHeader->epakVersion[3],
 		epkHeader->epakVersion[2],
 		epkHeader->epakVersion[1],
