@@ -5,6 +5,7 @@
  */
 #include <string.h>
 #include <stdint.h>
+#include <ctype.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/aes.h>
@@ -32,6 +33,8 @@ void setKeyFile_MTK(){
 	setKeyFile(path);
 }
 
+#define MAX_KEY_SIZE (AES_BLOCK_SIZE * 2) // AES-256
+
 KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
 	AES_KEY aesKey;
 	int found = 0;
@@ -46,8 +49,8 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		return NULL;
 	}
 
-	uint8_t key_buf[AES_BLOCK_SIZE];
-	uint8_t iv_buf[AES_BLOCK_SIZE];
+	uint8_t key_buf[MAX_KEY_SIZE];
+	uint8_t iv_buf[MAX_KEY_SIZE];
 	memset(&key_buf, 0x00, sizeof(key_buf));
 	memset(&iv_buf, 0x00, sizeof(iv_buf));
 	
@@ -65,8 +68,13 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		}
 
 		read_key:
-		for (count = 0; count < AES_BLOCK_SIZE; count++) {
-			sscanf(pos, "%2hhx", &buf[count]);
+		for (count = 0; count < MAX_KEY_SIZE; count++) {
+			if(!isprint(*pos)){
+				break;
+			}
+			if(!sscanf(pos, "%2hhx", &buf[count])){
+				break;
+			}
 			if(verbose){
 				printf("%02X", buf[count]);
 			}
@@ -79,11 +87,12 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 				printf(", IV: ");
 			goto read_key;
 		}
-		if(verbose){
-			printf("%s", pos);
-		}
 
-		AES_set_decrypt_key((uint8_t *)&key_buf, 128, &aesKey);
+		int key_bits = count * 8;
+		if(verbose){
+			printf(" (aes %d) %s\n", key_bits, pos);
+		}
+		AES_set_decrypt_key((uint8_t *)&key_buf, key_bits, &aesKey);
 
 		uint8_t *tmp_data = calloc(1, in_data_size);
 
