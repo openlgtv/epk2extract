@@ -69,7 +69,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 
 		read_key:
 		for (count = 0; count < MAX_KEY_SIZE; count++) {
-			if(!isprint(*pos)){
+			if(!isprint(*pos) || *pos == ','){
 				break;
 			}
 			if(!sscanf(pos, "%2hhx", &buf[count])){
