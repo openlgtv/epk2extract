@@ -40,4 +40,7 @@ typedef enum {
 
 unsigned int dump_partinfo(const char *filename, const char *outfile);
 
+extern char *modelname;
+extern part_struct_type part_type;
+
 #endif /* _PART_COMMON_H_ */

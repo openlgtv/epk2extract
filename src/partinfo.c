@@ -25,8 +25,6 @@
 extern int errno;
 
 FILE *destfile;
-part_struct_type part_type;
-char *modelname;
 
 //structs
 struct m_partmap_info m_partinfo;
