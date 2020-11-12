@@ -218,23 +218,37 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 	}
 	fclose(inFile);
 	if (!notOverwrite) {
+
+		// Gather information for PMT construction
+		unsigned char stream_count = 0;
+		for (i = 0; i < 8192; i++) {
+			//Count video stream PIDs (0xE0-0xEF)
+			if (PIDs.type[i] >= 0xE0 && PIDs.type[i] <= 0xEF) {
+				stream_count++;
+			}
+			//Count audio stream PIDs (0xC0-0xDF)
+			else if (PIDs.type[i] >= 0xC0 && PIDs.type[i] <= 0xDF) {
+				stream_count++;
+			}
+		}
+		unsigned char PMT_size = 21 + stream_count * 5;
+
 		// Fill PMT
 		memset(outBuf, 0xFF, TS_PACKET_SIZE);
-		unsigned char PMT[31] = { 0x47, 0x40, 0xB1, 0x10, 0x00, 0x02, 0xB0,
-			0x17,				// section length in bytes including crc
+		unsigned char PMT[TS_PACKET_SIZE - 4];
+		memset(PMT, 0xFF, TS_PACKET_SIZE - 4);
+
+		static const unsigned char PMT_header[17] = { 0x47, 0x40, 0xB1, 0x10, 0x00, 0x02, 0xB0,
+			0x00,				// section length in bytes including crc
 			0x00, 0x01,			// program number
 			0xC1, 0x00, 0x00,
 			0xE4, 0x7E,			// PCR PID
-			0xF0, 0x00,			// Program info length
-			0x1B,				// stream type ITU_T_H264
-			0xE4, 0x7E,			// PID
-			0xF0, 0x00,			// ES info length
-			0x04,				// stream type ISO/IEC 13818-3 Audio (MPEG-2)
-			0xE4, 0x7F,			// PID
-			0xF0, 0x00,			// ES info length
-			0xFF, 0xFF, 0xFF, 0xFF	// crc32
+			0xF0, 0x00			// Program info length
 		};
+		memcpy(PMT, PMT_header, sizeof(PMT_header));
+		PMT[7] = 13 + stream_count * 5;
 
+		stream_count = 0;
 		for (i = 0; i < 8192; i++)
 			if (PIDs.number[i] > 0) {
 				//printf("PID %zX : %d Type: %zX PCRs: %zX\n", i, PIDs.number[i], PIDs.type[i], PIDs.pcr_count[i]);
@@ -242,24 +256,32 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 					PMT[13] = ((i >> 8) & 0xff) + 0xE0;
 					PMT[14] = i & 0xff;
 				}
-				//Fill video stream PID (0xE0-0xEF)
+				//Set video stream data in PMT
 				if (PIDs.type[i] >= 0xE0 && PIDs.type[i] <= 0xEF) {
-					PMT[18] = ((i >> 8) & 0xff) + 0xE0;
-					PMT[19] = i & 0xff;
+					PMT[17 + stream_count * 5] = 0x1B; 						// stream type ITU_T_H264
+					PMT[18 + stream_count * 5] = ((i >> 8) & 0xff) + 0xE0;	// PID
+					PMT[19 + stream_count * 5] = i & 0xff;
+					PMT[20 + stream_count * 5] = 0xF0;						// ES info length
+					PMT[21 + stream_count * 5] = 0x00;
+					stream_count++;
 				}
-				//Fill audio stream PID (0xC0-0xDF)
+				//Set audio stream data in PMT
 				if (PIDs.type[i] >= 0xC0 && PIDs.type[i] <= 0xDF) {
-					PMT[23] = ((i >> 8) & 0xff) + 0xE0;
-					PMT[24] = i & 0xff;
+					PMT[17 + stream_count * 5] = 0x04; 						// stream type ISO/IEC 13818-3 Audio (MPEG-2)
+					PMT[18 + stream_count * 5] = ((i >> 8) & 0xff) + 0xE0;	//PID
+					PMT[19 + stream_count * 5] = i & 0xff;
+					PMT[20 + stream_count * 5] = 0xF0;						// ES info length
+					PMT[21 + stream_count * 5] = 0x00;
+					stream_count++;
 				}
 			}
 		// Set CRC32
 		uint32_t crc = str_crc32(&PMT[5], PMT[7] - 1);
-		PMT[27] = (crc >> 24) & 0xff;
-		PMT[28] = (crc >> 16) & 0xff;
-		PMT[29] = (crc >> 8) & 0xff;
-		PMT[30] = crc & 0xff;
-		memcpy(outBuf, &PMT, sizeof(PMT));
+		PMT[PMT_size - 4] = (crc >> 24) & 0xff;
+		PMT[PMT_size - 3] = (crc >> 16) & 0xff;
+		PMT[PMT_size - 2] = (crc >> 8) & 0xff;
+		PMT[PMT_size - 1] = crc & 0xff;
+		memcpy(outBuf, PMT, sizeof(PMT));
 		fseek(outFile, 0xBC, SEEK_SET);
 		fwrite(outBuf, 1, TS_PACKET_SIZE - 4, outFile);
 	}
