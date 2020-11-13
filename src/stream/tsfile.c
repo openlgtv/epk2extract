@@ -253,23 +253,23 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 			if (PIDs.number[i] > 0) {
 				//printf("PID %zX : %d Type: %zX PCRs: %zX\n", i, PIDs.number[i], PIDs.type[i], PIDs.pcr_count[i]);
 				if (PIDs.pcr_count[i] > 0) {	// Set PCR PID
-					PMT[13] = ((i >> 8) & 0xff) + 0xE0;
-					PMT[14] = i & 0xff;
+					PMT[13] = ((i >> 8) & 0xFF) + 0xE0;
+					PMT[14] = i & 0xFF;
 				}
 				//Set video stream data in PMT
 				if (PIDs.type[i] >= 0xE0 && PIDs.type[i] <= 0xEF) {
 					PMT[17 + stream_count * 5] = 0x1B; 						// stream type ITU_T_H264
-					PMT[18 + stream_count * 5] = ((i >> 8) & 0xff) + 0xE0;	// PID
-					PMT[19 + stream_count * 5] = i & 0xff;
+					PMT[18 + stream_count * 5] = ((i >> 8) & 0xFF) + 0xE0;	// PID
+					PMT[19 + stream_count * 5] = i & 0xFF;
 					PMT[20 + stream_count * 5] = 0xF0;						// ES info length
 					PMT[21 + stream_count * 5] = 0x00;
 					stream_count++;
 				}
 				//Set audio stream data in PMT
-				if (PIDs.type[i] >= 0xC0 && PIDs.type[i] <= 0xDF) {
+				else if (PIDs.type[i] >= 0xC0 && PIDs.type[i] <= 0xDF) {
 					PMT[17 + stream_count * 5] = 0x04; 						// stream type ISO/IEC 13818-3 Audio (MPEG-2)
-					PMT[18 + stream_count * 5] = ((i >> 8) & 0xff) + 0xE0;	//PID
-					PMT[19 + stream_count * 5] = i & 0xff;
+					PMT[18 + stream_count * 5] = ((i >> 8) & 0xFF) + 0xE0;	//PID
+					PMT[19 + stream_count * 5] = i & 0xFF;
 					PMT[20 + stream_count * 5] = 0xF0;						// ES info length
 					PMT[21 + stream_count * 5] = 0x00;
 					stream_count++;
@@ -277,10 +277,10 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 			}
 		// Set CRC32
 		uint32_t crc = str_crc32(&PMT[5], PMT[7] - 1);
-		PMT[PMT_size - 4] = (crc >> 24) & 0xff;
-		PMT[PMT_size - 3] = (crc >> 16) & 0xff;
-		PMT[PMT_size - 2] = (crc >> 8) & 0xff;
-		PMT[PMT_size - 1] = crc & 0xff;
+		PMT[PMT_size - 4] = (crc >> 24) & 0xFF;
+		PMT[PMT_size - 3] = (crc >> 16) & 0xFF;
+		PMT[PMT_size - 2] = (crc >> 8) & 0xFF;
+		PMT[PMT_size - 1] = crc & 0xFF;
 		memcpy(outBuf, PMT, sizeof(PMT));
 		fseek(outFile, 0xBC, SEEK_SET);
 		fwrite(outBuf, 1, TS_PACKET_SIZE - 4, outFile);
