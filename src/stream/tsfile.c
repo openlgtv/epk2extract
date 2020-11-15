@@ -302,13 +302,13 @@ void processTsPacket(uint8_t *packet, struct tables *PIDs, FILE *outFile){
 			//application will crash without this check when file is corrupted
 			offset = TS_PACKET_SIZE;
 		}
-		unsigned int rounds = (TS_PACKET_SIZE - offset) / AES_BLOCK_SIZE;
-		for (unsigned int k = 0; k < rounds; k++){
-			// in-place decrypt
+		unsigned int blocks = (TS_PACKET_SIZE - offset) / AES_BLOCK_SIZE;
+		for (unsigned int i = 0; i < blocks; i++){
+			// in-place decrypt (ECB)
 			AES_decrypt(
-				&packet[offset + k * AES_BLOCK_SIZE],
-				&packet[offset + k * AES_BLOCK_SIZE],
-				&AESkey);	// AES CBC
+				&packet[offset + i * AES_BLOCK_SIZE],
+				&packet[offset + i * AES_BLOCK_SIZE],
+				&AESkey);
 		}
 	};
 
