@@ -33,8 +33,6 @@ void setKeyFile_MTK(){
 	setKeyFile(path);
 }
 
-#define MAX_KEY_SIZE (AES_BLOCK_SIZE * 2) // AES-256
-
 KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
 	AES_KEY aesKey;
 	int found = 0;
@@ -127,6 +125,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 			if(key_type == KEY_CBC){
 				memcpy(&(key->ivec), &iv_buf, sizeof(iv_buf));
 			}
+			free(line);
 			return key;
 		}
 	}

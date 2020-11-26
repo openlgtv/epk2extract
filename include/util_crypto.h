@@ -24,10 +24,12 @@ void setKeyFile_MTK();
 uint8_t *getLastKey();
 uint8_t *getLastIV();
 
+#define MAX_KEY_SIZE (AES_BLOCK_SIZE * 2) // AES-256
+
 typedef struct {
     AES_KEY key;
-    uint8_t keybuf[16];
-    uint8_t ivec[16];
+    uint8_t keybuf[MAX_KEY_SIZE];
+    uint8_t ivec[MAX_KEY_SIZE];
 } KeyPair;
 
 KeyPair *find_AES_key(
