@@ -20,6 +20,7 @@
 #include <libgen.h>
 #include <errno.h>
 
+#include "common.h"
 #include "mfile.h"
 #include "util.h"
 
@@ -252,11 +253,30 @@ MFILE *is_lz4(const char *lz4file) {
 
 bool is_nfsb_mem(MFILE *file, off_t offset){
 	uint8_t *data = &(mdata(file, uint8_t))[offset];
-	return !memcmp(data, "NFSB", 4) &&
-		(
-			(!memcmp(data + 0xE, "md5", 3)) ||
-			(!memcmp(data + 0x1A, "md5", 3))
-		);
+
+	if(memcmp(data, "NFSB", 4) != 0){
+		return false;
+	}
+
+	const char algo_md5[] = "md5";
+	const char algo_sha256[] = "sha256";
+
+	const int offsets[] = { 0x0E, 0x1A };
+	const char *algos[] = { algo_md5, algo_sha256 };
+	const int lengths[] = { sizeof(algo_md5) - 1, sizeof(algo_sha256) - 1 };
+
+	const int num_offsets = countof(offsets);
+	const int num_algos = countof(algos);
+
+	for(int i=0; i<num_algos; i++){
+		for(int j=0; j<num_offsets; j++){
+			if(memcmp(data + offsets[j], algos[i], lengths[i]) == 0){
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 MFILE *is_nfsb(const char *filename) {

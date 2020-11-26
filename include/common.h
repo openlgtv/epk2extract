@@ -21,4 +21,6 @@
 #define UNUSED_FUNCTION(x) UNUSED_ ## x
 #endif
 
+#define countof(x) (sizeof(x) / sizeof((x)[0]))
+
 #endif
