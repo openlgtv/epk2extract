@@ -51,7 +51,9 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 		return 1;
 	}
 	
-	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
+	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) 
+	 || !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC2, strlen(PHILIPS_PKG_MAGIC2))
+	){
 		printf("[+] Found PHILIPS Package\n");
 		return 1;
 	}
@@ -105,21 +107,24 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	void *decryptedHeader = NULL;
 	KeyPair *headerKey = NULL;
 
-	if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
-		goto found_return;
-	}
+	do {
+		if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
+			break;
+		}
 
-	/* It failed, but we want to check for Philips.
- 	 * Philips has an additional 0x80 header before the normal PKG one
- 	 */
-	if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
-		mtkpkg_variant_flags |= PHILIPS;
+		/* It failed, but we want to check for Philips.
+		 * Philips has an additional 0x80 header before the normal PKG one
+		 */
+		if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
+			mtkpkg_variant_flags |= PHILIPS;
+		}
+	} while(0);
 
-		found_return:
-			was_decrypted = true;
-			memcpy(&packageHeader, decryptedHeader, sizeof(packageHeader));
-			free(headerKey);
-			return mf;
+	if(headerKey != NULL){
+		was_decrypted = true;
+		memcpy(&packageHeader, decryptedHeader, sizeof(packageHeader));
+		free(headerKey);
+		return mf;
 	}
 
 	/* No AES key found to decrypt the header. Try to check if it's a MTK PKG anyways
