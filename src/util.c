@@ -293,49 +293,30 @@ MFILE *is_nfsb(const char *filename) {
 }
 
 void unnfsb(const char *filename, const char *extractedFile) {
-	int fdin, fdout;
-	char *src, *dst;
-	struct stat statbuf;
-	int headerSize = 0x1000;
-	/* open the input file */
-	if ((fdin = open(filename, O_RDONLY)) < 0)
-		printf("Can't open file %s for reading\n", filename);
+	const int headerSize = 0x1000;
 
-	/* open/create the output file */
-	if ((fdout = open(extractedFile, O_RDWR | O_CREAT | O_TRUNC, (mode_t) 0600)) < 0)
-		printf("Can't create file %s for writing\n", extractedFile);
+	MFILE *in = mopen(filename, O_RDONLY);
+	if(in == NULL){
+		err_exit("Cannot open file '%s' for reading\n", filename);
+	}
 
-	/* find size of input file */
-	if (fstat(fdin, &statbuf) < 0)
-		printf("fstat error\n");
+	MFILE *out = mfopen(extractedFile, "w+");
+	if(out == NULL){
+		mclose(in);
+		err_exit("Cannot open file '%s' for writing\n", extractedFile);
+	}
 
-	/* mmap the input file */
-	if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0)) == (caddr_t) - 1)
-		printf("mmap error for input\n");
+	long outputSize = msize(in) - headerSize;
+	mfile_map(out, outputSize);
 
-	/* go to the location corresponding to the last byte */
-	if (lseek(fdout, statbuf.st_size - headerSize - 1, SEEK_SET) == -1)
-		printf("lseek error\n");
+	memcpy(
+		mdata(out, void),
+		mdata(in, uint8_t) + headerSize,
+		outputSize
+	);
 
-	/* write a dummy byte at the last location */
-	if (write(fdout, "", 1) != 1)
-		printf("write error\n");
-
-	/* mmap the output file */
-	if ((dst = mmap(0, statbuf.st_size - headerSize, PROT_READ | PROT_WRITE, MAP_SHARED, fdout, 0)) == (caddr_t) - 1)
-		printf("mmap error for output\n");
-	/* this copies the input file to the output file */
-	memcpy(dst, &src[headerSize], statbuf.st_size - headerSize);
-
-	/* Don't forget to free the mmapped memory */
-	if (munmap(src, statbuf.st_size) == -1)
-		printf("Error un-mmapping the file");
-	if (munmap(dst, statbuf.st_size - headerSize) == -1)
-		printf("Error un-mmapping the file");
-
-	/* Un-mmaping doesn't close the file, so we still need to do that. */
-	close(fdout);
-	close(fdin);
+	mclose(out);
+	mclose(in);
 }
 
 MFILE *is_gzip(const char *filename) {
