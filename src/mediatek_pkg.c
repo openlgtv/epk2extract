@@ -366,12 +366,12 @@ void print_pkg_header(struct mtkupg_header *hdr){
 	printf("======== Firmware Info ========\n");
 }
 
-void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
-	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
-	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+static off_t get_mtkpkg_offset(){
+	if((mtkpkg_variant_flags & THOMPSON) == THOMPSON){
+		return SIZEOF_THOMPSON_HEADER;
+	}
 
 	off_t offset = 0;
-
 	if((mtkpkg_variant_flags & NEW) == NEW){
 		offset += sizeof(struct mtkupg_header);
 	} else if((mtkpkg_variant_flags & OLD) == OLD){
@@ -380,10 +380,16 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	
 	if((mtkpkg_variant_flags & PHILIPS) == PHILIPS){
 		offset += PHILIPS_HEADER_SIZE;
-	} else if((mtkpkg_variant_flags & THOMPSON) == THOMPSON){
-		offset += SIZEOF_THOMPSON_HEADER;
 	}
 
+	return offset;
+}
+
+void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
+	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
+	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+
+	off_t offset = get_mtkpkg_offset();
 	uint8_t *data = mdata(mf, uint8_t) + offset;
 
 	char *file_name = my_basename(mf->path);
