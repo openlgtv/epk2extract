@@ -30,6 +30,8 @@
 #include "stream/crc32.h"
 #include "util.h"
 
+#include "stream/tsfile.h"
+
 #define TS_PACKET_SIZE 192
 static AES_KEY AESkey;
 
@@ -212,7 +214,7 @@ struct tables {
 	int pcr_count[8192];
 };
 
-void writePMT(struct tables *PIDs, FILE *outFile){
+void writePMT(struct tables *PIDs, FILE *outFile, config_opts_t *config_opts){
 	// Gather information for PMT construction
 	unsigned char stream_count = 0;
 	for (unsigned int i = 0; i < 8192; i++) {
@@ -255,7 +257,7 @@ void writePMT(struct tables *PIDs, FILE *outFile){
 			}
 			//Set video stream data in PMT
 			if (PIDs->type[i] >= 0xE0 && PIDs->type[i] <= 0xEF) {
-				PMT[17 + stream_count * 5] = 0x1B; 						// stream type ITU_T_H264
+				PMT[17 + stream_count * 5] = config_opts->video_stream_type;
 				PMT[18 + stream_count * 5] = ((i >> 8) & 0xFF) + 0xE0;	// PID
 				PMT[19 + stream_count * 5] = i & 0xFF;
 				PMT[20 + stream_count * 5] = 0xF0;						// ES info length
@@ -264,7 +266,7 @@ void writePMT(struct tables *PIDs, FILE *outFile){
 			}
 			//Set audio stream data in PMT
 			else if (PIDs->type[i] >= 0xC0 && PIDs->type[i] <= 0xDF) {
-				PMT[17 + stream_count * 5] = 0x04; 						// stream type ISO/IEC 13818-3 Audio (MPEG-2)
+				PMT[17 + stream_count * 5] = config_opts->audio_stream_type;
 				PMT[18 + stream_count * 5] = ((i >> 8) & 0xFF) + 0xE0;	//PID
 				PMT[19 + stream_count * 5] = i & 0xFF;
 				PMT[20 + stream_count * 5] = 0xF0;						// ES info length
@@ -325,7 +327,7 @@ void processTsPacket(uint8_t *packet, struct tables *PIDs, FILE *outFile){
 	fwrite(outBuf + 4, 1, TS_PACKET_SIZE - 4, outFile);
 }
 
-void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrite) {
+void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrite, config_opts_t *config_opts) {
 	MFILE *inFile = mopen(inFilename, O_RDONLY);
 	if (inFile == NULL) {
 		printf("Can't open file %s\n", inFilename);
@@ -369,13 +371,13 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 			}
 		} while(0);
 
-		writePMT(&PIDs, outFile);
+		writePMT(&PIDs, outFile, config_opts);
 		fclose(outFile);
 	} while(0);
 	mclose(inFile);
 }
 
-void convertSTR2TS(char *inFilename, int notOverwrite) {
+void convertSTR2TS(char *inFilename, int notOverwrite, config_opts_t *config_opts) {
 	char *baseDir = my_dirname(inFilename);
 	char *keyPath;
 	
@@ -391,13 +393,13 @@ void convertSTR2TS(char *inFilename, int notOverwrite) {
 	asprintf(&outFilename, "%s/%s.ts", baseDir, baseName);
 	
 	printf("Output File: %s\n", outFilename);
-	convertSTR2TS_internal(inFilename, outFilename, notOverwrite);
+	convertSTR2TS_internal(inFilename, outFilename, notOverwrite, config_opts);
 	
 	free(baseName);
 	free(baseDir);
 }
 
-void processPIF(const char *filename, char *dest_file) {
+void processPIF(const char *filename, char *dest_file, config_opts_t *config_opts) {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
 		err_exit("Can't open file %s\n", filename);
@@ -434,7 +436,7 @@ void processPIF(const char *filename, char *dest_file) {
 				asprintf(&filePath, "%s/%s", baseDir, strName);
 				
 				printf("Converting file: %s -> %s\n", filePath, dest_file);
-				convertSTR2TS_internal(filePath, dest_file, append);
+				convertSTR2TS_internal(filePath, dest_file, append, config_opts);
 				free(filePath);
 				
 				append = 1;

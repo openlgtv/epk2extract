@@ -156,12 +156,12 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	} else if (isSTRfile(file)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		printf("\nConverting %s file to TS\n", file);
-		convertSTR2TS(file, 0);
+		convertSTR2TS(file, 0, config_opts);
 	/* PVR PIF (Program Information File) */ 
 	} else if (!strncasecmp(&file[strlen(file) - 3], "PIF", 3)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		printf("\nProcessing PIF file: %s\n", file);
-		processPIF(file, dest_file);
+		processPIF(file, dest_file, config_opts);
 	/* SYM File (Debugging information) */
 	} else if (symfile_load(file) == 0) {
 		asprintf(&dest_file, "%s/%s.idc", dest_dir, file_name);
@@ -192,13 +192,34 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	return result;
 }
 
+unsigned char hexadecimal2int(char *hdec) {
+    int finalval = 0;
+    while (*hdec) {
+        
+        int onebyte = *hdec++; 
+        
+        if (onebyte >= '0' && onebyte <= '9'){onebyte = onebyte - '0';}
+        else if (onebyte >= 'a' && onebyte <='f') {onebyte = onebyte - 'a' + 10;}
+        else if (onebyte >= 'A' && onebyte <='F') {onebyte = onebyte - 'A' + 10;}  
+        
+        finalval = (finalval << 4) | (onebyte & 0xF);
+    }
+    finalval = finalval - 524288;
+    return (unsigned char)finalval;
+}
+
 int main(int argc, char *argv[]) {
+	static char *help_string = "Usage: epk2extract [-options] FILENAME\n\n"
+						"Options:\n"
+						"  -c : extract to current directory instead of source file directory\n"
+						"  -s : enable signature checking for EPK files\n"
+						"  -v : set video stream type, DEFAULT: 0x1B (possible values: e.g. 0x1B for MPEG-4, 0x02 for MPEG-2)\n"
+						"  -a : set audio stream type, DEFAULT: 0x04 (possible values: e.g. 0x81 for AC-3, 0x04 for MPEG-2)\n"
+						"  -h : display this help\n\n";
+
 	printf("\nLG Electronics digital TV firmware package (EPK) extractor version 4.8 (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
-		printf("Usage: epk2extract [-options] FILENAME\n\n");
-		printf("Options:\n");
-		printf("  -c : extract to current directory instead of source file directory\n");
-		printf("  -s : enable signature checking for EPK files\n\n");
+		printf("%s", help_string);
 		return err_ret("");
 	}
 
@@ -223,9 +244,11 @@ int main(int argc, char *argv[]) {
 	config_opts.config_dir = my_dirname(exe_dir);
 	config_opts.dest_dir = calloc(1, PATH_MAX);
 	config_opts.enableSignatureChecking = 0;
+	config_opts.video_stream_type = 0x1B; // stream type ITU_T_H264 (MPEG-4)
+	config_opts.audio_stream_type = 0x04; // stream type ISO/IEC 13818-3 Audio (MPEG-2)
 
 	int opt;
-	while ((opt = getopt(argc, argv, "cs")) != -1) {
+	while ((opt = getopt(argc, argv, "cshv:a:")) != -1) {
 		switch (opt) {
 		case 's':{
 			config_opts.enableSignatureChecking = 1;
@@ -244,6 +267,18 @@ int main(int argc, char *argv[]) {
 				printf("Unknown option: `%c'\n\n", optopt);
 				return 1;
 			}
+		case 'h':{
+				printf("%s", help_string);
+				return err_ret("");
+			}
+		case 'v':{
+				config_opts.video_stream_type = hexadecimal2int(optarg);
+				break;
+			}
+		case 'a':{
+				config_opts.audio_stream_type = hexadecimal2int(optarg);
+				break;
+			}
 		}
 	}
 
@@ -255,6 +290,14 @@ int main(int argc, char *argv[]) {
 	char *input_file = argv[optind];
 #endif
 	printf("Input file: %s\n", input_file);
+
+	// Check if input file exists
+	if( access( input_file, F_OK ) != 0 ) {
+		printf("File not found!\n\n");
+		printf("%s", help_string);
+		return(1);
+	} 
+
 	char *dname = NULL;
 	if (strlen(config_opts.dest_dir) == 0){
 			dname = my_dirname(input_file);
