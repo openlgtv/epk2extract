@@ -56,7 +56,17 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	int result = EXIT_SUCCESS;
 
 	MFILE *mf = NULL;
-	if (isFileEPK1(file)) {
+	/* PVR STR (ts/m2ts video) */
+	if (isSTRfile(file)) {
+		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
+		printf("\nConverting %s file to TS\n", file);
+		convertSTR2TS(file, 0, config_opts);
+	/* PVR PIF (Program Information File) */ 
+	} else if (!strncasecmp(&file[strlen(file) - 3], "PIF", 3)) {
+		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
+		printf("\nProcessing PIF file: %s\n", file);
+		processPIF(file, dest_file, config_opts);
+	} else if (isFileEPK1(file)) {
 		extract_epk1_file(file, config_opts);
 	} else if (isFileEPK2(file) || isFileEPK3(file)) {
 		extractEPKfile(file, config_opts);
@@ -152,16 +162,6 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		};
 		
 		jffs2extract(file, dest_file, args);
-	/* PVR STR (ts/m2ts video) */
-	} else if (isSTRfile(file)) {
-		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
-		printf("\nConverting %s file to TS\n", file);
-		convertSTR2TS(file, 0, config_opts);
-	/* PVR PIF (Program Information File) */ 
-	} else if (!strncasecmp(&file[strlen(file) - 3], "PIF", 3)) {
-		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
-		printf("\nProcessing PIF file: %s\n", file);
-		processPIF(file, dest_file, config_opts);
 	/* SYM File (Debugging information) */
 	} else if (symfile_load(file) == 0) {
 		asprintf(&dest_file, "%s/%s.idc", dest_dir, file_name);
@@ -192,7 +192,7 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	return result;
 }
 
-unsigned char hexadecimal2int(char *hdec) {
+uint8_t hexadecimal2int(char *hdec) {
     int finalval = 0;
     while (*hdec) {
         
@@ -205,7 +205,7 @@ unsigned char hexadecimal2int(char *hdec) {
         finalval = (finalval << 4) | (onebyte & 0xF);
     }
     finalval = finalval - 524288;
-    return (unsigned char)finalval;
+    return (uint8_t)finalval;
 }
 
 int main(int argc, char *argv[]) {
@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
 						"  -s : enable signature checking for EPK files\n"
 						"  -v : set video stream type, DEFAULT: 0x1B (possible values: e.g. 0x1B for MPEG-4, 0x02 for MPEG-2)\n"
 						"  -a : set audio stream type, DEFAULT: 0x04 (possible values: e.g. 0x81 for AC-3, 0x04 for MPEG-2)\n"
+						"  -d : provide AES key (if not provided, the key is extracted from the dvr file)\n"
 						"  -h : display this help\n\n";
 
 	printf("\nLG Electronics digital TV firmware package (EPK) extractor version 4.8 (http://openlgtv.org.ru)\n\n");
@@ -246,9 +247,10 @@ int main(int argc, char *argv[]) {
 	config_opts.enableSignatureChecking = 0;
 	config_opts.video_stream_type = 0x1B; // stream type ITU_T_H264 (MPEG-4)
 	config_opts.audio_stream_type = 0x04; // stream type ISO/IEC 13818-3 Audio (MPEG-2)
+	config_opts.aes_key_provided = false;
 
 	int opt;
-	while ((opt = getopt(argc, argv, "cshv:a:")) != -1) {
+	while ((opt = getopt(argc, argv, "cshv:a:d:")) != -1) {
 		switch (opt) {
 		case 's':{
 			config_opts.enableSignatureChecking = 1;
@@ -277,6 +279,16 @@ int main(int argc, char *argv[]) {
 			}
 		case 'a':{
 				config_opts.audio_stream_type = hexadecimal2int(optarg);
+				break;
+			}
+		case 'd':{
+				char char_array[] = {'0', 'x', '0', '0', '\0'};
+				for (int i = 0; i < 16; i++){
+					char_array[2] = optarg[i*2];
+					char_array[3] = optarg[i*2 + 1];
+					config_opts.aes_key[i] = hexadecimal2int(char_array);
+				}
+				config_opts.aes_key_provided = true;
 				break;
 			}
 		}

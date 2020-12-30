@@ -65,8 +65,14 @@ static int do_unwrap_func(uint8_t unwrap_key[], uint8_t aes_key[], uint8_t unwra
 	}
 }
 
-static int setKey(char *keyPath) {
+static int setKey(char *keyPath, config_opts_t *config_opts) {
 	int ret = -1;
+
+	if (config_opts->aes_key_provided) {
+		/* AES key already provided by user, no need to retrieve key from dvr file */
+		AES_set_decrypt_key(config_opts->aes_key, 128, &AESkey);
+		return 0;
+	}
 	
 	FILE *keyFile = fopen(keyPath, "r");
 	if (keyFile == NULL) {
@@ -382,7 +388,7 @@ void convertSTR2TS(char *inFilename, int notOverwrite, config_opts_t *config_opt
 	char *keyPath;
 	
 	asprintf(&keyPath, "%s/dvr", baseDir);
-	if (0 != setKey(keyPath)){
+	if (0 != setKey(keyPath, config_opts)){
 		free(keyPath);
 		err_exit("Load DVR Key-file failed for %s/dvr\n", baseDir);
 	}
@@ -417,7 +423,7 @@ void processPIF(const char *filename, char *dest_file, config_opts_t *config_opt
 	char *keyPath;	
 	asprintf(&keyPath, "%s/dvr", baseDir);
 
-	if (0 != setKey(keyPath)){
+	if (0 != setKey(keyPath, config_opts)){
 		free(keyPath);
 		err_exit("Load DVR Key-file failed for %s/dvr\n", baseDir);
 	}

@@ -6,13 +6,16 @@
 #    define CONFIG_H_
 
 #include <stdbool.h>
+#include <inttypes.h>
 
 typedef struct {
 	char *config_dir;
 	char *dest_dir;
 	int enableSignatureChecking;
-	unsigned char video_stream_type;
-	unsigned char audio_stream_type;
+	uint8_t video_stream_type;
+	uint8_t audio_stream_type;
+	uint8_t aes_key[16];
+	bool aes_key_provided;
 } config_opts_t;
 
 extern config_opts_t config_opts;
