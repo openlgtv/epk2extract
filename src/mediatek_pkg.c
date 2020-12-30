@@ -51,7 +51,9 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 		return 1;
 	}
 	
-	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) ){
+	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) 
+	 || !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC2, strlen(PHILIPS_PKG_MAGIC2))
+	){
 		printf("[+] Found PHILIPS Package\n");
 		return 1;
 	}
@@ -105,21 +107,24 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	void *decryptedHeader = NULL;
 	KeyPair *headerKey = NULL;
 
-	if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
-		goto found_return;
-	}
+	do {
+		if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
+			break;
+		}
 
-	/* It failed, but we want to check for Philips.
- 	 * Philips has an additional 0x80 header before the normal PKG one
- 	 */
-	if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
-		mtkpkg_variant_flags |= PHILIPS;
+		/* It failed, but we want to check for Philips.
+		 * Philips has an additional 0x80 header before the normal PKG one
+		 */
+		if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
+			mtkpkg_variant_flags |= PHILIPS;
+		}
+	} while(0);
 
-		found_return:
-			was_decrypted = true;
-			memcpy(&packageHeader, decryptedHeader, sizeof(packageHeader));
-			free(headerKey);
-			return mf;
+	if(headerKey != NULL){
+		was_decrypted = true;
+		memcpy(&packageHeader, decryptedHeader, sizeof(packageHeader));
+		free(headerKey);
+		return mf;
 	}
 
 	/* No AES key found to decrypt the header. Try to check if it's a MTK PKG anyways
@@ -361,12 +366,12 @@ void print_pkg_header(struct mtkupg_header *hdr){
 	printf("======== Firmware Info ========\n");
 }
 
-void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
-	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
-	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+static off_t get_mtkpkg_offset(){
+	if((mtkpkg_variant_flags & THOMPSON) == THOMPSON){
+		return SIZEOF_THOMPSON_HEADER;
+	}
 
 	off_t offset = 0;
-
 	if((mtkpkg_variant_flags & NEW) == NEW){
 		offset += sizeof(struct mtkupg_header);
 	} else if((mtkpkg_variant_flags & OLD) == OLD){
@@ -375,10 +380,16 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	
 	if((mtkpkg_variant_flags & PHILIPS) == PHILIPS){
 		offset += PHILIPS_HEADER_SIZE;
-	} else if((mtkpkg_variant_flags & THOMPSON) == THOMPSON){
-		offset += SIZEOF_THOMPSON_HEADER;
 	}
 
+	return offset;
+}
+
+void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
+	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
+	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+
+	off_t offset = get_mtkpkg_offset();
 	uint8_t *data = mdata(mf, uint8_t) + offset;
 
 	char *file_name = my_basename(mf->path);
