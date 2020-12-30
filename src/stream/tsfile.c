@@ -143,16 +143,15 @@ static int setKey(char *keyPath, config_opts_t *config_opts) {
 #define MIN_TS_PACKETS 3
 
 uint8_t *findTsPacket(MFILE *tsFile, long offset){
-	if(offset >= msize(tsFile)){
-		return NULL;
-	}
-
 	uint8_t *head;
 	uint8_t *cur;
 	
 	int syncPackets;
 	
 	do {
+		if(offset >= msize(tsFile)){
+			return NULL;
+		}
 		syncPackets = 0;
 
 		// find initial sync position sequentially
@@ -178,6 +177,7 @@ uint8_t *findTsPacket(MFILE *tsFile, long offset){
 			cur+=TS_PACKET_SIZE,
 			i++);
 
+		++offset;
 	} while(syncPackets<MIN_TS_PACKETS);
 
 	if(syncPackets < MIN_TS_PACKETS){
