@@ -143,15 +143,20 @@ static int setKey(char *keyPath, config_opts_t *config_opts) {
 #define MIN_TS_PACKETS 3
 
 uint8_t *findTsPacket(MFILE *tsFile, long offset){
+	if(offset >= msize(tsFile)){
+		return NULL;
+	}
 	uint8_t *head;
 	uint8_t *cur;
 	
 	int syncPackets;
 	
 	do {
-		if(offset >= msize(tsFile)){
+		// abort in case no valid sync is found in the first bytes of the file
+		if(offset >= (TS_PACKET_SIZE * 2)){
 			return NULL;
 		}
+
 		syncPackets = 0;
 
 		// find initial sync position sequentially
@@ -177,7 +182,8 @@ uint8_t *findTsPacket(MFILE *tsFile, long offset){
 			cur+=TS_PACKET_SIZE,
 			i++);
 
-		++offset;
+		// increase offset to be able to find the correct sync in case a "garbage" sync was found
+		offset = moff(tsFile, head) + 1;
 	} while(syncPackets<MIN_TS_PACKETS);
 
 	if(syncPackets < MIN_TS_PACKETS){
