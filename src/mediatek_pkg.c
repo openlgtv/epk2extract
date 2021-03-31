@@ -240,6 +240,7 @@ void process_block(struct thread_arg *arg){
 		out_cur->size
 	);
 	mclose(out);
+	munmap(out_cur->ptr, out_cur->size);
 	free(out_cur);
 
 	free(arg->filename);
