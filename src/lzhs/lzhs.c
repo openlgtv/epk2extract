@@ -276,7 +276,6 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 	ctx->code_buf[0] = 0;
 	ctx->code_buf_ptr = ctx->mask = 1;
 
-	uint found, found_pos = 0;
 	while (1) {
 		if (UNLIKELY(!getData(ctx, in)))
 			goto flush_ret;
@@ -284,21 +283,23 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 			continue; // len in code_len table should be min 4
 		uint32_t key = key_charlen(ctx->code, ctx->len);
 		ctx->i = lookup_charlen[key];
-		found = (ctx->i > -1);
-		if(!found){
+		if(ctx->i == -2) continue;
+		if(ctx->i == -1){
+			bool found = false;
 			for (ctx->i = 0; ctx->i < 288; ctx->i++) {
 				if (huff_charlen[ctx->i]->len == ctx->len &&
 					huff_charlen[ctx->i]->code == ctx->code
 				){
 					lookup_charlen[key] = ctx->i;
-					found = 1;
+					found = true;
 					break;
 				}
 			}
+			if(!found){
+				lookup_charlen[key] = -2;
+				continue;
+			}
 		}
-
-		if(!found)
-			continue;
 
 		if(ctx->i > 255){
 			ctx->code_buf[ctx->code_buf_ptr++] = ctx->i - 256;
@@ -310,23 +311,26 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 					continue;	// len in pos table should be min 2
 				uint32_t key = key_charpos(ctx->code, ctx->len);
 				ctx->j = lookup_charpos[key];
-				found_pos = (ctx->j > -1); 
-				if(!found_pos){
+				if(ctx->j == -2) continue;
+				if(ctx->j == -1){
+					bool found = false;
 					for (ctx->j = 0; ctx->j < 32; ctx->j++) {
 						if (huff_pos[ctx->j]->len == ctx->len &&
 							huff_pos[ctx->j]->code == ctx->code
 						){
 							lookup_charpos[key] = ctx->j;
-							found_pos = 1;
+							found = 1;
 							break;
 						}
 					}
+					if(!found){
+						lookup_charpos[key] = -2;
+						continue;
+					}
 				}
-				if(found_pos){
-					ctx->code_buf[ctx->code_buf_ptr++] = ctx->j >> 1;
-					ctx->k = -1;
-					break;
-				}
+				ctx->code_buf[ctx->code_buf_ptr++] = ctx->j >> 1;
+				ctx->k = -1;
+				break;
 			}
 			ctx->code = 0;
 			for (ctx->k = 0; ctx->k < 7; ctx->k++)
