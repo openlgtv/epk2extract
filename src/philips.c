@@ -30,7 +30,7 @@ MFILE *is_philips_fusion1(const char *filename){
 void extract_philips_fusion1(MFILE *mf, config_opts_t *config_opts){
 	char *basename = my_basename(mf->path);
 	char *name = remove_ext(basename);
-	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, name);
+	asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, name);
 	createFolder(config_opts->dest_dir);
 
 	uint8_t *data = mdata(mf, uint8_t);

@@ -402,9 +402,9 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	
 	if(hdr != NULL){
 		// Use product name for now (version would be better)
-		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, hdr->product_name);
+		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, hdr->product_name);
 	} else {
-		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
+		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
 	}
 	createFolder(config_opts->dest_dir);
 	
@@ -526,11 +526,11 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 			if(has_otaID){
 				printf(", platform='%s', otaid='%s'", ext->platform, ext->otaID);
 				if(pakNo == 1 && hdr == NULL){
-					sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
+					asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, ext->otaID);
 					createFolder(config_opts->dest_dir);
 				}
 			} else if(pakNo == 1 && hdr == NULL){
-				sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
+				asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
 				createFolder(config_opts->dest_dir);
 			}
 

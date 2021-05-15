@@ -141,7 +141,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		epkHeader->otaId
 	);
 	
-	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
+	asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
 	createFolder(config_opts->dest_dir);
 	
 	unsigned int curPak=0, signatureCount=0;
