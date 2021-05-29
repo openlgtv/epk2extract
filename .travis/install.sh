@@ -5,7 +5,6 @@ install_linux(){
 }
 
 install_osx(){
-	brew update
 	brew install zlib lzo openssl@1.1
 	cd /usr/local/include 
 	ln -s ../opt/openssl/include/openssl .
