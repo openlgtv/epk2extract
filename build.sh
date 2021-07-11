@@ -3,6 +3,16 @@
 #Copyright 2016 Smx <smxdev4@gmail.com>
 #All right reserved
 
+if [[ "$OSTYPE" =~ "darwin" ]]; then
+	export CC=/usr/local/bin/gcc-10
+	export CXX=/usr/local/bin/g++-10
+	alias gcc='gcc-10'
+	alias cc='gcc-10'
+	alias g++='g++-10'
+	alias c++='c++-10'
+fi
+
+
 normal='tput sgr0'
 lred='printf \033[01;31m'
 lgreen='printf \033[01;32m'
@@ -60,8 +70,13 @@ case "$1" in
 		;;
 esac
 
-cmake $srcdir $CMAKE_FLAGS
-make $MAKE_FLAGS
+if [[ "$OSTYPE" =~ "darwin" ]]; then
+	cmake $srcdir $CMAKE_FLAGS -DCMAKE_C_COMPILER=/usr/local/bin/gcc-10 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-10
+	make $MAKE_FLAGS --include-dir ./include/
+else
+	cmake $srcdir $CMAKE_FLAGS
+	make $MAKE_FLAGS
+fi
 RESULT=$?
 cd src
 

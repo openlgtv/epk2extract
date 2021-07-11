@@ -25,6 +25,12 @@ find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
 find_library(M_LIB m REQUIRED)
 
-include_directories(${LZO_INCLUDE_DIR})
+if(NOT APPLE)
+  include_directories(${LZO_INCLUDE_DIR})
+endif()
+
+if(APPLE)
+ include_directories(include)
+endif()
 
 add_subdirectory(src)
