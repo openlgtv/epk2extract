@@ -521,7 +521,15 @@ void processPIF(const char *filename, char *dest_file) {
 				asprintf(&filePath, "%s/%s", baseDir, strName);
 				
 				printf("Converting file: %s -> %s\n", filePath, dest_file);
-				convertSTR2TS_internal(filePath, dest_file, append);
+
+				struct tsfile_options opts = {
+					// $TODO: add a way to specify these
+					.video_stream_type = -1,
+					.audio_stream_type = -1,
+					.append = append
+				};
+
+				convertSTR2TS_internal(filePath, dest_file, &opts);
 				free(filePath);
 				
 				append = 1;
