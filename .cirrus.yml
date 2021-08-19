@@ -1,0 +1,15 @@
+env:
+  CIRRUS_CLONE_DEPTH: 1
+
+linux_x64_task:
+  container:
+    cpu: 2
+    memory: 2G
+    image: gcc:10.3.0
+
+  install_script:
+    - apt-get update -qq
+    - apt-get install -qq liblzo2-dev libssl-dev libc6-dev cmake
+
+  build_script:
+    - ./build.sh
