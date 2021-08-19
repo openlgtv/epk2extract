@@ -16,7 +16,7 @@ srcdir=`cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd`
 exe=(
 	"epk2extract" "tools/lzhsenc"
 	"tools/lzhs_scanner" "tools/idb_extract"
-	"tools/jffs2extract"
+	"tools/jffs2extract" "tools/tsfile"
 )
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin

@@ -156,7 +156,13 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	} else if (isSTRfile(file)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		printf("\nConverting %s file to TS\n", file);
-		convertSTR2TS(file, 0);
+
+		struct tsfile_options opts = {
+			.video_stream_type = -1,
+			.audio_stream_type = -1,
+			.append = 0
+		};
+		convertSTR2TS(file, &opts);
 	/* PVR PIF (Program Information File) */ 
 	} else if (!strncasecmp(&file[strlen(file) - 3], "PIF", 3)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);

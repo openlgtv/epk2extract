@@ -27,8 +27,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "stream/crc32.h"
 #include "util.h"
+#include "stream/crc32.h"
+#include "stream/tsfile.h"
+
 
 #define TS_PACKET_SIZE 192
 static AES_KEY AESkey;
@@ -182,13 +184,7 @@ uint8_t *findTsPacket(MFILE *tsFile, long offset){
 		return NULL;
 	}
 
-	if((head - 4) < mdata(tsFile, uint8_t)){
-		// corrupted file, we went before the file's beginning
-		return NULL;
-	}
-
-	// go to the beginning of the "Transport Stream Header"
-	return head - 4;
+	return head;
 }
 
 void writeHeaders(FILE *outFile){
@@ -218,7 +214,24 @@ struct tables {
 	int pcr_count[8192];
 };
 
-void writePMT(struct tables *PIDs, FILE *outFile){
+#define AUDIO_TYPE_MPEG2 0x04
+#define VIDEO_TYPE_H264 0x1B
+
+static inline uint32_t pack_pid(int pid){
+	return (0
+		// reserved bits
+		| 0x07 << 29
+		// PID
+		| ((pid & 0x1FFF) << 16)
+		// reserved bits
+		| 0x0F << 12
+	) & 0xFFFFF;
+}
+
+void writePMT(struct tables *PIDs, FILE *outFile, struct tsfile_options *opts){
+	int audio_stream_type = (opts->audio_stream_type == -1) ? AUDIO_TYPE_MPEG2 : opts->audio_stream_type;
+	int video_stream_type = (opts->video_stream_type == -1) ? VIDEO_TYPE_H264 : opts->video_stream_type;
+
 	// Gather information for PMT construction
 	unsigned char stream_count = 0;
 	for (unsigned int i = 0; i < 8192; i++) {
@@ -234,51 +247,84 @@ void writePMT(struct tables *PIDs, FILE *outFile){
 	unsigned char PMT_size = 21 + stream_count * 5;
 
 	uint8_t outBuf[TS_PACKET_SIZE];
-	// Fill PMT
 	memset(outBuf, 0xFF, TS_PACKET_SIZE);
 	
+	// Fill PMT
 	uint8_t PMT[TS_PACKET_SIZE - 4];
 	memset(PMT, 0xFF, TS_PACKET_SIZE - 4);
 
 	const uint8_t PMT_header[17] = {
-		0x47, 0x40, 0xB1, 0x10, 0x00, 0x02, 0xB0,
+		/** 0x0: Transport header (TS) **/
+		0x47, // sync byte
+		0x40, // PUSI flag
+		0xB1, 0x10,
+		/** 0x4: PSI **/
+		0x00, // pointer field
+		/** 0x5: table header **/
+		0x02, // program_map_section 
+		0xB0,
 		0x00,				// section length in bytes including crc
+		/** 0x8: table syntax data **/
 		0x00, 0x01,			// program number
 		0xC1, 0x00, 0x00,
+		/** 0xD: PMT data **/
 		0xE4, 0x7E,			// PCR PID
 		0xF0, 0x00			// Program info length
+		/** 0x11 **/
 	};
 	memcpy(PMT, PMT_header, sizeof(PMT_header));
 	PMT[7] = 13 + stream_count * 5;
 
+	uint32_t pmt_data;
+
 	stream_count = 0;
-	for (unsigned int i = 0; i < 8192; i++)
+	for (unsigned int i = 0; i < 8192; i++){
+		uint32_t packed_pid = pack_pid(i);
 		if (PIDs->number[i] > 0) {
-			//printf("PID %zX : %d Type: %zX PCRs: %zX\n", i, PIDs.number[i], PIDs.type[i], PIDs.pcr_count[i]);
+			printf("PID %zX : %d Type: %zX PCRs: %zX\n", i, PIDs->number[i], PIDs->type[i], PIDs->pcr_count[i]);
 			if (PIDs->pcr_count[i] > 0) {	// Set PCR PID
-				PMT[13] = ((i >> 8) & 0xFF) + 0xE0;
-				PMT[14] = i & 0xFF;
+				pmt_data = (0
+					| (packed_pid << 12)
+					// program info length (0 for now)
+					| 0 & 0xFFF
+				);
+
+				PMT[13] = (pmt_data >> 24) & 0xFF;
+				PMT[14] = (pmt_data >> 16) & 0xFF;
+				PMT[15] = (pmt_data >>  8) & 0xFF;
+				PMT[16] = (pmt_data >>  0) & 0xFF;
 			}
+
+			uint32_t es_data = (0
+				| (packed_pid << 12)
+				// ES info length (0 for now)
+				| 0 & 0xFFF
+			);
+
 			//Set video stream data in PMT
 			if (PIDs->type[i] >= 0xE0 && PIDs->type[i] <= 0xEF) {
-				PMT[17 + stream_count * 5] = 0x1B; 						// stream type ITU_T_H264
-				PMT[18 + stream_count * 5] = ((i >> 8) & 0xFF) + 0xE0;	// PID
-				PMT[19 + stream_count * 5] = i & 0xFF;
-				PMT[20 + stream_count * 5] = 0xF0;						// ES info length
-				PMT[21 + stream_count * 5] = 0x00;
+				PMT[17 + stream_count * 5] = video_stream_type; // stream type
+				PMT[18 + stream_count * 5] = (es_data >> 24) & 0xFF;
+				PMT[19 + stream_count * 5] = (es_data >> 16) & 0xFF;
+				PMT[20 + stream_count * 5] = (es_data >>  8) & 0xFF;
+				PMT[21 + stream_count * 5] = (es_data >>  0) & 0xF;
 				stream_count++;
 			}
 			//Set audio stream data in PMT
 			else if (PIDs->type[i] >= 0xC0 && PIDs->type[i] <= 0xDF) {
-				PMT[17 + stream_count * 5] = 0x04; 						// stream type ISO/IEC 13818-3 Audio (MPEG-2)
-				PMT[18 + stream_count * 5] = ((i >> 8) & 0xFF) + 0xE0;	//PID
-				PMT[19 + stream_count * 5] = i & 0xFF;
-				PMT[20 + stream_count * 5] = 0xF0;						// ES info length
-				PMT[21 + stream_count * 5] = 0x00;
+				PMT[17 + stream_count * 5] = audio_stream_type; // stream type
+				PMT[18 + stream_count * 5] = (es_data >> 24) & 0xFF;
+				PMT[19 + stream_count * 5] = (es_data >> 16) & 0xFF;
+				PMT[20 + stream_count * 5] = (es_data >>  8) & 0xFF;
+				PMT[21 + stream_count * 5] = (es_data >>  0) & 0xF;
 				stream_count++;
 			}
 		}
+	}
 	// Set CRC32
+	// A checksum of the entire table
+	// excluding the pointer field, pointer filler bytes (aka none)
+	// and the trailing CRC32.
 	uint32_t crc = str_crc32(&PMT[5], PMT[7] - 1);
 	PMT[PMT_size - 4] = (crc >> 24) & 0xFF;
 	PMT[PMT_size - 3] = (crc >> 16) & 0xFF;
@@ -287,28 +333,54 @@ void writePMT(struct tables *PIDs, FILE *outFile){
 	memcpy(outBuf, PMT, sizeof(PMT));
 	
 	fseek(outFile, 0xBC, SEEK_SET);
-	fwrite(outBuf, 1, TS_PACKET_SIZE - 4, outFile);
+	fwrite(outBuf, 1, TS_PACKET_SIZE, outFile);
 }
 
 void processTsPacket(uint8_t *packet, struct tables *PIDs, FILE *outFile){
 	uint8_t outBuf[TS_PACKET_SIZE];
 
-	int offset = 8;
-	if ((packet[7] & 0xC0) == 0xC0 || (packet[7] & 0xC0) == 0x80) {	// decrypt only scrambled packets
+	// data offset
+	int offset = 4;
+
+	// Transport scrambling control
+	int tsc = packet[3] & 0xC0;
+	// either 0x20 or 0x30
+	int have_adapt_field = (packet[3] & 0x30) > 0x10;
+	// either 0x10 or 0x30
+	int have_payload_field = (packet[3] & 0x30) != 0x20;
+	int pid = (0
+		| ((packet[1] & 0x1F) << 8)
+		| packet[2]
+	);
+
+	if(!have_payload_field){
+		return;
+	}
+
+	if (
+		// LG Netcast writes even/odd DVB-CSA flag, even tho the key is fixed
+		tsc == 0x80 || tsc == 0xC0
+		// WebOS uses the "reserved" flag instead
+		|| tsc == 0x40
+	) {
 		// packet is encrypted, so we copy the original (readonly) for modifications
 		memcpy(outBuf, packet, TS_PACKET_SIZE);
 		// now set the pointer to the copy
 		packet = &outBuf[0];
 
-		if (packet[7] & 0x20){
-			offset += (packet[8] + 1);	// skip adaption field
+		if(have_adapt_field){
+			offset += (packet[4] + 1);	// adaption field length + sizeof length field
 		}
-		packet[7] &= 0x3F;	// remove scrambling bits
+
+		packet[3] &= ~0xC0;	// remove scrambling bits
 		if (offset > TS_PACKET_SIZE){
 			//application will crash without this check when file is corrupted
 			offset = TS_PACKET_SIZE;
 		}
-		unsigned int blocks = (TS_PACKET_SIZE - offset) / AES_BLOCK_SIZE;
+
+		// NOTE: 4 seems to be custom LG padding, excluded from AES
+		int data_length = TS_PACKET_SIZE - offset - 4;
+		unsigned blocks = data_length / AES_BLOCK_SIZE;
 		for (unsigned int i = 0; i < blocks; i++){
 			// in-place decrypt (ECB)
 			AES_decrypt(
@@ -319,19 +391,25 @@ void processTsPacket(uint8_t *packet, struct tables *PIDs, FILE *outFile){
 	};
 
 	// Search PCR
-	if (packet[7] & 0x20) {	// adaptation field exists
-		if (packet[9] & 0x10)	// check if PCR exists
-			PIDs->pcr_count[(packet[5] << 8 | packet[6]) & 0x1FFF]++;
+	if (have_adapt_field){
+		if (packet[5] & 0x10){	// check if PCR exists
+			PIDs->pcr_count[pid]++;
+		}
 	}
 	// Count PES packets only
-	if (packet[8] == 0 && packet[9] == 0 && packet[10] == 1) {
-		PIDs->number[(packet[5] << 8 | packet[6]) & 0x1FFF]++;
-		PIDs->type[(packet[5] << 8 | packet[6]) & 0x1FFF] = packet[11];
+	// check PES start code prefix
+	if(packet[offset + 0] == 0
+	&& packet[offset + 1] == 0
+	&& packet[offset + 2] == 1
+	){
+		PIDs->number[pid]++;
+		// stream ID. Examples: Audio streams (0xC0-0xDF), Video streams (0xE0-0xEF)
+		PIDs->type[pid] = packet[offset + 3];
 	}
-	fwrite(outBuf + 4, 1, TS_PACKET_SIZE - 4, outFile);
+	fwrite(packet, 1, TS_PACKET_SIZE, outFile);
 }
 
-void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrite) {
+void convertSTR2TS_internal(char *inFilename, char *outFilename, struct tsfile_options *opts) {
 	MFILE *inFile = mopen(inFilename, O_RDONLY);
 	if (inFile == NULL) {
 		printf("Can't open file %s\n", inFilename);
@@ -342,12 +420,8 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 	memset(&PIDs, 0, sizeof(PIDs));
 
 	do {
-		FILE *outFile;
-		if (notOverwrite){
-			outFile = fopen(outFilename, "a+b");
-		} else {
-			outFile = fopen(outFilename, "wb");
-		}
+		const char *mode = (opts->append) ? "a+b" : "wb";
+		FILE *outFile = fopen(outFilename, mode);;
 
 		if (outFile == NULL) {
 			fprintf(stderr, "Can't open file %s\n", outFilename);
@@ -364,24 +438,31 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, int notOverwrit
 			writeHeaders(outFile);
 
 			long offset;
-			for(;(offset=moff(inFile, packet)) < msize(inFile);
+			for(;
+				(offset=moff(inFile, packet)) < msize(inFile)
+				&& offset + TS_PACKET_SIZE < msize(inFile)
+				;
 				packet += TS_PACKET_SIZE
 			){
-				if(packet[4] != 0x47){
+				if(packet[0] != 0x47){
 					fprintf(stderr, "\nLost sync at offset %" PRIx64 "\n", offset);
 					packet = findTsPacket(inFile, offset);
+				}
+				if(packet == NULL){
+					fprintf(stderr, "error: lost sync\n");
+					break;
 				}
 				processTsPacket(packet, &PIDs, outFile);
 			}
 		} while(0);
 
-		writePMT(&PIDs, outFile);
+		writePMT(&PIDs, outFile, opts);
 		fclose(outFile);
 	} while(0);
 	mclose(inFile);
 }
 
-void convertSTR2TS(char *inFilename, int notOverwrite) {
+void convertSTR2TS(char *inFilename, struct tsfile_options *opts) {
 	char *baseDir = my_dirname(inFilename);
 	char *keyPath;
 	
@@ -397,7 +478,7 @@ void convertSTR2TS(char *inFilename, int notOverwrite) {
 	asprintf(&outFilename, "%s/%s.ts", baseDir, baseName);
 	
 	printf("Output File: %s\n", outFilename);
-	convertSTR2TS_internal(inFilename, outFilename, notOverwrite);
+	convertSTR2TS_internal(inFilename, outFilename, opts);
 	
 	free(baseName);
 	free(baseDir);

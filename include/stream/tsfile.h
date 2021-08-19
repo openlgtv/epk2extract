@@ -6,7 +6,13 @@
 #define __TSFILE_H
 #include <stdint.h>
 
-void convertSTR2TS(char *inFilename, int notOverwrite);
+struct tsfile_options {
+	int video_stream_type;
+	int audio_stream_type;
+	uint8_t append;
+};
+
+void convertSTR2TS(char *inFilename, struct tsfile_options *opts);
 void processPIF(const char *filename, char *dest_file);
 uint32_t str_crc32(const unsigned char *data, int len);
 #endif //__TSFILE_H
