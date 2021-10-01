@@ -2004,9 +2004,6 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 	if (rlim.rlim_cur != RLIM_INFINITY) {
 		max_files = rlim.rlim_cur;
 
-		/*
-		 * Check the amount of free files, and use all but 1/3rd of them
-		 */
 		struct pollfd *fds = calloc(max_files, sizeof(struct pollfd));
 		uint cur_file, opened_files = 0;
 		for(cur_file = 0; cur_file < max_files; cur_file++){
@@ -2023,13 +2020,9 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 			EXIT_UNSQUASH("Too many open files");
 		}
 
-		/* Calculate margin as % of free files / 3 */
-		uint margin = max_files * ((100 - ((opened_files * 100) / max_files)) / 3) / 100;
-		if(margin == 0)
-			max_files = 1;
-		else
-			max_files -= margin;
-
+		// leave 10% of the free files free
+		uint margin = (max_files - opened_files) / 10;
+		max_files -= margin;
 
 		printf("Max Files: %u, Opened Files: %u, Allocated: %u (Margin: %u)\n",
 			rlim.rlim_cur, opened_files, max_files, margin
