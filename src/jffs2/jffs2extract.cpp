@@ -616,9 +616,7 @@ union jffs2_node_union *find_next_node(MFILE *mf, off_t cur_off, int erase_size)
 			off += 4;
 		}
 	}
-	if(off == msize(mf)){
-		return NULL;
-	}
+	return NULL;
 }
 
 extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args args) {
@@ -666,6 +664,9 @@ extern "C" int jffs2extract(char *infile, char *outdir, struct jffs2_main_args a
 			off_t prev_off = off;
 			off = moff(mf, node);
 			printf("found at %p, after 0x%x bytes\n", off, off - prev_off);
+		}
+		if(moff(mf, node) + sizeof(*node) >= msize(mf)){
+			continue;
 		}
 		
 		off += PAD_U32(node->u.totlen);
