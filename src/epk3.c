@@ -158,7 +158,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			epkHeaderNew->updateType
 		);
 	}
-	
+
 	char *fwVersion;
 	asprintf(&fwVersion, EPK_VERSION_FORMAT "-%s",
 		epkHeader->epkVersion[3],
@@ -167,8 +167,9 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		epkHeader->epkVersion[0],
 		epkHeader->otaId
 	);
-	
-	sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
+
+	asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, fwVersion);
+
 	createFolder(config_opts->dest_dir);
 	free(fwVersion);
 

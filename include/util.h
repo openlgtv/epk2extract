@@ -47,6 +47,7 @@ int isdatetime(char *datetime);
 int isPartPakfile(const char *filename);
 int is_kernel(const char *image_file);
 void extract_kernel(const char *image_file, const char *destination_file);
+int asprintf_inplace(char** strp, const char* fmt, ...);
 
 
 #include <errno.h>

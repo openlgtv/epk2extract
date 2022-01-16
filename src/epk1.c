@@ -92,7 +92,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			(fwVer[0] >> (8 * 1)) & 0xff,
 			(fwVer[0] >> (8 * 2)) & 0xff,
 			(fwVer[0] >> (8 * 3)) & 0xff);
-		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
+		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 
 		unsigned long int offset = 0xC;
@@ -132,7 +132,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		struct epk1Header_t *epakHeader = (struct epk1Header_t *)buffer;
 		printHeaderInfo(epakHeader);
 		constructVerString(verString, epakHeader);
-		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
+		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 		for (index = 0; index < epakHeader->pakCount; index++) {
 			struct pakRec_t pakRecord = epakHeader->pakRecs[index];
@@ -153,7 +153,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		struct epk1NewHeader_t *epakHeader = (struct epk1NewHeader_t *)(buffer);
 		printNewHeaderInfo(epakHeader);
 		constructNewVerString(verString, epakHeader);
-		sprintf(config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
+		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 		for (index = 0; index < epakHeader->pakCount; index++) {
 			struct pakRec_t pakRecord = epakHeader->pakRecs[index];

@@ -513,3 +513,20 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 	free(buffer);
 	fclose(out);
 }
+
+/**
+ * asprintf that allows reuse of strp in variadic arguments (frees strp and replaces it with newly allocated string)
+ */
+int asprintf_inplace(char** strp, const char* fmt, ...) {
+    va_list args;
+    int result;
+    char* new_strp = NULL;
+    va_start(args, fmt);
+    result = vasprintf(&new_strp, fmt, args);
+    va_end(args);
+
+    free(*strp);
+    *strp = new_strp;
+
+    return result;
+}
