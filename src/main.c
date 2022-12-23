@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
@@ -92,10 +93,14 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		handle_file(dest_file, config_opts);
 	/* SQUASHFS */
 	} else if (is_squashfs(file)) {
-		asprintf(&dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
-		printf("UnSQUASHFS file to: %s\n", dest_file);
-		rmrf(dest_file);
-		unsquashfs(file, dest_file);
+		if (!config_opts->noAutoUnsquashfs) {
+			asprintf(&dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
+			printf("UnSQUASHFS file to: %s\n", dest_file);
+			rmrf(dest_file);
+			unsquashfs(file, dest_file);
+		} else {
+			puts("Not UnSQUASHFSing");
+		}
 	/* GZIP */
 	} else if ((mf=is_gzip(file))) {
 		asprintf(&dest_file, "%s/", dest_dir);
@@ -204,7 +209,8 @@ int main(int argc, char *argv[]) {
 		printf("Usage: epk2extract [-options] FILENAME\n\n");
 		printf("Options:\n");
 		printf("  -c : extract to current directory instead of source file directory\n");
-		printf("  -s : enable signature checking for EPK files\n\n");
+		printf("  -s : enable signature checking for EPK files\n");
+		printf("  -n : no automatic unsquashfs\n\n");
 		return err_ret("");
 	}
 
@@ -229,9 +235,10 @@ int main(int argc, char *argv[]) {
 	config_opts.config_dir = my_dirname(exe_dir);
 	config_opts.dest_dir = calloc(1, PATH_MAX);
 	config_opts.enableSignatureChecking = 0;
+	config_opts.noAutoUnsquashfs = false;
 
 	int opt;
-	while ((opt = getopt(argc, argv, "cs")) != -1) {
+	while ((opt = getopt(argc, argv, "csn")) != -1) {
 		switch (opt) {
 		case 's':{
 			config_opts.enableSignatureChecking = 1;
@@ -241,6 +248,10 @@ int main(int argc, char *argv[]) {
 				strcpy(config_opts.dest_dir, current_dir);
 				break;
 			}
+		case 'n':{
+				config_opts.noAutoUnsquashfs = true;
+				break;
+			 }
 		case ':':{
 				printf("Option `%c' needs a value\n\n", optopt);
 				exit(1);
