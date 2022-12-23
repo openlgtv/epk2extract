@@ -58,9 +58,17 @@ int handle_file(char *file, config_opts_t *config_opts) {
 
 	MFILE *mf = NULL;
 	if (isFileEPK1(file)) {
-		extract_epk1_file(file, config_opts);
+		if (config_opts->signatureOnly) {
+			printf("EPK1 is not signed; nothing to do\n");
+		} else {
+			extract_epk1_file(file, config_opts);
+		}
 	} else if (isFileEPK2(file) || isFileEPK3(file)) {
 		extractEPKfile(file, config_opts);
+	} else if (config_opts->signatureOnly) {
+		/* none of the following file types have signatures */
+		printf("Only EPKs supported in signature-only mode\n");
+		result = EXIT_FAILURE;
 	} else if((mf=is_mtk_pkg(file))){
 		extract_mtk_pkg(file, config_opts);
 	} else if((mf=is_firm_image(file))){
@@ -210,6 +218,7 @@ int main(int argc, char *argv[]) {
 		printf("Options:\n");
 		printf("  -c : extract to current directory instead of source file directory\n");
 		printf("  -s : enable signature checking for EPK files\n");
+		printf("  -S : only check signature (implies -s)\n");
 		printf("  -n : no automatic unsquashfs\n\n");
 		return err_ret("");
 	}
@@ -236,9 +245,10 @@ int main(int argc, char *argv[]) {
 	config_opts.dest_dir = calloc(1, PATH_MAX);
 	config_opts.enableSignatureChecking = 0;
 	config_opts.noAutoUnsquashfs = false;
+	config_opts.signatureOnly = false;
 
 	int opt;
-	while ((opt = getopt(argc, argv, "csn")) != -1) {
+	while ((opt = getopt(argc, argv, "csnS")) != -1) {
 		switch (opt) {
 		case 's':{
 			config_opts.enableSignatureChecking = 1;
@@ -250,6 +260,11 @@ int main(int argc, char *argv[]) {
 			}
 		case 'n':{
 				config_opts.noAutoUnsquashfs = true;
+				break;
+			 }
+		case 'S':{
+				config_opts.signatureOnly = true;
+				config_opts.enableSignatureChecking = 1;
 				break;
 			 }
 		case ':':{

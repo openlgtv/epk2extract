@@ -159,6 +159,9 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		);
 	}
 
+	if (config_opts->signatureOnly)
+		return;
+
 	char *fwVersion;
 	asprintf(&fwVersion, EPK_VERSION_FORMAT "-%s",
 		epkHeader->epkVersion[3],

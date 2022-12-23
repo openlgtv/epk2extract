@@ -102,6 +102,9 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		);
 	}
 
+	if (config_opts->signatureOnly)
+		return;
+
 	result = wrap_decryptimage(
 		epkHeader,
 		sizeof(EPK_V2_HEADER_T),
