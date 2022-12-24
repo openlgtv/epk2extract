@@ -9,8 +9,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define SIGNATURE_SIZE 0x80 //RSA-1024
+#define SIGNATURE_SIZE 0x80  //RSA-1024
+#define SIGNATURE_SIZE_NEW 0x100 //RSA-2048
 typedef unsigned char signature_t[SIGNATURE_SIZE];
+typedef unsigned char signature_new_t[SIGNATURE_SIZE_NEW];
 
 typedef enum {
 	RELEASE = 0,
@@ -28,10 +30,15 @@ typedef enum {
     RAW
 } FILE_TYPE_T;
 
+typedef enum {
+	SIG_SHA1,
+	SIG_SHA256
+} SIG_TYPE_T;
+
 #define EPK_VERSION_FORMAT "%02" PRIx8 ".%02" PRIx8 ".%02" PRIx8 ".%02" PRIx8
 
 bool isEpkVersionString(const char *str);
-int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir);
+int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir, SIG_TYPE_T sigType);
 int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType);
 void extractEPKfile(const char *epk_file, config_opts_t *config_opts);
 #endif
