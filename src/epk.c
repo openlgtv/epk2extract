@@ -71,32 +71,51 @@ int SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
 /*
  * Verifies the signature of the given data against the loaded public key
  */
-int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize) { 
-	unsigned char md_value[0x40];
+int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize, SIG_TYPE_T sigType) { 
+	size_t hashSize;
+	unsigned int sigSize;
+	const EVP_MD *algo;
+
+	switch(sigType) {
+		case SIG_SHA1:
+			hashSize = 0x40;
+			sigSize = SIGNATURE_SIZE;
+			algo = EVP_sha1();
+			break;
+		case SIG_SHA256:
+			hashSize = 0x80;
+			sigSize = SIGNATURE_SIZE_NEW;
+			algo = EVP_sha256();
+			break;
+		default:
+			printf("Invalid sigType: %d\n", sigType);
+			return 0;
+	}
+
+	unsigned char md_value[hashSize];
 	unsigned int md_len = 0;
+	int result = 0;
 
 	EVP_MD_CTX *ctx1, *ctx2;
-	int result = ((ctx1 = EVP_MD_CTX_new()) == NULL);
-	if(result)
-		goto exit_e0;
+	if ((ctx1 = EVP_MD_CTX_new()) == NULL)
+		return 0;
 
-	result = ((ctx2 = EVP_MD_CTX_new()) == NULL);
-	if(result)
-		goto exit_e1;
+	if ((ctx2 = EVP_MD_CTX_new()) == NULL) {
+		EVP_MD_CTX_free(ctx1);
+		return 0;
+	}
 
-	EVP_DigestInit(ctx1, EVP_get_digestbyname("sha1"));
+	EVP_DigestInit(ctx1, algo);
 	EVP_DigestUpdate(ctx1, data, imageSize);
-	EVP_DigestFinal(ctx1, (unsigned char *)&md_value, &md_len);
-	EVP_DigestInit(ctx2, EVP_sha1());
-	EVP_DigestUpdate(ctx2, (unsigned char *)&md_value, md_len);
+	EVP_DigestFinal(ctx1, md_value, &md_len);
+	EVP_DigestInit(ctx2, algo);
+	EVP_DigestUpdate(ctx2, md_value, md_len);
 	
-	result = EVP_VerifyFinal(ctx2, signature, SIGNATURE_SIZE, _gpPubKey);
-	EVP_MD_CTX_free(ctx2);
+	result = EVP_VerifyFinal(ctx2, signature, sigSize, _gpPubKey);
 
-	exit_e1:
+	EVP_MD_CTX_free(ctx2);
 	EVP_MD_CTX_free(ctx1);
 
-	exit_e0:
 	return result;
 }
 
@@ -105,13 +124,13 @@ int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize) {
  */
 int wrap_SWU_VerifyImage(
 	void *signature, void* data,
-	size_t signedSize, size_t *effectiveSignedSize
+	size_t signedSize, size_t *effectiveSignedSize, SIG_TYPE_T sigType
 ){
 	size_t curSize = signedSize;
 	int verified;
 	//int skipped = 0;
 	while (curSize > 0) {
-		verified = API_SWU_VerifyImage(signature, data, curSize);
+		verified = API_SWU_VerifyImage(signature, data, curSize, sigType);
 		if (verified) {
 			if(effectiveSignedSize != NULL){
 				*effectiveSignedSize = curSize;
@@ -131,7 +150,7 @@ int wrap_SWU_VerifyImage(
 /*
  * High level wrapper for signature verification
  */
-int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir){
+int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir, SIG_TYPE_T sigType){
 	size_t effectiveSignedSize;
 	int result = -1;
 	if(!sigCheckAvailable){
@@ -152,7 +171,7 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 				if (strstr(hFile->d_name, ".pem") || strstr(hFile->d_name, ".PEM")) {
 					printf("Trying RSA key: %s...\n", hFile->d_name);
 					SWU_CryptoInit_PEM(config_dir, hFile->d_name);
-					result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize);
+					result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize, sigType);
 					if(result > -1){
 						sigCheckAvailable = 1;
 						break;
@@ -162,7 +181,7 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 			closedir(dirFile);
 		}
 	} else {
-		result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize);
+		result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize, sigType);
 	}
 
 	if (result < 0) {

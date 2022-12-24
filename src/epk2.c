@@ -98,9 +98,13 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 			epkHeader,
 			signed_size,
 			// Folder containing keys
-			config_opts->config_dir
+			config_opts->config_dir,
+			SIG_SHA1
 		);
 	}
+
+	if (config_opts->signatureOnly)
+		return;
 
 	result = wrap_decryptimage(
 		epkHeader,
@@ -194,7 +198,8 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 					pak->signature,
 					&(pak->pakHeader),
 					signed_size,
-					config_opts->config_dir
+					config_opts->config_dir,
+					SIG_SHA1
 				);
 			}
 

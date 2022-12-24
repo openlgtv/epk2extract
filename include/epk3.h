@@ -32,8 +32,17 @@ typedef struct __attribute__((packed)) {
 	uint32_t pakInfoMagic;
 	uint8_t encryptType[6];
 	uint8_t updateType[3];
-	uint8_t reserved[1399];
+	uint8_t gap[3];
+	float updatePlatformVersion;
+	float compatibleMinimumVersion;
+	int needToCheckCompatibleVersion;
+	uint8_t reserved[1384];
 } EPK_V3_NEW_HEADER_T;
+
+typedef union __attribute__((packed)) {
+	EPK_V3_HEADER_T old;
+	EPK_V3_NEW_HEADER_T new;
+} EPK_V3_HEADER_UNION;
 
 typedef struct __attribute__((packed)) {
 	// SegmentInfo
@@ -77,6 +86,11 @@ typedef struct __attribute__((packed)) {
 	PAK_V3_HEADER_T packages[];
 } PAK_V3_NEW_LISTHEADER_T;
 
+typedef union __attribute__((packed)) {
+	PAK_V3_LISTHEADER_T old;
+	PAK_V3_NEW_LISTHEADER_T new;
+} PAK_V3_LISTHEADER_UNION;
+
 struct __attribute__((packed)) epk3_head_structure {
 	signature_t signature;
 	EPK_V3_HEADER_T epkHeader;
@@ -87,7 +101,7 @@ struct __attribute__((packed)) epk3_head_structure {
 };
 
 struct __attribute__((packed)) epk3_new_head_structure {
-	signature_t signature;
+	signature_new_t signature;
 	EPK_V3_NEW_HEADER_T epkHeader;
 	char platformVersion[16];
 	char sdkVersion[16];
@@ -95,18 +109,20 @@ struct __attribute__((packed)) epk3_new_head_structure {
 
 struct  __attribute__((packed)) epk3_structure {
 	struct epk3_head_structure head;
-    signature_t packageInfo_signature;
+	signature_t packageInfo_signature;
 	PAK_V3_LISTHEADER_T packageInfo;
 };
 
 struct __attribute__((packed)) epk3_new_structure {
-	signature_t signature;
 	struct epk3_new_head_structure head;
-
-	signature_t packageInfo_signature;
-	signature_t sig2;
+	signature_new_t packageInfo_signature;
 	PAK_V3_NEW_LISTHEADER_T packageInfo;
 };
+
+typedef union __attribute__((packed)) {
+	struct epk3_structure old;
+	struct epk3_new_structure new;
+} epk3_union;
 
 struct __attribute__((packed)) pak3_structure {
 	signature_t signature;
