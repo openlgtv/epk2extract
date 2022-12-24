@@ -39,6 +39,11 @@ typedef struct __attribute__((packed)) {
 	uint8_t reserved[1384];
 } EPK_V3_NEW_HEADER_T;
 
+typedef union __attribute__((packed)) {
+	EPK_V3_HEADER_T old;
+	EPK_V3_NEW_HEADER_T new;
+} EPK_V3_HEADER_UNION;
+
 typedef struct __attribute__((packed)) {
 	// SegmentInfo
 	uint32_t isSegmented;
@@ -81,6 +86,11 @@ typedef struct __attribute__((packed)) {
 	PAK_V3_HEADER_T packages[];
 } PAK_V3_NEW_LISTHEADER_T;
 
+typedef union __attribute__((packed)) {
+	PAK_V3_LISTHEADER_T old;
+	PAK_V3_NEW_LISTHEADER_T new;
+} PAK_V3_LISTHEADER_UNION;
+
 struct __attribute__((packed)) epk3_head_structure {
 	signature_t signature;
 	EPK_V3_HEADER_T epkHeader;
@@ -105,10 +115,14 @@ struct  __attribute__((packed)) epk3_structure {
 
 struct __attribute__((packed)) epk3_new_structure {
 	struct epk3_new_head_structure head;
-
 	signature_new_t packageInfo_signature;
 	PAK_V3_NEW_LISTHEADER_T packageInfo;
 };
+
+typedef union __attribute__((packed)) {
+	struct epk3_structure old;
+	struct epk3_new_structure new;
+} epk3_union;
 
 struct __attribute__((packed)) pak3_structure {
 	signature_t signature;
