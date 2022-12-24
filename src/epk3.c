@@ -68,7 +68,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	
 	epk3_union *epk3 = mdata(epk, epk3_union);
 
-	size_t headerSize, signed_size;
+	size_t headerSize, signed_size, sigSize, extraSegmentSize;
 	SIG_TYPE_T sigType;
 	{
 		switch(epkType){
@@ -80,11 +80,16 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 					sizeof(epk3->old.head.reserved)
 				);
 				sigType = SIG_SHA1;
+				sigSize = SIGNATURE_SIZE;
+				extraSegmentSize = 0;
 				break;
 			case EPK_V3_NEW:
 				headerSize = sizeof(EPK_V3_NEW_HEADER_T);
 				signed_size = headerSize;
 				sigType = SIG_SHA256;
+				sigSize = SIGNATURE_SIZE_NEW;
+				/* each segment has an index value */
+				extraSegmentSize = sizeof(uint32_t);
 				break;
 			default:
 				err_exit("Unsupported EPK3 variant\n");
@@ -272,11 +277,17 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			segNo < segmentInfo.segmentCount;
 			segNo++, pak++, i++
 		){
-			//skip segment signature
-			if(epkType == EPK_V3_NEW){
-				dataPtr += SIGNATURE_SIZE_NEW;
-			} else {
-				dataPtr += SIGNATURE_SIZE;
+			dataPtr += sigSize;
+
+			if(config_opts->enableSignatureChecking)
+			{
+				wrap_verifyimage(
+					(void *)(dataPtr - sigSize),
+					(void *)dataPtr,
+					pak->segmentInfo.segmentSize + extraSegmentSize,
+					config_opts->config_dir,
+					sigType
+				);
 			}
 
 			
@@ -314,10 +325,9 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			}
 
 			dataPtr += pak->segmentInfo.segmentSize;
-			
-			if(epkType == EPK_V3_NEW){
-				dataPtr += sizeof(uint32_t);
-			}
+
+			/* for segment index in new EPK3 */
+			dataPtr += extraSegmentSize;
 		}
 
 		mclose(pakFile);
