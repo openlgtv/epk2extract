@@ -15,6 +15,8 @@
 #include "os_byteswap.h"
 #include "util.h"
 
+#define PAKNAME_LEN 4
+
 int isFileEPK1(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");
 	if (file == NULL) {
@@ -109,14 +111,29 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			struct pakHeader_t *pakHeader = (struct pakHeader_t *)pheader;
 			SWAP(pakHeader->pakSize);
 			pakHeader = (struct pakHeader_t *)(buffer + pakRecord->offset);
-			char pakName[5] = "";
-			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
-			char filename[255] = "";
-			sprintf(filename, "%s/%s.pak", config_opts->dest_dir, pakName);
+
+			char pakName[PAKNAME_LEN + 1] = "";
+			sprintf(pakName, "%.*s", PAKNAME_LEN, pakHeader->pakName);
+
+			char filename[PATH_MAX + 1] = "";
+			int filename_len = snprintf(filename, PATH_MAX + 1, "%s/%s.pak", config_opts->dest_dir, pakName);
+
+			if (filename_len > PATH_MAX) {
+				err_exit("Error in %s: filename too long (%d > %d)\n", __func__, filename_len, PATH_MAX);
+			} else if (filename_len < 0) {
+				err_exit("Error in %s: snprintf() failed (%d)\n", __func__, filename_len);
+			}
+
 			printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, pakHeader->platform, pakRecord->offset, pakRecord->size, filename);
-			FILE *outfile = fopen(((const char *)filename), "wb");
+			FILE *outfile = fopen(filename, "wb");
+
+			if (outfile == NULL) {
+				err_exit("Error in %s: failed to open file '%s': %s.\n", __func__, filename, strerror(errno));
+			}
+
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord->size - 132, outfile);
 			fclose(outfile);
+
 			handle_file(filename, config_opts);
 			free(pakRecord);
 			free(pheader);
@@ -130,18 +147,34 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		constructVerString(verString, epakHeader);
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
+
 		for (index = 0; index < epakHeader->pakCount; index++) {
 			struct pakRec_t pakRecord = epakHeader->pakRecs[index];
 			struct pakHeader_t *pakHeader;
 			pakHeader = (struct pakHeader_t *)(buffer + pakRecord.offset);
-			char pakName[5] = "";
-			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
-			char filename[255] = "";
-			sprintf(filename, "%s/%s.pak", config_opts->dest_dir, pakName);
+
+			char pakName[PAKNAME_LEN + 1] = "";
+			sprintf(pakName, "%.*s", PAKNAME_LEN, pakHeader->pakName);
+
+			char filename[PATH_MAX + 1] = "";
+			int filename_len = snprintf(filename, PATH_MAX + 1, "%s/%s.pak", config_opts->dest_dir, pakName);
+
+			if (filename_len > PATH_MAX) {
+				err_exit("Error in %s: filename too long (%d > %d)\n", __func__, filename_len, PATH_MAX);
+			} else if (filename_len < 0) {
+				err_exit("Error in %s: snprintf() failed (%d)\n", __func__, filename_len);
+			}
+
 			printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
 			FILE *outfile = fopen(((const char *)filename), "wb");
+
+			if (outfile == NULL) {
+				err_exit("Error in %s: failed to open file '%s': %s.\n", __func__, filename, strerror(errno));
+			}
+
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
 			fclose(outfile);
+
 			handle_file(filename, config_opts);
 		}
 	} else {					// new EPK1 header
@@ -151,17 +184,33 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		constructNewVerString(verString, epakHeader);
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
+
 		for (index = 0; index < epakHeader->pakCount; index++) {
 			struct pakRec_t pakRecord = epakHeader->pakRecs[index];
 			struct pakHeader_t *pakHeader = (struct pakHeader_t *)(buffer + pakRecord.offset);
-			char pakName[5] = "";
-			sprintf(pakName, "%.*s", 4, pakHeader->pakName);
-			char filename[255] = "";
-			sprintf(filename, "%s/%s.pak", config_opts->dest_dir, pakName);
+
+			char pakName[PAKNAME_LEN + 1] = "";
+			sprintf(pakName, "%.*s", PAKNAME_LEN, pakHeader->pakName);
+
+			char filename[PATH_MAX + 1] = "";
+			int filename_len = snprintf(filename, PATH_MAX + 1, "%s/%s.pak", config_opts->dest_dir, pakName);
+
+			if (filename_len > PATH_MAX) {
+				err_exit("Error in %s: filename too long (%d > %d)\n", __func__, filename_len, PATH_MAX);
+			} else if (filename_len < 0) {
+				err_exit("Error in %s: snprintf() failed (%d)\n", __func__, filename_len);
+			}
+
 			printf("\n#%u/%u saving PAK (name='%s', platform='%s', offset=0x%x, size='%d') to file %s\n", index + 1, epakHeader->pakCount, pakName, pakHeader->platform, pakRecord.offset, pakRecord.size, filename);
-			FILE *outfile = fopen(((const char *)filename), "wb");
+			FILE *outfile = fopen(filename, "wb");
+
+			if (outfile == NULL) {
+				err_exit("Error in %s: failed to open file '%s': %s.\n", __func__, filename, strerror(errno));
+			}
+
 			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakHeader->pakSize + 4, outfile);
 			fclose(outfile);
+
 			handle_file(filename, config_opts);
 		}
 	}
