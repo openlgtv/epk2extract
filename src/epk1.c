@@ -79,19 +79,15 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 
 		uint32_t *fwVer = buffer + epakHeader->offset - 4;
 		printf("\nFirmware otaID: %s\n", (char *)(buffer + epakHeader->offset + 8));
-		printf("Firmware version: " EPK_VERSION_FORMAT "\n",
-			(fwVer[0] >> (8 * 0)) & 0xff,
-			(fwVer[0] >> (8 * 1)) & 0xff,
-			(fwVer[0] >> (8 * 2)) & 0xff,
-			(fwVer[0] >> (8 * 3)) & 0xff);
-		printf("PAK count: %d\n", epakHeader->pakCount);
-		printf("PAKs total size: %d\n", epakHeader->fileSize);
-
 		sprintf(verString, EPK_VERSION_FORMAT,
 			(fwVer[0] >> (8 * 0)) & 0xff,
 			(fwVer[0] >> (8 * 1)) & 0xff,
 			(fwVer[0] >> (8 * 2)) & 0xff,
 			(fwVer[0] >> (8 * 3)) & 0xff);
+		printf("Firmware version: %s\n", verString);
+		printf("PAK count: %d\n", epakHeader->pakCount);
+		printf("PAKs total size: %d\n", epakHeader->fileSize);
+
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 
