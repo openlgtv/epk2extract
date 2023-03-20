@@ -31,24 +31,24 @@ int isFileEPK1(const char *epk_file) {
 
 void printHeaderInfo(struct epk1Header_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
-	printf("Firmware version: " EPK_VERSION_FORMAT "\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
+	printf("Firmware version: " EPKV1_VERSION_FORMAT "\n", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
 	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
 void printNewHeaderInfo(struct epk1NewHeader_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
-	printf("Firmware version: " EPK_VERSION_FORMAT "\n", epakHeader->fwVer[3], epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
+	printf("Firmware version: " EPKV1_VERSION_FORMAT "\n", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
 	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
 void constructVerString(char *fw_version, struct epk1Header_t *epakHeader) {
-	sprintf(fw_version, EPK_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+	sprintf(fw_version, EPKV1_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
 }
 
 void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader) {
-	sprintf(fw_version, EPK_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+	sprintf(fw_version, EPKV1_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
 }
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
