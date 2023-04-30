@@ -54,6 +54,6 @@ struct pakHeader_t {
 };
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts);
-int isFileEPK1(const char *epk_file);
+bool isFileEPK1(const char *epk_file);
 
 #endif /* EPK1_H_ */

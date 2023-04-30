@@ -17,16 +17,24 @@
 
 #define PAKNAME_LEN 4
 
-int isFileEPK1(const char *epk_file) {
+bool isFileEPK1(const char *epk_file) {
 	FILE *file = fopen(epk_file, "rb");
 	if (file == NULL) {
 		err_exit("Can't open file %s\n\n", epk_file);
 	}
+
 	char magic[4];
-	if (fread(&magic, 1, 4, file) != 4)
+	if (fread(&magic, 1, 4, file) != 4) {
 		return 0;
+	}
+
 	fclose(file);
-	return !memcmp(&magic, "epak", 4);
+
+	if (memcmp(&magic, "epak", 4) == 0) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 void printHeaderInfo(struct epk1Header_t *epakHeader) {
@@ -53,19 +61,23 @@ void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader)
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 	int file;
-	if ((file = open(epk_file, O_RDONLY)) < 0) {
+	if ((file = open(epk_file, O_RDONLY)) == -1) {
 		err_exit("\nCan't open file %s\n\n", epk_file);
 	}
+
 	struct stat statbuf;
-	if (fstat(file, &statbuf) < 0) {
+	if (fstat(file, &statbuf) == -1) {
 		err_exit("\nfstat error\n\n");
 	}
+
 	int fileLength = statbuf.st_size;
 	printf("File size: %d bytes\n", fileLength);
+
 	void *buffer;
 	if ((buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED) {
 		err_exit("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
 	}
+
 	char verString[12];
 	int index;
 	uint32_t pakcount = ((struct epk1Header_t *)buffer)->pakCount;
@@ -139,6 +151,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			free(pheader);
 			offset += 8;
 		}
+
 		free(header);
 	} else if (pakcount < 21) {	// old EPK1 header
 		printf("\nFirmware type is EPK1...\n");
@@ -214,7 +227,10 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			handle_file(filename, config_opts);
 		}
 	}
-	if (munmap(buffer, fileLength) == -1)
+
+	if (munmap(buffer, fileLength) == -1) {
 		printf("Error un-mmapping the file");
+	}
+
 	close(file);
 }
