@@ -53,7 +53,7 @@ void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader)
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 	int file;
-	if (!(file = open(epk_file, O_RDONLY))) {
+	if ((file = open(epk_file, O_RDONLY)) < 0) {
 		err_exit("\nCan't open file %s\n\n", epk_file);
 	}
 	struct stat statbuf;
