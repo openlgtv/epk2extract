@@ -28,6 +28,13 @@ struct epk1BEHeader_t {
 	uint32_t size;
 };
 
+struct epk1BEVersion_t {
+	uint8_t pad;
+	uint8_t major;
+	uint8_t minor1;
+	uint8_t minor2;
+};
+
 struct epk1Header_t {
 	unsigned char epakMagic[4];
 	uint32_t fileSize;

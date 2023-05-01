@@ -84,20 +84,24 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 	if (pakcount >> 8 != 0) {
 		SWAP(pakcount);
 		printf("\nFirmware type is EPK1 Big Endian...\n");
+
 		unsigned char *header = malloc(sizeof(struct epk1BEHeader_t));	//allocate space for header
 		memcpy(header, buffer, sizeof(struct epk1BEHeader_t));	//copy header to buffer
+
 		struct epk1BEHeader_t *epakHeader = (struct epk1BEHeader_t *)header;	//make struct from buffer
 		SWAP(epakHeader->fileSize);
 		SWAP(epakHeader->pakCount);
 		SWAP(epakHeader->offset);
 
-		uint32_t *fwVer = buffer + epakHeader->offset - 4;
 		printf("\nFirmware otaID: %s\n", (char *)(buffer + epakHeader->offset + 8));
-		sprintf(verString, EPK_VERSION_FORMAT,
-			(fwVer[0] >> (8 * 0)) & 0xff,
-			(fwVer[0] >> (8 * 1)) & 0xff,
-			(fwVer[0] >> (8 * 2)) & 0xff,
-			(fwVer[0] >> (8 * 3)) & 0xff);
+
+		struct epk1BEVersion_t *fwVer = buffer + epakHeader->offset - 4;
+
+		if (fwVer->pad != 0) {
+			printf("Note: Padding byte is not zero (0x" PRIx8 ")!", fwVer->pad);
+		}
+
+		sprintf(verString, EPKV1_VERSION_FORMAT, fwVer->major, fwVer->minor1, fwVer->minor2);
 		printf("Firmware version: %s\n", verString);
 		printf("PAK count: %d\n", epakHeader->pakCount);
 		printf("PAKs total size: %d\n", epakHeader->fileSize);
