@@ -57,6 +57,12 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 	char *line = NULL;
 
 	while ((read = getline(&line, &len, fp)) != -1) {
+		if ((line[0] == '#') || (line[0] == '\0') ||
+		    (line[0] == '\n') || (line[0] == '\r')) {
+			/* skip commented or empty line */
+			continue;
+		}
+
 		char *pos = line;
 		uint8_t *buf = (uint8_t *)&key_buf;
 
