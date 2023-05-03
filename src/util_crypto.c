@@ -126,6 +126,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 				memcpy(&(key->ivec), &iv_buf, sizeof(iv_buf));
 			}
 			free(line);
+			fclose(fp);
 			return key;
 		}
 	}
@@ -133,6 +134,8 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 	if(line != NULL){
 		free(line);
 	}
+
+	fclose(fp);
 
 	return NULL;
 }
