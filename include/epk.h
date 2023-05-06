@@ -36,6 +36,7 @@ typedef enum {
 } SIG_TYPE_T;
 
 #define EPK_VERSION_FORMAT "%02" PRIx8 ".%02" PRIx8 ".%02" PRIx8 ".%02" PRIx8
+#define EPKV1_VERSION_FORMAT "%02" PRIx8 ".%02" PRIx8 ".%02" PRIx8
 
 bool isEpkVersionString(const char *str);
 int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir, SIG_TYPE_T sigType);

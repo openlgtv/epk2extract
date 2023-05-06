@@ -28,6 +28,13 @@ struct epk1BEHeader_t {
 	uint32_t size;
 };
 
+struct epk1BEVersion_t {
+	uint8_t pad;
+	uint8_t major;
+	uint8_t minor1;
+	uint8_t minor2;
+};
+
 struct epk1Header_t {
 	unsigned char epakMagic[4];
 	uint32_t fileSize;
@@ -54,6 +61,6 @@ struct pakHeader_t {
 };
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts);
-int isFileEPK1(const char *epk_file);
+bool isFileEPK1(const char *epk_file);
 
 #endif /* EPK1_H_ */

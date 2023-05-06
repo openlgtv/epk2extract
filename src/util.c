@@ -517,10 +517,15 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 /**
  * asprintf that allows reuse of strp in variadic arguments (frees strp and replaces it with newly allocated string)
  */
-int asprintf_inplace(char** strp, const char* fmt, ...) {
+int asprintf_inplace(char **strp, const char *fmt, ...) {
     va_list args;
     int result;
-    char* new_strp = NULL;
+    char *new_strp = NULL;
+
+    if ((strp == NULL) || (fmt == NULL)) {
+        err_exit("Error: %s called with NULL argument.\n", __func__);
+    }
+
     va_start(args, fmt);
     result = vasprintf(&new_strp, fmt, args);
     va_end(args);
