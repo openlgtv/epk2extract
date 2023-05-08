@@ -85,7 +85,7 @@ bool is_known_partition(struct mtkpkg *pak){
 		NULL
 	};
 
-	char **curPartName = likelyPartitionNames;
+	const char **curPartName = likelyPartitionNames;
 	for(int nameIndex=0; *curPartName != NULL; nameIndex++){
 		if(!strncmp(pak->header.pakName, *curPartName, sizeof(pak->header.pakName))){
 			return true;
@@ -179,7 +179,7 @@ MFILE *is_firm_image(const char *pkg){
 }
 
 int extract_firm_image(MFILE *mf){
-	return process_segment(mf, SIZEOF_FIRM_HEADERS, "firm");
+	return process_lzhs_segment(mf, SIZEOF_FIRM_HEADERS, "firm");
 }
 
 MFILE *is_lzhs_fs(const char *pkg){
