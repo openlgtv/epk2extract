@@ -276,7 +276,7 @@ int do_decompress(FILE * fi, FILE * fo) {
 		uint32_t version = xread32(fi);
 		if(version != 1){
 			header_error:
-				printf("header error - invalid method %d (version: %d) (level %d)\n", method, version, level);
+				printf("header error - invalid method %d (version: %d)\n", method, version);
 				r = 2;
 				goto err;
 		}
