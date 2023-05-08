@@ -67,7 +67,7 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 #   define LX "%x"
 #   define LLX "%llx"
 #   define LU "%u"
-#endif 
+#endif
 
 #ifdef __cplusplus
 }

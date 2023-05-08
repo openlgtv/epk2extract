@@ -51,7 +51,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 	uint8_t iv_buf[MAX_KEY_SIZE];
 	memset(&key_buf, 0x00, sizeof(key_buf));
 	memset(&iv_buf, 0x00, sizeof(iv_buf));
-	
+
 	ssize_t read;
 	size_t len = 0;
 	char *line = NULL;
@@ -115,7 +115,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 			default:
 				err_exit("Unsupported key type %d\n", key_type);
 				break;
-		}	
+		}
 
 		found = fCompare(tmp_data, in_data_size) > 0;
 

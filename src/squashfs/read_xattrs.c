@@ -283,7 +283,7 @@ void free_xattr(struct xattr_list *xattr_list, int count) {
  * this is better than completely refusing to retrieve all the xattrs.
  *
  * If ignore is TRUE then don't treat unknown xattr prefixes as
- * a failure to read the xattr.  
+ * a failure to read the xattr.
  */
 struct xattr_list *get_xattr(int i, unsigned int *count, int ignore) {
 	long long start;

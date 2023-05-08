@@ -380,7 +380,7 @@ void cache_block_ready(struct cache_entry *entry, int error) {
 	/*
 	 * mark cache entry as being complete, reading and (if necessary)
 	 * decompression has taken place, and the buffer is valid for use.
-	 * If an error occurs reading or decompressing, the buffer also 
+	 * If an error occurs reading or decompressing, the buffer also
 	 * becomes ready but with an error...
 	 */
 	pthread_mutex_lock(&entry->cache->mutex);

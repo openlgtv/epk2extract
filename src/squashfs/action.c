@@ -570,7 +570,7 @@ static int eval_expr(struct expr *expr, struct action_data *action_data) {
  *	action(arg1,arg2)@expr(arg1,arg2)....
  *
  * Actions can be split across multiple lines using "\".
- * 
+ *
  * Blank lines and comment lines indicated by # are supported.
  */
 int read_action_file(char *filename) {
@@ -2013,7 +2013,7 @@ static int exec_fn(struct atom *atom, struct action_data *action_data) {
 	}
 
 	/*
-	 * Parent process. 
+	 * Parent process.
 	 */
 
 	res = waitpid(child, &status, 0);

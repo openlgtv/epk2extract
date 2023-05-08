@@ -85,10 +85,10 @@ MFILE *_mopen(const char *path, int oflags, int mapFlags){
 	if(file->fd < 0){
 		goto e0_ret;
 	}
-	
+
 	if(_mfile_update_info(file, path) < 0)
 		goto e1_ret;
-	
+
 	if((oflags & O_ACCMODE) == O_RDONLY) {
 		file->prot = PROT_READ;
 	} else if((oflags & O_ACCMODE) == O_WRONLY) {
@@ -184,7 +184,7 @@ MFILE *_mfopen(const char *path, const char *mode, int mapFlags){
 		goto e0_ret;
 	}
 	file->fd = fileno(file->fh);
-	
+
 	if(_mfile_update_info(file, path) < 0)
 		goto e1_ret;
 

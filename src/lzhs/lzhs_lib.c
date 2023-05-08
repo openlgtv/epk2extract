@@ -132,7 +132,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	size_t fsize;
 
 	char *outpath;
-	
+
 	unsigned long int textsize, codesize;
 
 	struct lzhs_ctx *ctx = lzhs_ctx_new();
@@ -157,7 +157,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	if (!out) {
 		err_exit("Cannot open file conv\n");
 	}
-	
+
 	fseek(in, 0, SEEK_END);
 	fsize = ftell(in);
 	rewind(in);
@@ -174,9 +174,9 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	printf("[LZHS] Converting ARM => Thumb...\n");
 	ARMThumb_Convert(buf, fsize, 0, 1);
 	fwrite(buf, 1, fsize, out);
-	
+
 	free(buf);
-	
+
 ////LZSS
 	freopen(outpath, "rb", in);
 	if (!in) {
@@ -199,7 +199,7 @@ void lzhs_encode(const char *infile, const char *outfile) {
 	if (!in) {
 		err_exit("Cannot open file tmp.lzs\n");
 	}
-	
+
 	freopen(outfile, "wb", out);
 	if (!out) {
 		err_exit("Cannot open file %s\n", outfile);
@@ -207,10 +207,10 @@ void lzhs_encode(const char *infile, const char *outfile) {
 
 	header.uncompressedSize = fsize;
 	fwrite(&header, 1, sizeof(header), out);
-	
+
 	printf("[LZHS] Encoding with Huffman...\n");
 
-	huff(ctx, in, out, &textsize, &codesize); 
+	huff(ctx, in, out, &textsize, &codesize);
 	header.compressedSize = codesize;
 	printf("[LZHS] Writing Header...\n");
 	rewind(out);
@@ -278,7 +278,7 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 		.size = header->compressedSize,
 		.offset = 0
 	};
-	
+
 	/* Temp memory */
 	cursor_t out_cur = {
 		.ptr = tmp,
@@ -291,9 +291,9 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	printf("[LZHS] Decoding Huffman...\n");
 	// Input file -> Temp memory
 	unhuff(ctx, &in_cur, &out_cur);
-	
+
 	printf("[LZHS] Decoding LZSS...\n");
-	
+
 	// Rewind the huffman cursor and change ends
 	out_cur.offset = 0;
 	memcpy((void *)&in_cur, (void *)&out_cur, sizeof(cursor_t));
@@ -322,8 +322,8 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 	if (checksum != header->checksum)
 		printf("[LZHS] WARNING: Checksum mismatch (got 0x%x, expected 0x%x)!!\n", checksum, header->checksum);
 	if (out_cur.size != header->uncompressedSize)
-		printf("[LZHS] WARNING: Size mismatch (got %zu, expected %u)!!\n", out_cur.size, header->uncompressedSize);	
-	
+		printf("[LZHS] WARNING: Size mismatch (got %zu, expected %u)!!\n", out_cur.size, header->uncompressedSize);
+
 	if(out_file != NULL){
 		mclose(out_file);
 		return NULL;
@@ -337,41 +337,41 @@ cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_
 int process_segment(MFILE *in_file, off_t offset, const char *name){
 	int r = 0;
 	char *file_dir = my_dirname(in_file->path);
-	
+
 	char *out_path;
-	asprintf(&out_path, "%s/%s.lzhs", file_dir, name);	
+	asprintf(&out_path, "%s/%s.lzhs", file_dir, name);
 	printf("[MTK] Extracting %s to %s...\n", name, out_path);
-	
+
 	MFILE *out_file = mfopen(out_path, "w+");
 	if (!out_file) {
 		fprintf(stderr, "Cannot open file %s for writing\n", out_path);
 		r = -1;
 		goto exit;
 	}
-	
+
 	uint8_t *bytes = &(mdata(in_file, uint8_t))[offset];
 	struct lzhs_header *lzhs_hdr = (struct lzhs_header *)bytes;
-	
+
 	/* Allocate file */
 	mfile_map(out_file,
 		sizeof(*lzhs_hdr) +	lzhs_hdr->compressedSize
 	);
-	
+
 	/* Copy compressed file */
 	memcpy(
 		(void *)(mdata(out_file, uint8_t)),
 		(void *)bytes,
 		lzhs_hdr->compressedSize + sizeof(*lzhs_hdr)
 	);
-	
+
 	printf("[MTK] UnLZHS %s\n", out_path);
-	
+
 	asprintf(&out_path, "%s/%s.unlzhs", file_dir, name);
-	
+
 	// Decode the file we just wrote
 	lzhs_decode(out_file, 0, out_path, NULL);
 	mclose(out_file);
-	
+
 	exit:
 		free(out_path);
 		free(file_dir);
@@ -389,8 +389,8 @@ int extract_lzhs(MFILE *in_file) {
 	if(is_lzhs_mem(in_file, MTK_UBOOT_OFF) && (r=process_segment(in_file, MTK_UBOOT_OFF, "uboot")) < 0)
 		return r;
 	if(is_lzhs_mem(in_file, MTK_HISENSE_UBOOT_OFF) && (r=process_segment(in_file, MTK_HISENSE_UBOOT_OFF, "uboot")) < 0)
-		return r;	
-		
+		return r;
+
 
 	if(msize(in_file) < MTK_UBOOT_OFF){
 		return 0;
@@ -409,15 +409,15 @@ int extract_lzhs(MFILE *in_file) {
 		uboot_hdr->compressedSize +
 		//Align to the next "line"
 		pad +
-		//TZ relative offset 
+		//TZ relative offset
 		MTK_TZ_OFF
 	);
-	
+
 	/* Do we have the TZ segment? (mtk5369 only) */
 	if(mtk_tz < msize(in_file)){
 		if(is_lzhs_mem(in_file, mtk_tz) && (r=process_segment(in_file, mtk_tz, "boot_tz")) < 0)
 			return r;
 	}
-	
+
 	return 0;
 }

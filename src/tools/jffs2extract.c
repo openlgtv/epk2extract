@@ -27,11 +27,11 @@ int main(int argc, char *argv[]){
 		argv[0]);
 		return 1;
 	}
-	
+
 	int erase_size = -1;
 	int verbose = 0;
 	bool keep_unlinked = false;
-	
+
 	int c;
 	while ((c = getopt (argc, argv, "e:vk")) != -1){
 		switch(c){
@@ -48,31 +48,31 @@ int main(int argc, char *argv[]){
 				break;
 		}
 	}
-	
+
 	char *filename;
 	if(optind < argc){
 		filename = argv[optind];
 	} else {
 		goto usage;
 	}
-	
+
 	char *dir_name = my_dirname(filename);
 	char *base_name = my_basename(filename);
-	
+
 	char *outpath;
 	asprintf(&outpath, "%s/%s.unjffs2", dir_name, base_name);
-	
+
 	free(dir_name); free(base_name);
-	
+
 	struct jffs2_main_args args = {
 		.erase_size = erase_size,
 		.keep_unlinked = keep_unlinked,
 		.verbose = verbose
 	};
-	
+
 	printf("Extracting %s to %s\n", filename, outpath);
 	int ret = jffs2extract(filename, outpath, args);
-	
+
 	free(outpath);
 	return ret;
 }

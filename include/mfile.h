@@ -42,7 +42,7 @@ extern "C" {
 		(size * nmemb) \
 	); \
 	mfile->offset += (size * nmemb)
-	
+
 #define mrewind(mfile) mfile->offset = 0
 
 typedef struct {

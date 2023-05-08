@@ -2,14 +2,14 @@
  * Copyright 2016 Smx <smxdev4@gmail.com>
  * All right reserved
  */
- 
+
 #ifndef __MTKPKG_H
 #define __MTKPKG_H
 #include "config.h"
 
 #define UPG_HEADER_SIZE 0x70
 
-/* Vendor Magics (all 4 bytes) */ 
+/* Vendor Magics (all 4 bytes) */
 #define HISENSE_PKG_MAGIC "hise"
 #define SHARP_PKG_MAGIC "Shar"
 #define TPV_PKG_MAGIC "TPV_"
@@ -61,7 +61,7 @@ struct __attribute__((packed)) mtkpkg_crypted_header {
 };
 
 struct __attribute__((packed)) mtkpkg_data {
-	struct mtkpkg_crypted_header header;	
+	struct mtkpkg_crypted_header header;
 	union {
 		struct mtkpkg_plat platform; //package header, followed by optional mtkpkg_pad
 		uint8_t pkgData[0]; //first package doesn't have headers

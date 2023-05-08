@@ -22,12 +22,12 @@ Supported Formats:
 | epk v3   	| Introduced with WebOS. Keys needed
 | Mediatek pkg | UPG/PKG files used by Hisense/Sharp/Philips (missing Philips AES key) and possibly others
 | Philips "fusion" | Upgrade files used by some Philips TVs
-| squashfs	| 
-| cramfs	| 
+| squashfs	|
+| cramfs	|
 | lz4		| Slightly modified version with header magic
-| lzo		| 
-| gzip		| 
-| jffs2		| 
+| lzo		|
+| gzip		|
+| jffs2		|
 | lzhs		| Special compression for MTK bootloaders (boot.pak, tzfw.pak), uses lzss + huffman
 | lzhs_fs   | LZHS compressed filesystem used in MTK Upgrade files for the external writable partition (3rdw)
 | mtdinfo/partinfo |  LG Partition table format (mtdi.pak, part.pak)
@@ -77,7 +77,7 @@ urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 ./build.sh
 ```
 
-After building, epk2extract can be found in ./build_\<platform\>/ 
+After building, epk2extract can be found in ./build_\<platform\>/
 
 
 To compile on Cygwin:
@@ -117,7 +117,7 @@ Run it via sudo/fakeroot to avoid warnings (while extracting device nodes from r
 ## To get IDC from SYM run:
 
     ./epk2extract xxxxxxxx.sym
-    
+
 ## To decode part.pak or mtdi.pak do:
 
     ./epk2extract part.pak

@@ -15,7 +15,7 @@
 int compare_pak2_header(uint8_t *header, size_t headerSize);
 int compare_epk2_header(uint8_t *header, size_t headerSize);
 MFILE *isFileEPK2(const char *epk_file);
-void extractEPK2(MFILE *epk, config_opts_t *config_opts); 
+void extractEPK2(MFILE *epk, config_opts_t *config_opts);
 
 typedef struct {
 	char imageType[4];

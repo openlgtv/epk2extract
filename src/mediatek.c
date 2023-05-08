@@ -26,7 +26,7 @@ void extract_mtk_1bl(MFILE *in, const char *outname) {
 	}
 
 	size_t pbl_size = 0;
-	
+
 	uint8_t *data = mdata(in, uint8_t);
 	if(memcmp(data + 0x100, MTK_PBL_MAGIC, strlen(MTK_PBL_MAGIC)) == 0)
 		pbl_size = MTK_PBL_SIZE;
@@ -104,7 +104,7 @@ MFILE *is_mtk_boot(const char *filename) {
 		mclose(file);
 		return NULL;
 	}
-	
+
 	return file;
 }
 
@@ -119,11 +119,11 @@ MFILE *is_elf(const char *filename) {
 	if (file == NULL) {
 		err_exit("Can't open file %s\n", filename);
 	}
-	
+
 	Elf32_Ehdr *elfHdr = mdata(file, Elf32_Ehdr);
 	if (!memcmp(&(elfHdr->e_ident), ELFMAG, 4))
 		return file;
-	
+
 	mclose(file);
 	return NULL;
 }

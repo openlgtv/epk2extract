@@ -91,7 +91,7 @@ int process_idb(MFILE *mf){
 			return -1;
 		}
 	} while(strncmp(p, IDB_HDR_ENDMARK, strlen(IDB_HDR_ENDMARK)));
-	
+
 	p = READ_AFTER(mf, p, '\n');
 	if(p == NULL){
 		return -1;
@@ -106,7 +106,7 @@ int process_idb(MFILE *mf){
 	char *file_dir = my_dirname(mf->path);
 	char *file_base = my_basename(mf->path);
 	char *file_name = remove_ext(file_base);
-	
+
 	char *dest_dir;
 	asprintf(&dest_dir, "%s/%s", file_dir, file_name);
 	createFolder(dest_dir);
@@ -123,7 +123,7 @@ int process_idb(MFILE *mf){
 
 		char *out_file;
 		asprintf(&out_file, "%s/%d.png", dest_dir, i);
-		
+
 		MFILE *out = mfopen(out_file, "w+");
 		if(!out){
 			fprintf(stderr, "Cannot open '%s' for writing\n", out_file);

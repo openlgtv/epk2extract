@@ -71,7 +71,7 @@ int SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
 /*
  * Verifies the signature of the given data against the loaded public key
  */
-int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize, SIG_TYPE_T sigType) { 
+int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize, SIG_TYPE_T sigType) {
 	size_t hashSize;
 	unsigned int sigSize;
 	const EVP_MD *algo;
@@ -110,7 +110,7 @@ int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize, SIG_TYPE_
 	EVP_DigestFinal(ctx1, md_value, &md_len);
 	EVP_DigestInit(ctx2, algo);
 	EVP_DigestUpdate(ctx2, md_value, md_len);
-	
+
 	result = EVP_VerifyFinal(ctx2, signature, sigSize, _gpPubKey);
 
 	EVP_MD_CTX_free(ctx2);
@@ -293,10 +293,10 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 		mprotect(epk->pMem, msize(epk), PROT_READ | PROT_WRITE);
 
 		printf("File size: %d bytes\n", msize(epk));
-		
+
 		struct epk2_structure *epk2 = mdata(epk, struct epk2_structure);
 		EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
-		
+
 		int result;
 		FILE_TYPE_T epkType;
 		if(compare_epk2_header((uint8_t *)epkHeader, sizeof(*epkHeader))){
