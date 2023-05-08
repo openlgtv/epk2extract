@@ -323,11 +323,11 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 	thpool_wait(thpool);
 	thpool_destroy(thpool);
 
-	int i;
+	uint i;
 	for(i=1; i<=segNo; i++){
-		printf("[+] Joining Segment %d\n", i);
+		printf("[+] Joining Segment %u\n", i);
 		char *outSeg;
-		asprintf(&outSeg, "%s/%s.%d", tmpdir, base, i);
+		asprintf(&outSeg, "%s/%s.%u", tmpdir, base, i);
 
 		MFILE *seg = mopen(outSeg, O_RDONLY);
 		fwrite(mdata(seg, void), msize(seg), 1, out_file);
