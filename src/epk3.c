@@ -44,7 +44,7 @@ MFILE *isFileEPK3(const char *epk_file) {
 	if(msize(file) < sizeof(*epk3)){
 		goto checkFail;
 	}
-	
+
 	// check if the epk magic is present (decrypted)
 	if(compare_epk3_header((uint8_t *)&(head->epkHeader), sizeof(EPK_V3_HEADER_T))){
 		goto checkOk;
@@ -65,7 +65,7 @@ MFILE *isFileEPK3(const char *epk_file) {
 }
 
 void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
-	
+
 	epk3_union *epk3 = mdata(epk, epk3_union);
 
 	size_t headerSize, signed_size, sigSize, extraSegmentSize;
@@ -130,7 +130,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	size_t pak_signed_size;
 	PAK_V3_LISTHEADER_UNION *packageInfo;
-	
+
 	PAK_V3_HEADER_T *pak;
 
 	void *sigPtr;
@@ -172,8 +172,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	);
 	printf("packageInfoSize: %d\n", epkHeader->old.packageInfoSize);
 	printf("bChunked: %d\n", epkHeader->old.bChunked);
-	
-	if(epkType == EPK_V3_NEW){	
+
+	if(epkType == EPK_V3_NEW){
 		printf("EncryptType: %.*s\n",
 			sizeof(epkHeader->new.encryptType),
 			epkHeader->new.encryptType
@@ -217,14 +217,14 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		RAW,
 		NULL
 	);
-	
+
 	if(result < 0){
 		return;
 	}
-	
+
 	if(epkType == EPK_V3_NEW){
 		if(packageInfo->new.pakInfoMagic != epkHeader->new.pakInfoMagic){
-			printf("pakInfoMagic mismatch! (expected: %04X, actual: %04X)\n", 
+			printf("pakInfoMagic mismatch! (expected: %04X, actual: %04X)\n",
 					epkHeader->new.pakInfoMagic,
 					packageInfo->new.pakInfoMagic
 			);
@@ -233,11 +233,11 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 	}
 
 	uintptr_t dataPtr = (uintptr_t)packageInfo;
-		
+
 	dataPtr += epkHeader->old.packageInfoSize;
-	
+
 	int packageInfoCount;
-	
+
 	switch(epkType){
 		case EPK_V3:
 			packageInfoCount = packageInfo->old.packageInfoCount;
@@ -246,7 +246,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			packageInfoCount = packageInfo->new.packageInfoCount;
 			break;
 	}
-	
+
 	for(uint i = 0; i<packageInfoCount;){
 		if(pak->packageInfoSize != sizeof(*pak)){
 			printf("Warning: Unexpected packageInfoSize '%d', expected '%d'\n",
@@ -259,7 +259,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			pak->segmentInfo.segmentCount,
 			pak->packageSize
 		);
-		
+
 		char *pakFileName;
 		asprintf(&pakFileName, "%s/%s.pak", config_opts->dest_dir, pak->packageName);
 
@@ -290,7 +290,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 				);
 			}
 
-			
+
 			printf("  segment #%u (name='%s', version='%s', offset='0x%lx', size='%u bytes')\n",
 				segNo + 1,
 				pak->packageName,
@@ -307,11 +307,11 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 				RAW,
 				NULL
 			);
-					
+
 			if(result < 0){
-				return;	
+				return;
 			}
-			
+
 			if(epkType == EPK_V3_NEW){
 				uint32_t decryptedSegmentIndex = *(uint32_t *)dataPtr;
 				if(decryptedSegmentIndex != i){

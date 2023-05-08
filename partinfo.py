@@ -27,7 +27,7 @@ def fancyprint(str, pad):
 	for c in range(pad):
 		astr+=" "
 	astr+= "|"
-	
+
 	for c in range(len(astr)):
 		sys.stdout.write('-')
 	print ""
@@ -40,7 +40,7 @@ def fancyprint(str, pad):
 if not len(sys.argv) == 2:
 	print "Usage: %s part.pak" % sys.argv[0]
 	sys.exit()
-	
+
 if not os.path.exists(sys.argv[1]):
 	sys.exit("Invalid file specified")
 
@@ -54,7 +54,7 @@ with open(sys.argv[1], "rb") as partpak:
 	(magic, cur_epk_ver, old_epk_ver, npartition) = struct.unpack(partmap_struct, partpak.read(struct.calcsize(partmap_struct)))
 	(devname, devsize, devphys, devvirt, devcached, devbandwith, devused) = struct.unpack(device_struct, partpak.read(struct.calcsize(device_struct)))
 	devname = devname.replace("\x00","") #remove empty chars from string
-	
+
 	ismtk1 = fnmatch.fnmatchcase(devname, "mtk3569-emmc") #match mtk2012
 	ismtkm1 = fnmatch.fnmatchcase(devname, "mtk5369-emmc") #match mtk2012
 	ismtk2 = fnmatch.fnmatchcase(devname, "mtk3598-emmc") #match mtk2013
@@ -113,7 +113,7 @@ with open(sys.argv[1], "rb") as partpak:
 			#mtdinfo struct supports 4 mtd devices, but LG uses only one nand/device
 			#seek ahead the 3 empty slots
 			partpak.read(struct.calcsize(device_struct)*3)
-	
+
 	devname = devname.replace("\x00","") #remove empty chars from string
 	devsize = float(devsize)
 	if devsize%(1024*1024*1024) == 0:
@@ -124,11 +124,11 @@ with open(sys.argv[1], "rb") as partpak:
 		#Small MTD, use Megabytes
 		devsize = devsize/1024/1024
 		devsizeunit = "MB"
-		
-	
+
+
 	#swap magic byte array
 	magic = list(magic)[::-1]
-	
+
 	#if epk fields are not empty, swap them
 	if not allzero(cur_epk_ver) and not allzero(old_epk_ver):
 		cur_epk_ver = list(cur_epk_ver)[::-1]
@@ -137,39 +137,39 @@ with open(sys.argv[1], "rb") as partpak:
 	else:
 		#empty apk fields, don't display
 		epk_ver = 0
-	
+
 	#encode magic and epk data (if present) to hex
 	for e in range(4):
 		magic[e] = magic[e].encode("hex")
 		if epk_ver == 1:
 			cur_epk_ver[e] = cur_epk_ver[e].encode("hex")
 			old_epk_ver[e] = old_epk_ver[e].encode("hex")
-	
-	#join epk data with dot (.)		
+
+	#join epk data with dot (.)
 	cur_epk_ver = '.'.join([str(x) for x in cur_epk_ver])
 	old_epk_ver = '.'.join([str(x) for x in old_epk_ver])
-	
+
 	#build magic string
 	magic = magic[0]+magic[1]+"-"+magic[2]+"-"+magic[3]
 	#check if it's a valid date
 	validate(magic)
-	
+
 	fancyprint("Detected: "+model, 10)
-	
+
 	print "Partition Table Info:"
 	print "-------------------------------"
-	
+
 	print "Date Magic: %s" %magic
 	if not epk_ver == 0:
 		print "Epk version: %s" % cur_epk_ver
 		print "Old Epk version: %s" % old_epk_ver
 	if not npartition == 1 and not npartition == 0:
 		print "Partition Count: %d" % npartition
-		
+
 	print "MTD Name: %s, size %d %s" % (devname, devsize, devsizeunit)
 	print "Partition Table:"
 	print "-------------------------------"
-		
+
 	for part in range(npartition):
 		(partname, partoff, partsize, partfn, partfs, partsw, partIsUsed, partIsValid, partflags) = struct.unpack(part_struct, partpak.read(struct.calcsize(part_struct)))
 		partname = partname.strip()

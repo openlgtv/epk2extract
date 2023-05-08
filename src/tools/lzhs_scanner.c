@@ -52,14 +52,14 @@ void scan_lzhs(const char *filename, int extract) {
 				char *dirn = my_dirname(filename);
 				char *filen = my_basename(filename);
 				asprintf(&outname, "%s/%s_file%d.lzhs", dirn, filen, count);
-								
+
 				printf("Extracting to %s\n", outname);
-				
+
 				MFILE *out = mfopen(outname, "w+");
 				if (out == NULL) {
 					err_exit("Cannot open file %s for writing\n", outname);
 				}
-				
+
 				mfile_map(out, sizeof(*header) + header->compressedSize);
 
 				memcpy(
@@ -67,7 +67,7 @@ void scan_lzhs(const char *filename, int extract) {
 					(uint8_t *)header,
 					sizeof(*header) + header->compressedSize
 				);
-				
+
 				uint8_t out_checksum;
 				asprintf(&outdecode, "%s/%s_file%d.unlzhs", dirn, filen, count);
 				lzhs_decode(out, 0, outdecode, &out_checksum);
@@ -77,7 +77,7 @@ void scan_lzhs(const char *filename, int extract) {
 					unlink(outdecode);
 				}
 				printf("\n");
-				
+
 				mclose(out);
 				free(outname); free(outdecode);
 				free(dirn); free(filen);

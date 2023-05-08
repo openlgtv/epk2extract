@@ -10,7 +10,7 @@
 	Payload Unit Start Indicator	1bit	1 means start of PES data or PSI otherwise zero only.
 	Transport Priority				1bit	1 means higher priority than other packets with the same PID.
 	PID								13bit	Packet ID
-	Scrambling control				2bit	'00' = Not scrambled. The following per DVB spec:[12]   
+	Scrambling control				2bit	'00' = Not scrambled. The following per DVB spec:[12]
 											'01' = Reserved for future use, '10' = Scrambled with even key, '11' = Scrambled with odd key
 	Adaptation field exist			2bit	'01' = no adaptation fields, payload only, '10' = adaptation field only, '11' = adaptation field and payload
 	Continuity counter				4bit	Incremented only when a payload is present (i.e., adaptation field exist is 01 or 11)[13]
@@ -37,20 +37,20 @@ static AES_KEY AESkey;
 
 static int do_unwrap_func(uint8_t unwrap_key[], uint8_t aes_key[], uint8_t unwrapped_key[]){
 	uint8_t zero_cnt = 0;
-		
+
 	puts("Wrapped key: ");
 	for(int i = 0; i<24; i++){
 		printf("%02X", aes_key[i]);
 	}
-	
+
 	// B7..B7..
 	uint8_t wrap_iv[8];
 	memset(&wrap_iv, 0xB7, sizeof(wrap_iv));
-	
+
 	// unwrap 'aes_key' with 'unwrap_key' into 'unwrapped_key'
 	AES_set_decrypt_key(unwrap_key, 128, &AESkey);
 	AES_unwrap_key(&AESkey, wrap_iv, unwrapped_key, aes_key, 24);
-	
+
 	puts("\nUnwrapped key: ");
 	for (int i = 0; i < 16; i++){
 		printf("%02X", unwrapped_key[i]);
@@ -67,21 +67,21 @@ static int do_unwrap_func(uint8_t unwrap_key[], uint8_t aes_key[], uint8_t unwra
 
 static int setKey(char *keyPath) {
 	int ret = -1;
-	
+
 	FILE *keyFile = fopen(keyPath, "r");
 	if (keyFile == NULL) {
 		fprintf(stderr, "%s not found.\n", keyPath);
 		return ret;
 	}
-		
+
 	struct stat statBuf;
 	if((ret=fstat(fileno(keyFile), &statBuf)) < 0){
 		fprintf(stderr, "setKey: stat failed\n");
 		return ret;
 	}
-	
+
 	bool doUnwrap;
-	
+
 	switch(statBuf.st_size){
 		case 16:
 			printf("=> Unwrapped AES-128 key detected\n");
@@ -96,7 +96,7 @@ static int setKey(char *keyPath) {
 			return -1;
 	}
 	int keySz = statBuf.st_size;
-	
+
 	uint8_t aes_key[keySz];
 	memset(&aes_key, 0x00, keySz);
 
@@ -106,7 +106,7 @@ static int setKey(char *keyPath) {
 		fprintf(stderr, "key read error\n");
 		return -1;
 	}
-	
+
 	if(doUnwrap){
 		uint8_t unwrapped_key[16];
 		uint8_t unwrap_key[16];
@@ -129,7 +129,7 @@ static int setKey(char *keyPath) {
 	else {
 		AES_set_decrypt_key(aes_key, 128, &AESkey);
 	}
-	
+
 	return 0;
 }
 
@@ -142,9 +142,9 @@ uint8_t *findTsPacket(MFILE *tsFile, long offset){
 	}
 	uint8_t *head;
 	uint8_t *cur;
-	
+
 	int syncPackets;
-	
+
 	do {
 		// abort in case no valid sync is found in the first bytes of the file
 		if(offset >= (TS_PACKET_SIZE * 2)){
@@ -248,7 +248,7 @@ void writePMT(struct tables *PIDs, FILE *outFile, struct tsfile_options *opts){
 
 	uint8_t outBuf[TS_PACKET_SIZE];
 	memset(outBuf, 0xFF, TS_PACKET_SIZE);
-	
+
 	// Fill PMT
 	uint8_t PMT[TS_PACKET_SIZE - 4];
 	memset(PMT, 0xFF, TS_PACKET_SIZE - 4);
@@ -261,7 +261,7 @@ void writePMT(struct tables *PIDs, FILE *outFile, struct tsfile_options *opts){
 		/** 0x4: PSI **/
 		0x00, // pointer field
 		/** 0x5: table header **/
-		0x02, // program_map_section 
+		0x02, // program_map_section
 		0xB0,
 		0x00,				// section length in bytes including crc
 		/** 0x8: table syntax data **/
@@ -331,7 +331,7 @@ void writePMT(struct tables *PIDs, FILE *outFile, struct tsfile_options *opts){
 	PMT[PMT_size - 2] = (crc >> 8) & 0xFF;
 	PMT[PMT_size - 1] = crc & 0xFF;
 	memcpy(outBuf, PMT, sizeof(PMT));
-	
+
 	fseek(outFile, 0xBC, SEEK_SET);
 	fwrite(outBuf, 1, TS_PACKET_SIZE, outFile);
 }
@@ -465,7 +465,7 @@ void convertSTR2TS_internal(char *inFilename, char *outFilename, struct tsfile_o
 void convertSTR2TS(char *inFilename, struct tsfile_options *opts) {
 	char *baseDir = my_dirname(inFilename);
 	char *keyPath;
-	
+
 	asprintf(&keyPath, "%s/dvr", baseDir);
 	if (0 != setKey(keyPath)){
 		free(keyPath);
@@ -476,10 +476,10 @@ void convertSTR2TS(char *inFilename, struct tsfile_options *opts) {
 	char *baseName = my_basename(inFilename);
 	char *outFilename;
 	asprintf(&outFilename, "%s/%s.ts", baseDir, baseName);
-	
+
 	printf("Output File: %s\n", outFilename);
 	convertSTR2TS_internal(inFilename, outFilename, opts);
-	
+
 	free(baseName);
 	free(baseDir);
 }
@@ -489,17 +489,17 @@ void processPIF(const char *filename, char *dest_file) {
 	if (file == NULL) {
 		err_exit("Can't open file %s\n", filename);
 	}
-	
+
 	struct stat statBuf;
 	if(stat(filename, &statBuf) < 0){
 		err_exit("stat() failed for %s\n", filename);
 	}
-	
+
 	size_t filesize = statBuf.st_size;
 
 	char *baseDir = my_dirname(filename);
-	
-	char *keyPath;	
+
+	char *keyPath;
 	asprintf(&keyPath, "%s/dvr", baseDir);
 
 	if (0 != setKey(keyPath)){
@@ -507,7 +507,7 @@ void processPIF(const char *filename, char *dest_file) {
 		err_exit("Load DVR Key-file failed for %s/dvr\n", baseDir);
 	}
 	free(keyPath);
-	
+
 	int append = 0;
 	char *buffer = calloc(1, filesize);
 	int read = fread(buffer, 1, filesize, file);
@@ -515,11 +515,11 @@ void processPIF(const char *filename, char *dest_file) {
 		int i;
 		for (i = 0; i < (filesize - 5); i++) {
 			if (!memcmp(&buffer[i], "/mnt/", 5) && !memcmp(&buffer[i + strlen(&buffer[i]) - 3], "STR", 3)) {
-				
+
 				char *strName = strrchr(&buffer[i], '/') + 1;
 				char *filePath;
 				asprintf(&filePath, "%s/%s", baseDir, strName);
-				
+
 				printf("Converting file: %s -> %s\n", filePath, dest_file);
 
 				struct tsfile_options opts = {
@@ -531,13 +531,13 @@ void processPIF(const char *filename, char *dest_file) {
 
 				convertSTR2TS_internal(filePath, dest_file, &opts);
 				free(filePath);
-				
+
 				append = 1;
 			}
 		}
 	}
 	fclose(file);
 	free(buffer);
-	
+
 	free(baseDir);
 }

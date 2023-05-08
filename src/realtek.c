@@ -64,7 +64,7 @@ void split_rtk_bspfw(MFILE *mf, const char *destdir) {
 	kernel_image_header *hdr = mdata(mf, kernel_image_header);
 	for(; moff(mf, hdr) < msize(mf); hdr++){
 		char *filepath = NULL;
-		
+
 		switch(hdr->magic){
 			case HEADER_AUDIO1_IMAGE:
 			case HEADER_AUDIO2_IMAGE:

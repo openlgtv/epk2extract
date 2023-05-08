@@ -378,7 +378,7 @@ int LZ4_decode_file(const char *input_filename, const char *output_filename) {
 		//if ( argument[0] =='d' ) { decode=1; continue; }
 
 		// Bench
-		//if ( argument[0] =='b' ) { bench=1; if (argument[1] >= '0') cLevel=argument[1] - '0'; continue; } 
+		//if ( argument[0] =='b' ) { bench=1; if (argument[1] >= '0') cLevel=argument[1] - '0'; continue; }
 
 		// Modify Block Size (benchmark only)
 		//if ( argument[0] =='B' ) { int B = argument[1] - '0'; int S = 1 << (10 + 2*B); BMK_SetBlocksize(S); continue; }

@@ -50,8 +50,8 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 		printf("[+] Found PHILIPS(TPV) Package\n");
 		return 1;
 	}
-	
-	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC)) 
+
+	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC))
 	 || !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC2, strlen(PHILIPS_PKG_MAGIC2))
 	){
 		printf("[+] Found PHILIPS Package\n");
@@ -84,8 +84,8 @@ bool is_known_partition(struct mtkpkg *pak){
 		"tzbp",
 		NULL
 	};
-	
-	char **curPartName = likelyPartitionNames;
+
+	const char **curPartName = likelyPartitionNames;
 	for(int nameIndex=0; *curPartName != NULL; nameIndex++){
 		if(!strncmp(pak->header.pakName, *curPartName, sizeof(pak->header.pakName))){
 			return true;
@@ -97,12 +97,12 @@ bool is_known_partition(struct mtkpkg *pak){
 
 MFILE *is_mtk_pkg(const char *pkgfile){
 	setKeyFile_MTK();
-	
+
 	MFILE *mf = mopen(pkgfile, O_RDONLY);
 	if(!mf){
 		err_exit("Cannot open file %s\n", pkgfile);
 	}
-	
+
 	uint8_t *data = mdata(mf, uint8_t);
 	void *decryptedHeader = NULL;
 	KeyPair *headerKey = NULL;
@@ -135,7 +135,7 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	struct mtkpkg *firstPak = (struct mtkpkg *)(data + sizeof(struct mtkupg_header));
 	if(is_known_partition(firstPak))
 		return mf;
-	
+
 	firstPak = (struct mtkpkg *)(data + SIZEOF_OLD_HEADER);
 	if(is_known_partition(firstPak)){
 		mtkpkg_variant_flags = OLD;
@@ -179,7 +179,7 @@ MFILE *is_firm_image(const char *pkg){
 }
 
 int extract_firm_image(MFILE *mf){
-	return process_segment(mf, SIZEOF_FIRM_HEADERS, "firm");
+	return process_lzhs_segment(mf, SIZEOF_FIRM_HEADERS, "firm");
 }
 
 MFILE *is_lzhs_fs(const char *pkg){
@@ -292,7 +292,7 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 
 	uint segNo = 0;
 	while(moff(mf, data) < msize(mf)){
-		struct lzhs_header *main_hdr = (struct lzhs_header *)data; 
+		struct lzhs_header *main_hdr = (struct lzhs_header *)data;
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
 
 		printf("\n[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
@@ -307,7 +307,7 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 		arg->offset = moff(mf, seg_hdr);
 		arg->filename = outSeg;
 		arg->blockNo = main_hdr->checksum;
-		
+
 		thpool_add_work(thpool, (void *)process_block, arg);
 
 		uint pad;
@@ -319,20 +319,20 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 			pad
 		);
 	}
-	
+
 	thpool_wait(thpool);
 	thpool_destroy(thpool);
 
-	int i;
+	uint i;
 	for(i=1; i<=segNo; i++){
-		printf("[+] Joining Segment %d\n", i);
+		printf("[+] Joining Segment %u\n", i);
 		char *outSeg;
-		asprintf(&outSeg, "%s/%s.%d", tmpdir, base, i);
-		
+		asprintf(&outSeg, "%s/%s.%u", tmpdir, base, i);
+
 		MFILE *seg = mopen(outSeg, O_RDONLY);
 		fwrite(mdata(seg, void), msize(seg), 1, out_file);
 		mclose(seg);
-		
+
 		unlink(outSeg);
 		free(outSeg);
 	}
@@ -357,8 +357,8 @@ void print_pkg_header(struct mtkupg_header *hdr){
 	printf("======== Firmware Info ========\n");
 	printf("| Product Name: %s\n", hdr->product_name);
 	printf("| Firmware ID : %.*s\n",
-		member_size(struct mtkupg_header, vendor_magic) + 
-		member_size(struct mtkupg_header, mtk_magic) + 
+		member_size(struct mtkupg_header, vendor_magic) +
+		member_size(struct mtkupg_header, mtk_magic) +
 		member_size(struct mtkupg_header, vendor_info),
 		hdr->vendor_magic
 	);
@@ -378,7 +378,7 @@ static off_t get_mtkpkg_offset(){
 	} else if((mtkpkg_variant_flags & OLD) == OLD){
 		offset += SIZEOF_OLD_HEADER;
 	}
-	
+
 	if((mtkpkg_variant_flags & PHILIPS) == PHILIPS){
 		offset += PHILIPS_HEADER_SIZE;
 	}
@@ -399,7 +399,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 	struct mtkupg_header *hdr = (was_decrypted) ? &packageHeader : NULL;
 	if(hdr != NULL)
 		print_pkg_header(hdr);
-	
+
 	if(hdr != NULL){
 		// Use product name for now (version would be better)
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, hdr->product_name);
@@ -407,9 +407,9 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, file_base);
 	}
 	createFolder(config_opts->dest_dir);
-	
+
 	KeyPair *dataKey = NULL;
-	
+
 	int pakNo;
 	for(pakNo=0; moff(mf, data) < msize(mf); pakNo++){
 		struct mtkpkg *pak = (struct mtkpkg *)data;
@@ -421,7 +421,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 		}
 
 		size_t cryptedHeaderSize = ((mtkpkg_variant_flags & NEW) == NEW) ? sizeof(pak->content.header) : 0;
-		
+
 		/* Skip pak header and crypted header */
 		data += sizeof(pak->header) + cryptedHeaderSize;
 
@@ -431,14 +431,14 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 		if(pkgSize == 0){
 			goto save_file;
 		}
-		
+
 		if((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED){
 			dataSize += pak->header.pakSize;
 		}
 
 #pragma region FindAesKey
 		uint8_t *decryptedPkgData = NULL;
-		
+
 		if(was_decrypted){
 			if(dataKey == NULL){
 				dataKey = find_AES_key(
@@ -458,7 +458,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 					/* Try to decrypt by using vendorMagic repeated 4 times, ivec 0 */
 					do {
 						AES_KEY aesKey;
-						uint8_t keybuf[16];				
+						uint8_t keybuf[16];
 						uint i;
 						for(i=0; i<4; i++){
 							memcpy(&keybuf[4 * i], hdr->vendor_magic, sizeof(uint32_t));
@@ -502,12 +502,12 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 				}
 			}
 		}
-		
+
 		if((mtkpkg_variant_flags & NEW) == NEW){
 			// Skip the mtk header (reserved inc)
 			pkgData += sizeof(struct mtkpkg_crypted_header);
 		}
-		
+
 		printf("\nPAK #%u %s (name='%s', offset='0x%lx', size='%u bytes'",
 			pakNo + 1,
 			((pak->header.flags & PAK_FLAG_ENCRYPTED) == PAK_FLAG_ENCRYPTED) ? "[ENCRYPTED]" : "",
@@ -549,7 +549,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 
 		save_file:
 		printf(")\n");
-		
+
 		char *dest_path = NULL;
 		asprintf(&dest_path, "%s/%.*s.pak",
 			config_opts->dest_dir,

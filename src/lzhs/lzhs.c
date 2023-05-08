@@ -352,7 +352,7 @@ void unhuff(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 			ctx->code_buf_ptr = ctx->mask = 1;
 		}
 	}
-	
+
 	flush_ret:
 	if (ctx->code_buf_ptr > 1)	// flushing buffer
 		for (ctx->i = 0; ctx->i < ctx->code_buf_ptr; ctx->i++){
@@ -447,7 +447,7 @@ void unlzss(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 		if (flags & 1) {
 			if((c = cgetc(in)) == EOF)
 				break;
-			
+
 			if(cputc((ctx->text_buf[r++] = c), out) == EOF)
 				return;
 			r &= (N - 1);
@@ -461,7 +461,7 @@ void unlzss(struct lzhs_ctx *ctx, cursor_t *in, cursor_t *out) {
 
 			i = (i << 8) | m;
 			for (k = 0; k <= j + THRESHOLD; k++) {
-				m = ctx->text_buf[(r - i) & (N - 1)];				
+				m = ctx->text_buf[(r - i) & (N - 1)];
 				if(cputc((ctx->text_buf[r++] = m), out) == EOF)
 					return;
 				r &= (N - 1);

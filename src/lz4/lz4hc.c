@@ -41,7 +41,7 @@
 #    define LZ4_ARCH64 0
 #endif
 
-// Little Endian or Big Endian ? 
+// Little Endian or Big Endian ?
 #if (defined(__BIG_ENDIAN__) || defined(__BIG_ENDIAN) || defined(_BIG_ENDIAN) || defined(_ARCH_PPC) || defined(__PPC__) || defined(__PPC) || defined(PPC) || defined(__powerpc__) || defined(__powerpc) || defined(powerpc) || ((defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))) )
 #    define LZ4_BIG_ENDIAN 1
 #else

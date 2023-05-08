@@ -43,6 +43,7 @@
 #include <sys/resource.h>
 #include <limits.h>
 #include <ctype.h>
+#include <stdint.h>
 
 struct cache *fragment_cache, *data_cache;
 struct queue *to_reader, *to_inflate, *to_writer, *from_writer;
@@ -380,7 +381,7 @@ void cache_block_ready(struct cache_entry *entry, int error) {
 	/*
 	 * mark cache entry as being complete, reading and (if necessary)
 	 * decompression has taken place, and the buffer is valid for use.
-	 * If an error occurs reading or decompressing, the buffer also 
+	 * If an error occurs reading or decompressing, the buffer also
 	 * becomes ready but with an error...
 	 */
 	pthread_mutex_lock(&entry->cache->mutex);
@@ -2024,8 +2025,8 @@ void initialise_threads(int fragment_buffer_size, int data_buffer_size) {
 		uint margin = (max_files - opened_files) / 10;
 		max_files -= margin;
 
-		printf("Max Files: %u, Opened Files: %u, Allocated: %u (Margin: %u)\n",
-			rlim.rlim_cur, opened_files, max_files, margin
+		printf("Max Files: %ju, Opened Files: %u, Allocated: %u (Margin: %u)\n",
+			(uintmax_t) rlim.rlim_cur, opened_files, max_files, margin
 		);
 		free(fds);
 

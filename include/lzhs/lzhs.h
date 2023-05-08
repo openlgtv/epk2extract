@@ -53,6 +53,8 @@ bool is_lzhs_mem(MFILE *file, off_t offset);
 void lzss(struct lzhs_ctx *ctx, FILE * infile, FILE * outfile, unsigned long int *p_textsize, unsigned long int *p_codesize);
 void huff(struct lzhs_ctx *ctx, FILE * in, FILE * out, unsigned long int *p_textsize, unsigned long int *p_codesize);
 
+int process_lzhs_segment(MFILE *in_file, off_t offset, const char *name);
+
 int extract_lzhs(MFILE *in_file);
 cursor_t *lzhs_decode(MFILE *in_file, off_t offset, const char *out_path, uint8_t *out_checksum);
 void lzhs_encode(const char *infile, const char *outfile);

@@ -70,7 +70,7 @@ static int lz4_options(char *argv[], int argc) {
  * Currently LZ4 always returns a comp_opts structure, with
  * the version indicating LZ4_LEGACY stream fomat.  This is to
  * easily accomodate changes in the kernel code to different
- * stream formats 
+ * stream formats
  */
 static void *lz4_dump_options(int block_size, int *size) {
 	static struct lz4_comp_opts comp_opts;

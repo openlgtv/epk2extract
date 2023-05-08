@@ -67,7 +67,7 @@ void extract_philips_fusion1(MFILE *mf, config_opts_t *config_opts){
 			part->size
 		);
 		mclose(out);
-		
+
 		handle_file(path, config_opts);
 
 		free(path);

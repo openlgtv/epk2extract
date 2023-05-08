@@ -119,9 +119,9 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 	char *file = my_basename(fn);
 	char *dir = my_dirname(fn);
 	char *parent = my_dirname(dir);
-	
+
 	char *relative = dir + strlen(parent) + 1;
-	
+
 	printf("[%s/%s:%d] ", relative, file, lineno);
 
 	free(file);
@@ -337,14 +337,14 @@ MFILE *is_gzip(const char *filename) {
 	}
 
 	char *gzfilename = mdata(file, char) + 10;
-	
+
 	int i;
 	for(i=0; gzfilename[i] != 0x00 && isprint(gzfilename[i]); i++);
 
 	if(i > 0 && gzfilename[i] == 0x00){
 		return file;
 	}
-	
+
 	mclose(file);
 	return NULL;
 }

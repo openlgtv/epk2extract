@@ -499,7 +499,7 @@ struct compressor *read_super(int fd, struct squashfs_super_block *sBlk, char *s
 	 * been changed by the user specifying options on the command
 	 * line which need to be over-ridden).
 	 *
-	 * Compressor_extract_options is also used to ensure that 
+	 * Compressor_extract_options is also used to ensure that
 	 * we know how decompress a filesystem compressed with these
 	 * compression options.
 	 */

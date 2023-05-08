@@ -49,7 +49,7 @@ config_opts_t config_opts;
 int handle_file(char *file, config_opts_t *config_opts) {
 	char *dest_dir = config_opts->dest_dir;
 	char *file_name = my_basename(file);
-	
+
 	char *file_base = remove_ext(file_name);
 	//const char *file_ext = get_ext(strdup(file_name));
 	char *dest_file = NULL;
@@ -157,13 +157,13 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		asprintf(&dest_file, "%s/%s.unjffs2", dest_dir, file_name);
 		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
 		rmrf(dest_file);
-		
+
 		struct jffs2_main_args args = {
 			.erase_size = -1,
 			.keep_unlinked = false,
 			.verbose = 0
 		};
-		
+
 		jffs2extract(file, dest_file, args);
 	/* PVR STR (ts/m2ts video) */
 	} else if (isSTRfile(file)) {
@@ -176,7 +176,7 @@ int handle_file(char *file, config_opts_t *config_opts) {
 			.append = 0
 		};
 		convertSTR2TS(file, &opts);
-	/* PVR PIF (Program Information File) */ 
+	/* PVR PIF (Program Information File) */
 	} else if (!strncasecmp(&file[strlen(file) - 3], "PIF", 3)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
 		printf("\nProcessing PIF file: %s\n", file);
@@ -198,16 +198,16 @@ int handle_file(char *file, config_opts_t *config_opts) {
 	} else {
 		result = EXIT_FAILURE;
 	}
-	
+
 	if(mf != NULL)
 		mclose(mf);
 
 	free(file_name);
 	free(file_base);
-	
+
 	if(dest_file != NULL)
 		free(dest_file);
-	
+
 	return result;
 }
 
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
 
 	char *exe_dir = calloc(1, PATH_MAX);
 	char *current_dir = calloc(1, PATH_MAX);
-	
+
 	#ifdef __APPLE__
 	uint32_t pathsz = PATH_MAX;
 	if (_NSGetExecutablePath(exe_dir, &pathsz) == 0){
@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
 	printf("Current directory: %s\n", current_dir);
 	readlink("/proc/self/exe", exe_dir, PATH_MAX);
 	#endif
-	
+
 	config_opts.config_dir = my_dirname(exe_dir);
 	config_opts.dest_dir = calloc(1, PATH_MAX);
 	config_opts.enableSignatureChecking = 0;
@@ -299,12 +299,12 @@ int main(int argc, char *argv[]) {
 	free(dname);
 
 	printf("Destination directory: %s\n", config_opts.dest_dir);
-	
+
 	free(exe_dir);
 	free(current_dir);
 
 	int exit_code = handle_file(input_file, &config_opts);
-	
+
 	if (exit_code == EXIT_FAILURE)
 		return err_ret("Unsupported input file format: %s\n\n", input_file);
 
