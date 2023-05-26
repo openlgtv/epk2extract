@@ -1,5 +1,5 @@
-#ifndef __CRAMFS_H
-#    define __CRAMFS_H
+#ifndef __CRAMFS_FS_H
+#    define __CRAMFS_FS_H
 
 #    include <sys/types.h>
 
@@ -94,4 +94,4 @@ struct cramfs_super {
 				| CRAMFS_FLAG_WRONG_SIGNATURE \
 				| CRAMFS_FLAG_SHIFTED_ROOT_OFFSET )
 
-#endif /* __CRAMFS_H */
+#endif /* __CRAMFS_FS_H */
