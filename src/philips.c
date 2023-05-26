@@ -60,15 +60,19 @@ void extract_philips_fusion1(MFILE *mf, config_opts_t *config_opts){
 		printf("  Writing partition to %s\n", path);
 
 		MFILE *out = mfopen(path, "w+");
-		mfile_map(out, part->size);
-		memcpy(
-			mdata(out, void),
-			&data[part->offset],
-			part->size
-		);
-		mclose(out);
+		if(out) {
+			mfile_map(out, part->size);
+			memcpy(
+				mdata(out, void),
+				&data[part->offset],
+				part->size
+			);
+			mclose(out);
 
-		handle_file(path, config_opts);
+			handle_file(path, config_opts);
+		} else {
+			printf("A package wasn't written to disk because of a memory allocation failure\n");
+		}
 
 		free(path);
 	}
