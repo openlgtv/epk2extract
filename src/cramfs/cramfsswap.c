@@ -250,7 +250,7 @@ int cramswap(char *sinfile, char *soutfile) {
 	   the next until no file is left                                                */
 	while (remaining) {
 		/* Find the file */
-		for (file = 1; fileoffset[file] != filepos && file < filecnt; file++) ;
+		for (file = 1; file < filecnt && fileoffset[file] != filepos; file++) ;
 		if (fileoffset[file] != filepos) {
 			/* Not found */
 			fprintf(stderr, "Did not find the file which starts at word %x, aborting...\n", filepos);
