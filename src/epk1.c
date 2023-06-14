@@ -112,6 +112,9 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		unsigned long int offset = 0xC;
 		for (index = 0; index < epakHeader->pakCount; index++) {
 			struct pakRec_t *pakRecord = malloc(sizeof(struct pakRec_t));	//allocate space for header
+			if (pakRecord == NULL) {
+				err_exit("Error in %s: malloc() failed\n", __func__);
+			}
 			memcpy(pakRecord, buffer + offset, sizeof(struct pakRec_t));	//copy pakRecord to buffer
 
 			if (pakRecord->offset == 0) {
@@ -123,6 +126,9 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			SWAP(pakRecord->offset);
 			SWAP(pakRecord->size);
 			unsigned char *pheader = malloc(sizeof(struct pakHeader_t));
+			if (pheader == NULL) {
+				err_exit("Error in %s: malloc() failed\n", __func__);
+			}
 			memcpy(pheader, (buffer + pakRecord->offset), sizeof(struct pakHeader_t));
 			struct pakHeader_t *pakHeader = (struct pakHeader_t *)pheader;
 			SWAP(pakHeader->pakSize);

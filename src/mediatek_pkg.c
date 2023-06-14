@@ -330,8 +330,12 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 		asprintf(&outSeg, "%s/%s.%u", tmpdir, base, i);
 
 		MFILE *seg = mopen(outSeg, O_RDONLY);
-		fwrite(mdata(seg, void), msize(seg), 1, out_file);
-		mclose(seg);
+		if(seg) {
+			fwrite(mdata(seg, void), msize(seg), 1, out_file);
+			mclose(seg);
+		} else {
+			printf("A package wasn't written to disk because of a memory allocation failure\n");
+		}
 
 		unlink(outSeg);
 		free(outSeg);
