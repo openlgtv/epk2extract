@@ -1,7 +1,7 @@
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-project(epk2extract)
 cmake_minimum_required(VERSION 2.8.12)
+project(epk2extract)
 
 if( NOT CMAKE_BUILD_TYPE )
 	set(CMAKE_BUILD_TYPE Debug)
