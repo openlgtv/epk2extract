@@ -26,7 +26,7 @@ elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux
 elif [[ "$OSTYPE" =~ "darwin" ]]; then
 	nproc_cmd="sysctl -n hw.logicalcpu"
 	rel=build_osx
-	CMAKE_FLAGS="-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ${CMAKE_FLAGS}"
+	CMAKE_FLAGS="-DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl ${CMAKE_FLAGS}"
 else
 	$lred; "Can't build - unknown OS type. Aborting..."; $normal
 	exit 1

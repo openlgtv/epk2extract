@@ -13,3 +13,14 @@ linux_x64_task:
 
   build_script:
     - ./build.sh
+
+darwin_aarch64_task:
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-ventura-base:latest
+
+  install_script:
+    - brew install openssl@3 lzo
+    - brew reinstall openssl@3
+
+  build_script:
+    - ./build.sh
