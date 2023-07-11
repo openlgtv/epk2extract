@@ -1,5 +1,6 @@
 set(INC ${CMAKE_SOURCE_DIR}/include)
 
+add_definitions(-D_GNU_SOURCE)
 
 if(APPLE)
 	include_directories(SYSTEM ${INC}/osx)
@@ -35,8 +36,6 @@ add_executable(epk2extract
 )
 
 target_compile_definitions(epk2extract PRIVATE
-	-D_GNU_SOURCE
-	-D__USE_XOPEN_EXTENDED
 	-DUSE_MMAP #for gzip
 )
 
