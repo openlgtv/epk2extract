@@ -1,5 +1,4 @@
-#ifndef __LZMA_H__
-#define __LZMA_H__
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -49,4 +48,3 @@ static void p_lzma_free(void *p, void *address)
 
 static ISzAlloc lzma_alloc = {p_lzma_malloc, p_lzma_free};
 
-#endif

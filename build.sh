@@ -19,9 +19,12 @@ exe=(
 	"tools/jffs2extract" "tools/tsfile"
 )
 
+nproc_cmd="nproc"
+
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
 elif [[ "$OSTYPE" =~ "linux" ]]; then rel=build_linux
 elif [[ "$OSTYPE" =~ "darwin" ]]; then
+	nproc_cmd="sysctl -n hw.logicalcpu"
 	rel=build_osx
 	CMAKE_FLAGS="-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ${CMAKE_FLAGS}"
 else
@@ -52,7 +55,7 @@ fi
 
 cd $objdir
 
-NUM_THREADS=$(nproc)
+NUM_THREADS=$($nproc_cmd)
 
 case "$1" in
 	"-v")

@@ -1,20 +1,19 @@
 set(INC ${CMAKE_SOURCE_DIR}/include)
-include_directories(
-	${INC}
-	${INC}/cramfs
-	${INC}/lzo
-	${INC}/squashfs
-	${INC}/lz4
-	${INC}/jffs2
-	${INC}/lzhs
-	${INC}/u-boot
-)
+
+
 if(APPLE)
- include_directories(${INC}/osx)
-endif(APPLE)
+	include_directories(SYSTEM ${INC}/osx)
+endif()
 
 add_library(mfile mfile.c)
 add_library(utils util.c util_crypto.c thpool.c)
+
+target_include_directories(mfile PUBLIC ${INC})
+target_include_directories(utils PUBLIC
+	${INC}
+	${INC}/u-boot
+	${OPENSSL_INCLUDE_DIR}
+)
 
 target_link_libraries(utils ${OPENSSL_LIBRARIES} mfile)
 
@@ -34,6 +33,17 @@ add_executable(epk2extract
 	mediatek.c philips.c symfile.c partinfo.c minigzip.c lzo-lg.c
 	realtek.c
 )
+
+target_compile_definitions(epk2extract PRIVATE
+	-D_GNU_SOURCE
+	-D__USE_XOPEN_EXTENDED
+	-DUSE_MMAP #for gzip
+)
+
+target_compile_options(epk2extract PRIVATE
+	-Wunused
+)
+
 target_link_libraries(epk2extract
 	mfile utils cramfs squashfs
 	lz4 jffs2 lzhs stream
