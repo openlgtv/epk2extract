@@ -1,0 +1,22 @@
+# auto-detect text files; use LF
+* text=auto eol=lf
+
+# text extensions
+*.txt text
+*.md text
+*.c text
+*.h text
+*.cpp text
+*.yml text
+*.cmake text
+
+# important that these use LF
+*.sh text eol=lf
+*.py text eol=lf
+
+# specific text filenames
+.gitattributes text
+.gitignore text
+.editorconfig text
+AUTHORS text
+COPYING text
