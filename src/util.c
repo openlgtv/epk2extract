@@ -401,44 +401,53 @@ int isdatetime(const char *datetime) {
 	}
 }
 
+bool is_str_printable(const char *str) {
+	for (const char *p = str; *p != '\0'; p++) {
+		if (isprint(*p) == 0) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static const struct {
+	const char *name;
+	part_struct_type type;
+	const char *description;
+} part_type_table[] = {
+	{"mstar_map0",    STRUCT_MTDINFO,    "MStar Saturn6 / Saturn7 / M1(A) / LM1"}, // ?
+	{"bcm35xx_map0",  STRUCT_MTDINFO,    "BCM 2010 (BCM35XX)"}, 			// 2010
+	{"bcm35230_map0", STRUCT_MTDINFO,    "BCM 2011 (BCM35230)"}, 			// 2011
+	{"mtk3569-emmc",  STRUCT_PARTINFOv1, "MTK A1 (MT5369/MTK5369)"}, 		// 2012
+	{"l9_emmc", 	  STRUCT_PARTINFOv1, "LX L9 (LG1152)"}, 				// 2012
+	{"mtk3598-emmc",  STRUCT_PARTINFOv2, "MTK A2 (MT5398/MTK5389/M13)"},    // 2013
+	{"h13_emmc", 	  STRUCT_PARTINFOv2, "LX H13 (LG1154) / M14 (LG1311)"}, // 2013/2014
+	{"mstar-emmc",    STRUCT_PARTINFOv2, "MStar LM14"}, 					// 2014
+};
+
 /* detect_model - detect model and corresponding part struct */
 static void detect_model(const struct p2_device_info *pid) {
+	char name[STR_LEN_MAX + 1];
+
+	strncpy(name, pid->name, STR_LEN_MAX);
+	name[STR_LEN_MAX] = '\0';
+
+	for (unsigned int i = 0; i < countof(part_type_table); i++) {
+		if (strcmp(part_type_table[i].name, name) == 0) {
+			modelname = part_type_table[i].description;
+			part_type = part_type_table[i].type;
+			return;
+		}
+	}
+
 	part_type = STRUCT_INVALID;
+	modelname = NULL;
 
-	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
-	int ismtk2 = !strcmp("mtk3598-emmc", pid->name);  //match mtk2013
-	int is1152 = !strcmp("l9_emmc", pid->name);       //match 1152
-	int is1154 = !strcmp("h13_emmc", pid->name);      //match 1154/lg1311
-	int isbcm1 = !strcmp("bcm35xx_map0", pid->name);  //match broadcom
-	int isbcm2 = !strcmp("bcm35230_map0", pid->name); //match broadcom
-	int ismstar = !strcmp("mstar_map0", pid->name);   //match mstar
-	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
-
-	if (ismtk1)
-		modelname = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
-	else if (ismtk2)
-		modelname = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
-	else if (is1152)
-		modelname = "LG1152 (L9)";
-	else if (is1154)
-		modelname = "LG1154 (H13) / LG1311 (M14)";
-	else if (isbcm1)
-		modelname = "BCM 2010 - BCM35XX";
-	else if (isbcm2)
-		modelname = "BCM 2011 - BCM35230";
-	else if (ismstar)
-		modelname = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
-	else if (islm14)
-		modelname = "Mstar LM14";
-	else
-		return;
-
-	if (ismtk2 || is1154 || islm14) {
-		part_type = STRUCT_PARTINFOv2;
-	} else if (ismtk1 || is1152) {
-		part_type = STRUCT_PARTINFOv1;
+	if (is_str_printable(name)) {
+		fprintf(stderr, "unknown part type: '%s'\n", name);
 	} else {
-		part_type = STRUCT_MTDINFO;
+		fputs("unknown part type (non-printable characters)\n", stderr);
 	}
 
 	return;
