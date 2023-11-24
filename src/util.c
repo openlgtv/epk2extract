@@ -27,8 +27,8 @@
 //partinfo
 #include <time.h>
 #include "partinfo.h"
-char *modelname;
-part_struct_type part_type;
+const char *modelname = NULL;
+part_struct_type part_type = STRUCT_INVALID;
 
 //jffs2
 #include "jffs2/jffs2.h"
@@ -402,9 +402,9 @@ int isdatetime(const char *datetime) {
 }
 
 /* detect_model - detect model and corresponding part struct */
-part_struct_type detect_model(struct p2_device_info * pid) {
-	char *model;
+static void detect_model(const struct p2_device_info *pid) {
 	part_type = STRUCT_INVALID;
+
 	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
 	int ismtk2 = !strcmp("mtk3598-emmc", pid->name);  //match mtk2013
 	int is1152 = !strcmp("l9_emmc", pid->name);       //match 1152
@@ -415,36 +415,33 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
 
 	if (ismtk1)
-		model = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
+		modelname = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
 	else if (ismtk2)
-		model = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
+		modelname = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
 	else if (is1152)
-		model = "LG1152 (L9)";
+		modelname = "LG1152 (L9)";
 	else if (is1154)
-		model = "LG1154 (H13) / LG1311 (M14)";
+		modelname = "LG1154 (H13) / LG1311 (M14)";
 	else if (isbcm1)
-		model = "BCM 2010 - BCM35XX";
+		modelname = "BCM 2010 - BCM35XX";
 	else if (isbcm2)
-		model = "BCM 2011 - BCM35230";
+		modelname = "BCM 2011 - BCM35230";
 	else if (ismstar)
-		model = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
+		modelname = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
 	else if (islm14)
-		model = "Mstar LM14";
+		modelname = "Mstar LM14";
 	else
-		return part_type;
+		return;
 
 	if (ismtk2 || is1154 || islm14) {
 		part_type = STRUCT_PARTINFOv2;
 	} else if (ismtk1 || is1152) {
-		part_type = STRUCT_PARTINFOv1;	//partinfo v1
+		part_type = STRUCT_PARTINFOv1;
 	} else {
-		part_type = STRUCT_MTDINFO;	//mtdinfo
+		part_type = STRUCT_MTDINFO;
 	}
 
-	modelname = model;
-	/*printf("%s Detected\n\n", modelname);*/
-
-	return part_type;
+	return;
 }
 
 int isPartPakfile(const char *filename) {
