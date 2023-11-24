@@ -173,8 +173,8 @@ void hexdump(const void *pAddressIn, long lSize) {
 	buf.lSize = lSize;
 
 	while (buf.lSize > 0) {
-		pTmp = (unsigned char *)buf.pData;
-		lOutLen = (int)buf.lSize;
+		pTmp = (unsigned char *) buf.pData;
+		lOutLen = (int) buf.lSize;
 		if (lOutLen > 16)
 			lOutLen = 16;
 
@@ -389,15 +389,15 @@ int isSTRfile(const char *filename) {
 	return result;
 }
 
-int isdatetime(const char *datetime) {
+bool is_datetime(const char *datetime) {
 	struct tm time_val;
 
 	// datetime format is YYYYMMDD
-	if (strptime(datetime, "%Y%m%d", &time_val) != 0
-		&& ((time_val.tm_year+1900) > 2005)) {
-		return 1;
+	if ((strptime(datetime, "%Y%m%d", &time_val) != NULL)
+		&& ((time_val.tm_year + 1900) > 2005)) {
+		return true;
 	} else {
-		return 0;
+		return false;
 	}
 }
 
@@ -465,10 +465,10 @@ int isPartPakfile(const char *filename) {
 	char *cmagic = NULL;
 	asprintf(&cmagic, "%x", partinfo.magic);
 
-	int r = isdatetime(cmagic);
+	bool valid = is_datetime((const char *) cmagic);
 	free(cmagic);
 
-	if (r == 0) {
+	if (!valid) {
 		return 0;
 	}
 
@@ -502,23 +502,33 @@ int is_kernel(const char *image_file) {
 
 void extract_kernel(const char *image_file, const char *destination_file) {
 	FILE *file = fopen(image_file, "rb");
-	if (file == NULL)
+	if (file == NULL) {
 		err_exit("Can't open file %s", image_file);
+	}
 
-	fseek(file, 0, SEEK_END);
-	int fileLength = ftell(file);
+	if (fseek(file, 0, SEEK_END) != 0) {
+		err_exit("fseek on %s failed: %s", image_file, strerror(errno));
+	}
+
+	long fileLength = ftell(file);
 	rewind(file);
+
 	unsigned char *buffer = malloc(fileLength);
-	int read = fread(buffer, 1, fileLength, file);
+	size_t read = fread(buffer, 1, fileLength, file);
 	if (read != fileLength) {
-		err_exit("Error reading file. read %d bytes from %d.\n", read, fileLength);
+		err_exit("Error reading file. read %zu bytes from %ld.\n", read, fileLength);
 		free(buffer);
 	}
 	fclose(file);
 
 	FILE *out = fopen(destination_file, "wb");
-	int header_size = sizeof(struct image_header);
+	if (out == NULL) {
+		err_exit("Can't open file %s", destination_file);
+	}
+
+	const size_t header_size = sizeof(struct image_header);
 	fwrite(buffer + header_size, 1, read - header_size, out);
+
 	free(buffer);
 	fclose(out);
 }
