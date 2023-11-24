@@ -9,17 +9,19 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include <ftw.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <config.h>
-#include <openssl/aes.h>
 #include <inttypes.h>
-#include <libgen.h>
 #include <errno.h>
 
+#include <ftw.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <libgen.h>
+
+#include <openssl/aes.h>
+
+#include "config.h"
 #include "common.h"
 #include "mfile.h"
 #include "util.h"
@@ -173,8 +175,8 @@ void hexdump(const void *pAddressIn, long lSize) {
 	buf.lSize = lSize;
 
 	while (buf.lSize > 0) {
-		pTmp = (unsigned char *)buf.pData;
-		lOutLen = (int)buf.lSize;
+		pTmp = (unsigned char *) buf.pData;
+		lOutLen = (int) buf.lSize;
 		if (lOutLen > 16)
 			lOutLen = 16;
 
@@ -389,15 +391,15 @@ int isSTRfile(const char *filename) {
 	return result;
 }
 
-int isdatetime(const char *datetime) {
+bool is_datetime(const char *datetime) {
 	struct tm time_val;
 
 	// datetime format is YYYYMMDD
-	if (strptime(datetime, "%Y%m%d", &time_val) != 0
-		&& ((time_val.tm_year+1900) > 2005)) {
-		return 1;
+	if ((strptime(datetime, "%Y%m%d", &time_val) != NULL)
+		&& ((time_val.tm_year + 1900) > 2005)) {
+		return true;
 	} else {
-		return 0;
+		return false;
 	}
 }
 
@@ -465,10 +467,10 @@ int isPartPakfile(const char *filename) {
 	char *cmagic = NULL;
 	asprintf(&cmagic, "%x", partinfo.magic);
 
-	int r = isdatetime(cmagic);
+	bool valid = is_datetime((const char *) cmagic);
 	free(cmagic);
 
-	if (r == 0) {
+	if (!valid) {
 		return 0;
 	}
 
@@ -502,25 +504,59 @@ int is_kernel(const char *image_file) {
 
 void extract_kernel(const char *image_file, const char *destination_file) {
 	FILE *file = fopen(image_file, "rb");
-	if (file == NULL)
-		err_exit("Can't open file %s", image_file);
-
-	fseek(file, 0, SEEK_END);
-	int fileLength = ftell(file);
-	rewind(file);
-	unsigned char *buffer = malloc(fileLength);
-	int read = fread(buffer, 1, fileLength, file);
-	if (read != fileLength) {
-		err_exit("Error reading file. read %d bytes from %d.\n", read, fileLength);
-		free(buffer);
+	if (file == NULL) {
+		err_exit("Can't open file %s\n", image_file);
 	}
+
+	if (fseek(file, 0, SEEK_END) != 0) {
+		fclose(file);
+		err_exit("fseek on %s failed: %s\n", image_file, strerror(errno));
+	}
+
+	long file_length = ftell(file);
+	if (file_length < 0) {
+		fclose(file);
+		err_exit("ftell on %s failed: %s\n", image_file, strerror(errno));
+	}
+
+	rewind(file);
+
+	const size_t header_size = sizeof(struct image_header);
+	if ((size_t) file_length < header_size) {
+		fclose(file);
+		err_exit("File %s is too small to be a valid kernel image: %ld < %zu\n", image_file, file_length, header_size);
+	}
+
+	unsigned char *buffer = malloc(file_length);
+	if (buffer == NULL) {
+		fclose(file);
+		err_exit("Memory allocation failed for buffer of size %ld bytes\n", file_length);
+	}
+
+	size_t bytes_read = fread(buffer, 1, file_length, file);
 	fclose(file);
 
+	if (bytes_read != file_length) {
+		free(buffer);
+		err_exit("Error reading file. read %zu bytes from %ld.\n", bytes_read, file_length);
+	}
+
 	FILE *out = fopen(destination_file, "wb");
-	int header_size = sizeof(struct image_header);
-	fwrite(buffer + header_size, 1, read - header_size, out);
+	if (out == NULL) {
+		free(buffer);
+		err_exit("Can't open file %s\n", destination_file);
+	}
+
+	size_t bytes_written = fwrite(buffer + header_size, 1, bytes_read - header_size, out);
 	free(buffer);
 	fclose(out);
+
+	if (bytes_written != (bytes_read - header_size)) {
+		/* Remove partially written output file */
+		remove(destination_file);
+
+		err_exit("Error writing file %s\n", destination_file);
+	}
 }
 
 /**
