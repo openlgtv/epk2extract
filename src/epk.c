@@ -187,7 +187,7 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 	if (result < 0) {
 		fprintf(stderr, "WARNING: Cannot verify digital signature (maybe you don't have proper PEM file)\n\n");
 	} else {
-		printf("Succesfully verified 0x%x out of 0x%x bytes\n", effectiveSignedSize, signSize);
+		printf("Succesfully verified 0x%zx out of 0x%zx bytes\n", effectiveSignedSize, signSize);
 	}
 	return result;
 }
@@ -197,16 +197,14 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
  */
 void decryptImage(void *srcaddr, size_t len, void *dstaddr) {
 	unsigned int remaining = len;
-	unsigned int decrypted = 0;
+
 	while (remaining >= AES_BLOCK_SIZE) {
 		AES_decrypt(srcaddr, dstaddr, aesKey);
 		srcaddr += AES_BLOCK_SIZE;
 		dstaddr += AES_BLOCK_SIZE;
 		remaining -= AES_BLOCK_SIZE;
-		decrypted++;
 	}
 	if (remaining != 0) {
-		decrypted = decrypted * AES_BLOCK_SIZE;
 		memcpy(dstaddr, srcaddr, remaining);
 	}
 }
@@ -244,7 +242,7 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 
 	if(!keyFound){
 		printf("Trying known AES keys...\n");
-		KeyPair *keyPair = find_AES_key(src, datalen, compareFunc, KEY_ECB, (void **)&decryptedData, 1);
+		KeyPair *keyPair = find_AES_key(src, datalen, compareFunc, KEY_ECB, (void **)&decryptedData, true);
 		decrypted = keyFound = (keyPair != NULL);
 		if(decrypted){
 			aesKey = &(keyPair->key);
@@ -292,7 +290,7 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 		//Make it R/W
 		mprotect(epk->pMem, msize(epk), PROT_READ | PROT_WRITE);
 
-		printf("File size: %d bytes\n", msize(epk));
+		printf("File size: %jd bytes\n", (intmax_t) msize(epk));
 
 		struct epk2_structure *epk2 = mdata(epk, struct epk2_structure);
 		EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
