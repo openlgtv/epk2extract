@@ -14,30 +14,40 @@
 #include "util.h"
 #include "util_crypto.h"
 
-static char *keyFileName = NULL;
+static const char *keyFileName = NULL;
 
-static void setKeyFile(char *keyFile){
-	if(keyFileName != NULL)
-		free(keyFileName);
-	keyFileName = keyFile;
-}
+static const char *const key_paths[] = {
+	"",										/* directory of executable */
+	"../share/epk2extract/"
+};
 
 void setKeyFile_LG(void){
-	char *path = NULL;
-	if (asprintf(&path, "%s/AES.key", config_opts.config_dir) == -1) {
-		fprintf(stderr, "error: failed to allocate string in %s\n", __func__);
-		return;
-	}
-	setKeyFile(path);
+	keyFileName = "AES.key";
 }
 
 void setKeyFile_MTK(void){
-	char *path = NULL;
-	if (asprintf(&path, "%s/MTK.key", config_opts.config_dir) == -1) {
-		fprintf(stderr, "error: failed to allocate string in %s\n", __func__);
-		return;
+	keyFileName = "MTK.key";
+}
+
+static FILE *open_key_file(void) {
+	for (unsigned int i = 0; i < countof(key_paths); i++) {
+		char *path = NULL;
+
+		if (asprintf(&path, "%s/%s%s", config_opts.config_dir, key_paths[i], keyFileName) == -1) {
+			fprintf(stderr, "error: failed to allocate string in %s\n", __func__);
+			continue;
+		}
+
+		FILE *fp = fopen(path, "r");
+
+		free(path);
+
+		if (fp != NULL) {
+			return fp;
+		}
 	}
-	setKeyFile(path);
+
+	return NULL;
 }
 
 KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, bool verbose){
@@ -48,7 +58,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		err_exit("No key file selected!\n");
 	}
 
-	FILE *fp = fopen(keyFileName, "r");
+	FILE *fp = open_key_file();
 	if (fp == NULL) {
 		fprintf(stderr, "Error: Cannot open key file.\n");
 		return NULL;
