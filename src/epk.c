@@ -229,6 +229,10 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 		case EPK_V3:
 			compareFunc = compare_epk3_header;
 			break;
+		case RAW: /* special case below */
+			break;
+		default:
+			err_exit("Error in %s: file type %d not handled\n", __func__, type);
 	}
 
 	int decrypted = 0;
@@ -325,6 +329,8 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 				printf("[+] EPK v3 Detected\n");
 				extractEPK3(epk, epkType, config_opts);
 				break;
+			default:
+				err_exit("Error in %s: file type not handled\n", __func__);
 		}
 	} while(0);
 }
