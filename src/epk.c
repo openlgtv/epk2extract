@@ -286,51 +286,49 @@ bool isEpkVersionString(const char *str){
  * Detects if the EPK file is v2 or v3, and extracts it
  */
 void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
-	do {
-		MFILE *epk = mopen_private(epk_file, O_RDONLY);
-		if(!epk){
-			err_exit("\nCan't open file %s\n\n", epk_file);
+	MFILE *epk = mopen_private(epk_file, O_RDONLY);
+	if(!epk){
+		err_exit("\nCan't open file %s\n\n", epk_file);
+	}
+	//Make it R/W
+	mprotect(epk->pMem, msize(epk), PROT_READ | PROT_WRITE);
+
+	printf("File size: %jd bytes\n", (intmax_t) msize(epk));
+
+	struct epk2_structure *epk2 = mdata(epk, struct epk2_structure);
+	EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
+
+	int result;
+	FILE_TYPE_T epkType;
+	if(compare_epk2_header((uint8_t *)epkHeader, sizeof(*epkHeader))){
+		epkType = EPK_V2;
+	} else {
+		printf("\nTrying to decrypt EPK header...\n");
+		/* Detect if the file is EPK v2 or EPK v3 */
+		result = wrap_decryptimage(
+			epkHeader,
+			sizeof(EPK_V2_HEADER_T),
+			epkHeader,
+			config_opts->config_dir,
+			EPK,
+			&epkType
+		);
+		if(result < 0){
+			return;
 		}
-		//Make it R/W
-		mprotect(epk->pMem, msize(epk), PROT_READ | PROT_WRITE);
+	}
 
-		printf("File size: %jd bytes\n", (intmax_t) msize(epk));
-
-		struct epk2_structure *epk2 = mdata(epk, struct epk2_structure);
-		EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
-
-		int result;
-		FILE_TYPE_T epkType;
-		if(compare_epk2_header((uint8_t *)epkHeader, sizeof(*epkHeader))){
-			epkType = EPK_V2;
-		} else {
-			printf("\nTrying to decrypt EPK header...\n");
-			/* Detect if the file is EPK v2 or EPK v3 */
-			result = wrap_decryptimage(
-				epkHeader,
-				sizeof(EPK_V2_HEADER_T),
-				epkHeader,
-				config_opts->config_dir,
-				EPK,
-				&epkType
-			);
-			if(result < 0){
-				break;
-			}
-		}
-
-		switch(epkType){
-			case EPK_V2:
-				printf("[+] EPK v2 Detected\n");
-				extractEPK2(epk, config_opts);
-				break;
-			case EPK_V3:
-			case EPK_V3_NEW:
-				printf("[+] EPK v3 Detected\n");
-				extractEPK3(epk, epkType, config_opts);
-				break;
-			default:
-				err_exit("Error in %s: file type not handled\n", __func__);
-		}
-	} while(0);
+	switch(epkType){
+		case EPK_V2:
+			printf("[+] EPK v2 Detected\n");
+			extractEPK2(epk, config_opts);
+			break;
+		case EPK_V3:
+		case EPK_V3_NEW:
+			printf("[+] EPK v3 Detected\n");
+			extractEPK3(epk, epkType, config_opts);
+			break;
+		default:
+			err_exit("Error in %s: file type not handled\n", __func__);
+	}
 }
