@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "main.h"
 #include "config.h"
@@ -170,8 +171,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		epkHeader->old.epkVersion[1],
 		epkHeader->old.epkVersion[0]
 	);
-	printf("packageInfoSize: %d\n", epkHeader->old.packageInfoSize);
-	printf("bChunked: %d\n", epkHeader->old.bChunked);
+	printf("packageInfoSize: %" PRIu32 "\n", epkHeader->old.packageInfoSize);
+	printf("bChunked: %" PRIu32 "\n", epkHeader->old.bChunked);
 
 	if(epkType == EPK_V3_NEW){
 		printf("EncryptType: %.*s\n",
@@ -224,7 +225,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	if(epkType == EPK_V3_NEW){
 		if(packageInfo->new.pakInfoMagic != epkHeader->new.pakInfoMagic){
-			printf("pakInfoMagic mismatch! (expected: %04X, actual: %04X)\n",
+			printf("pakInfoMagic mismatch! (expected: %04" PRIX32 ", actual: %04" PRIX32 ")\n",
 					epkHeader->new.pakInfoMagic,
 					packageInfo->new.pakInfoMagic
 			);
@@ -249,12 +250,12 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	for(uint i = 0; i<packageInfoCount;){
 		if(pak->packageInfoSize != sizeof(*pak)){
-			printf("Warning: Unexpected packageInfoSize '%d', expected '%d'\n",
+			printf("Warning: Unexpected packageInfoSize '%" PRIu32 "', expected '%zu'\n",
 					pak->packageInfoSize, sizeof(*pak)
 			);
 		}
 
-		printf("\nPAK '%s' contains %d segment(s), size %d bytes:\n",
+		printf("\nPAK '%s' contains %" PRIu32 " segment(s), size %" PRIu32 " bytes:\n",
 			pak->packageName,
 			pak->segmentInfo.segmentCount,
 			pak->packageSize
@@ -291,11 +292,11 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			}
 
 
-			printf("  segment #%u (name='%s', version='%s', offset='0x%lx', size='%u bytes')\n",
+			printf("  segment #%u (name='%s', version='%s', offset='0x%jx', size='%" PRIu32 " bytes')\n",
 				segNo + 1,
 				pak->packageName,
 				pak->packageVersion,
-				moff(epk, dataPtr),
+				(intmax_t) moff(epk, dataPtr),
 				pak->segmentInfo.segmentSize
 			);
 
@@ -315,7 +316,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			if(epkType == EPK_V3_NEW){
 				uint32_t decryptedSegmentIndex = *(uint32_t *)dataPtr;
 				if(decryptedSegmentIndex != i){
-					printf("Warning: Decrypted segment doesn't match expected index! (index: %d, expected: %d)\n",
+					printf("Warning: Decrypted segment doesn't match expected index! (index: %" PRIu32 ", expected: %u)\n",
 							decryptedSegmentIndex, i
 					);
 				}
@@ -335,4 +336,3 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		free(pakFileName);
 	}
 }
-
