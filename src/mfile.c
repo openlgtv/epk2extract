@@ -17,13 +17,18 @@
 #include "common.h"
 #include "util.h"
 
-#define PERMS_DEFAULT (mode_t)0666
+#define PERMS_DEFAULT ((mode_t) 0666)
 
 /*
  * Creates a new mfile structure
  */
-inline MFILE *mfile_new(){
+inline MFILE *mfile_new(void){
 	MFILE *mem = calloc(1, sizeof(MFILE));
+
+	if (mem == NULL) {
+		err_exit("Error in %s: failed to allocate MFILE\n", __func__);
+	}
+
 	return mem;
 }
 
@@ -31,13 +36,17 @@ inline MFILE *mfile_new(){
  * Updates size and path to a file
  */
 int _mfile_update_info(MFILE *file, const char *path){
-	if(path){
-		if(file->path)
+	if(path != NULL){
+		if(file->path != NULL)
 			free(file->path);
 		file->path = strdup(path);
 	}
-	if(stat(file->path, &(file->statBuf)) < 0)
-		return -1;
+	if(LIKELY(file->path != NULL)){
+		if(stat(file->path, &(file->statBuf)) < 0)
+			return -1;
+	} else {
+		fprintf(stderr, "Warning: %s has no effect because file->path is NULL\n", __func__);
+	}
 	return 0;
 }
 
