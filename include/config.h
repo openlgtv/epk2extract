@@ -11,7 +11,7 @@ typedef struct {
 	char *config_dir;
 	char *dest_dir;
 	int enableSignatureChecking;
-	bool noAutoUnsquashfs;
+	bool noAutoExtractFs;
 	bool signatureOnly;
 } config_opts_t;
 
