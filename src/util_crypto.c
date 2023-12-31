@@ -5,6 +5,7 @@
  */
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <ctype.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -15,25 +16,31 @@
 
 static char *keyFileName = NULL;
 
-void setKeyFile(const char *keyFile){
+static void setKeyFile(char *keyFile){
 	if(keyFileName != NULL)
 		free(keyFileName);
-	keyFileName = (char *)keyFile;
+	keyFileName = keyFile;
 }
 
-void setKeyFile_LG(){
-	char *path;
-	asprintf(&path, "%s/AES.key", config_opts.config_dir);
+void setKeyFile_LG(void){
+	char *path = NULL;
+	if (asprintf(&path, "%s/AES.key", config_opts.config_dir) == -1) {
+		fprintf(stderr, "error: failed to allocate string in %s\n", __func__);
+		return;
+	}
 	setKeyFile(path);
 }
 
-void setKeyFile_MTK(){
-	char *path;
-	asprintf(&path, "%s/MTK.key", config_opts.config_dir);
+void setKeyFile_MTK(void){
+	char *path = NULL;
+	if (asprintf(&path, "%s/MTK.key", config_opts.config_dir) == -1) {
+		fprintf(stderr, "error: failed to allocate string in %s\n", __func__);
+		return;
+	}
 	setKeyFile(path);
 }
 
-KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, int verbose){
+KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, bool verbose){
 	AES_KEY aesKey;
 	int found = 0;
 
@@ -47,16 +54,14 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		return NULL;
 	}
 
-	uint8_t key_buf[MAX_KEY_SIZE];
-	uint8_t iv_buf[MAX_KEY_SIZE];
-	memset(&key_buf, 0x00, sizeof(key_buf));
-	memset(&iv_buf, 0x00, sizeof(iv_buf));
+	uint8_t key_buf[MAX_KEY_SIZE] = {0};
+	uint8_t iv_buf[MAX_KEY_SIZE] = {0};
 
 	ssize_t read;
 	size_t len = 0;
 	char *line = NULL;
 
-	while ((read = getline(&line, &len, fp)) != -1) {
+	while (getline(&line, &len, fp) != -1) {
 		if ((line[0] == '#') || (line[0] == '\0') ||
 		    (line[0] == '\n') || (line[0] == '\r')) {
 			/* skip commented or empty line */
@@ -64,7 +69,7 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		}
 
 		char *pos = line;
-		uint8_t *buf = (uint8_t *)&key_buf;
+		uint8_t *buf = key_buf;
 
 		size_t count;
 		if(verbose){
@@ -80,12 +85,12 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 				break;
 			}
 			if(verbose){
-				printf("%02X", buf[count]);
+				printf("%02hhX", buf[count]);
 			}
 			pos += 2;
 		}
 		if(key_type == KEY_CBC && *pos == ','){ //repeat for IV
-			buf = (uint8_t *)&iv_buf;
+			buf = iv_buf;
 			pos++;
 			if(verbose)
 				printf(", IV: ");
@@ -96,22 +101,25 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 		if(verbose){
 			printf(" (aes %d) %s\n", key_bits, pos);
 		}
-		AES_set_decrypt_key((uint8_t *)&key_buf, key_bits, &aesKey);
+		AES_set_decrypt_key(key_buf, key_bits, &aesKey);
 
 		uint8_t *tmp_data = calloc(1, in_data_size);
 
 		switch(key_type){
-			case KEY_CBC:;
+			case KEY_CBC: {
 				uint8_t iv_tmp[16];
-				memcpy(&iv_tmp, &iv_buf, sizeof(iv_tmp));
-				AES_cbc_encrypt(in_data, tmp_data, in_data_size, &aesKey, (uint8_t *)&iv_tmp, AES_DECRYPT);
+				memcpy(iv_tmp, iv_buf, sizeof(iv_tmp));
+				AES_cbc_encrypt(in_data, tmp_data, in_data_size, &aesKey, iv_tmp, AES_DECRYPT);
 				break;
-			case KEY_ECB:;
+			}
+			case KEY_ECB: {
 				size_t blocks = in_data_size / AES_BLOCK_SIZE;
 				size_t i;
-				for(i=0; i<blocks; i++)
+				for(i=0; i<blocks; i++){
 					AES_ecb_encrypt(&in_data[AES_BLOCK_SIZE * i], &tmp_data[AES_BLOCK_SIZE * i], &aesKey, AES_DECRYPT);
+				}
 				break;
+			}
 			default:
 				err_exit("Unsupported key type %d\n", key_type);
 				break;
@@ -127,9 +135,9 @@ KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompar
 
 		if(found){
 			KeyPair *key = calloc(1, sizeof(KeyPair));
-			memcpy(&(key->key), &aesKey, sizeof(aesKey));
+			memcpy(&(key->key), &aesKey, sizeof(key->key));
 			if(key_type == KEY_CBC){
-				memcpy(&(key->ivec), &iv_buf, sizeof(iv_buf));
+				memcpy(&(key->ivec), iv_buf, sizeof(key->ivec));
 			}
 			free(line);
 			fclose(fp);

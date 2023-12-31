@@ -17,12 +17,8 @@
 
 typedef int (*CompareFunc)(uint8_t *data, size_t size);
 
-void setKeyFile(const char *keyFile);
-void setKeyFile_LG();
-void setKeyFile_MTK();
-
-uint8_t *getLastKey();
-uint8_t *getLastIV();
+void setKeyFile_LG(void);
+void setKeyFile_MTK(void);
 
 #define MAX_KEY_SIZE (AES_BLOCK_SIZE * 2) // AES-256
 
@@ -34,7 +30,7 @@ typedef struct {
 
 KeyPair *find_AES_key(
     uint8_t *in_data, size_t in_data_size, CompareFunc fCompare,
-    int key_type, void **dataOut, int verbose
+    int key_type, void **dataOut, bool verbose
 );
 
 #endif
