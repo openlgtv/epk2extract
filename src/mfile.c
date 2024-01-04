@@ -88,7 +88,7 @@ inline void *mfile_map_private(MFILE *file, size_t mapSize){
 /*
  * Opens and maps a file with open
  */
-MFILE *_mopen(const char *path, int oflags, int mapFlags){
+MFILE *_mopen(const char *path, int oflags, int mapFlags, bool writable){
 	MFILE *file = mfile_new();
 	file->fd = open(path, oflags, PERMS_DEFAULT);
 	if(file->fd < 0){
@@ -104,6 +104,10 @@ MFILE *_mopen(const char *path, int oflags, int mapFlags){
 		file->prot = PROT_WRITE;
 	} else if((oflags & O_ACCMODE) == O_RDWR) {
 		file->prot = PROT_READ | PROT_WRITE;
+	}
+
+	if (writable) {
+		file->prot |= PROT_WRITE;
 	}
 
 	size_t fileSz = msize(file);
@@ -124,11 +128,11 @@ MFILE *_mopen(const char *path, int oflags, int mapFlags){
 }
 
 inline MFILE *mopen(const char *path, int oflags){
-	return _mopen(path, oflags, MAP_SHARED);
+	return _mopen(path, oflags, MAP_SHARED, false);
 }
 
-inline MFILE *mopen_private(const char *path, int oflags){
-	return _mopen(path, oflags, MAP_PRIVATE);
+inline MFILE *mopen_private(const char *path, int oflags, bool writable){
+	return _mopen(path, oflags, MAP_PRIVATE, true);
 }
 
 int mgetc(MFILE *stream){

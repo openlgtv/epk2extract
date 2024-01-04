@@ -391,8 +391,7 @@ static off_t get_mtkpkg_offset(){
 }
 
 void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
-	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
-	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+	MFILE *mf = mopen_private(pkgFile, O_RDONLY, true);
 
 	off_t offset = get_mtkpkg_offset();
 	uint8_t *data = mdata(mf, uint8_t) + offset;

@@ -286,12 +286,10 @@ bool isEpkVersionString(const char *str){
  * Detects if the EPK file is v2 or v3, and extracts it
  */
 void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
-	MFILE *epk = mopen_private(epk_file, O_RDONLY);
+	MFILE *epk = mopen_private(epk_file, O_RDONLY, true);
 	if(!epk){
 		err_exit("\nCan't open file %s\n\n", epk_file);
 	}
-	//Make it R/W
-	mprotect(epk->pMem, msize(epk), PROT_READ | PROT_WRITE);
 
 	printf("File size: %jd bytes\n", (intmax_t) msize(epk));
 
