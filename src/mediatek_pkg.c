@@ -292,8 +292,8 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data;
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
 
-		printf("\n[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
-			moff(mf, main_hdr),
+		printf("\n[0x%08jX] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
+			(intmax_t) moff(mf, main_hdr),
 			main_hdr->checksum,
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
 
