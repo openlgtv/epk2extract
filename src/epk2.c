@@ -22,16 +22,16 @@
 /*
  * Checks if the given data is a PAK2 header
  */
-int compare_pak2_header(uint8_t *header, size_t headerSize){
-	PAK_V2_HEADER_T *hdr = (PAK_V2_HEADER_T *)header;
+bool compare_pak2_header(const uint8_t *header, size_t headerSize){
+	const PAK_V2_HEADER_T *hdr = (const PAK_V2_HEADER_T *)header;
 	return memcmp(hdr->pakMagic, PAK_MAGIC, sizeof(hdr->pakMagic)) == 0;
 }
 
 /*
  * Checks if the given data is an EPK2 header
  */
-int compare_epk2_header(uint8_t *header, size_t headerSize){
-	EPK_V2_HEADER_T *hdr = (EPK_V2_HEADER_T *)header;
+bool compare_epk2_header(const uint8_t *header, size_t headerSize){
+	const EPK_V2_HEADER_T *hdr = (const EPK_V2_HEADER_T *)header;
 	return memcmp(hdr->epkMagic, EPK2_MAGIC, sizeof(hdr->epkMagic)) == 0;
 }
 

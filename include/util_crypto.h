@@ -15,7 +15,7 @@
 #define KEY_ECB (1 << 0)
 #define KEY_CBC (1 << 1)
 
-typedef int (*CompareFunc)(uint8_t *data, size_t size);
+typedef bool (*CompareFunc)(const uint8_t *data, size_t size);
 
 void setKeyFile_LG(void);
 void setKeyFile_MTK(void);

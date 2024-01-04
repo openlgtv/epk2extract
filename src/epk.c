@@ -195,7 +195,7 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 /*
  * Decrypts the given data against the loaded AES key, with ECB mode
  */
-void decryptImage(void *srcaddr, size_t len, void *dstaddr) {
+static void decryptImage(const void *srcaddr, size_t len, void *dstaddr) {
 	unsigned int remaining = len;
 
 	while (remaining >= AES_BLOCK_SIZE) {
