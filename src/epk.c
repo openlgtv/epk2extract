@@ -167,7 +167,7 @@ int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_
 		} else {
 			struct dirent* hFile;
 			while ((hFile = readdir(dirFile)) != NULL) {
-				if (!strcmp(hFile->d_name, ".") || !strcmp(hFile->d_name, "..") || hFile->d_name[0] == '.') continue;
+				if (hFile->d_name[0] == '.') continue;
 				if (strstr(hFile->d_name, ".pem") || strstr(hFile->d_name, ".PEM")) {
 					printf("Trying RSA key: %s...\n", hFile->d_name);
 					SWU_CryptoInit_PEM(config_dir, hFile->d_name);
