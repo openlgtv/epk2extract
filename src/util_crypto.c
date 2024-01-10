@@ -50,7 +50,7 @@ static FILE *open_key_file(void) {
 	return NULL;
 }
 
-KeyPair *find_AES_key(uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, bool verbose){
+KeyPair *find_AES_key(const uint8_t *in_data, size_t in_data_size, CompareFunc fCompare, int key_type, void **dataOut, bool verbose){
 	AES_KEY aesKey;
 	int found = 0;
 

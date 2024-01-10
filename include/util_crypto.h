@@ -29,7 +29,7 @@ typedef struct {
 } KeyPair;
 
 KeyPair *find_AES_key(
-    uint8_t *in_data, size_t in_data_size, CompareFunc fCompare,
+    const uint8_t *in_data, size_t in_data_size, CompareFunc fCompare,
     int key_type, void **dataOut, bool verbose
 );
 

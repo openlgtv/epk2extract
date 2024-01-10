@@ -31,7 +31,7 @@ static int firstAttempt = 1;
 /*
  * Checks if the given data is an EPK2 or EPK3 header
  */
-int compare_epak_header(uint8_t *header, size_t headerSize){
+static int compare_epak_header(const uint8_t *header, size_t headerSize){
 	if(compare_epk2_header(header, headerSize)){
 		return EPK_V2;
 	} else if(compare_epk3_header(header, headerSize)){
@@ -46,7 +46,7 @@ int compare_epak_header(uint8_t *header, size_t headerSize){
 /*
  * Loads the specified Public Key for Signature verification
  */
-int SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
+static int SWU_CryptoInit_PEM(const char *configuration_dir, const char *pem_file) {
 	OpenSSL_add_all_digests();
 	ERR_load_CRYPTO_strings();
 	char *pem_file_name;
@@ -71,7 +71,7 @@ int SWU_CryptoInit_PEM(char *configuration_dir, char *pem_file) {
 /*
  * Verifies the signature of the given data against the loaded public key
  */
-int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize, SIG_TYPE_T sigType) {
+static int API_SWU_VerifyImage(const void *signature, const void *data, size_t imageSize, SIG_TYPE_T sigType) {
 	size_t hashSize;
 	unsigned int sigSize;
 	const EVP_MD *algo;
@@ -122,8 +122,8 @@ int API_SWU_VerifyImage(void *signature, void* data, size_t imageSize, SIG_TYPE_
 /*
  * Wrapper for signature verification. Retries by decrementing size if it fails
  */
-int wrap_SWU_VerifyImage(
-	void *signature, void* data,
+static int wrap_SWU_VerifyImage(
+	const void *signature, const void *data,
 	size_t signedSize, size_t *effectiveSignedSize, SIG_TYPE_T sigType
 ){
 	size_t curSize = signedSize;
@@ -150,7 +150,7 @@ int wrap_SWU_VerifyImage(
 /*
  * High level wrapper for signature verification
  */
-int wrap_verifyimage(void *signature, void *data, size_t signSize, char *config_dir, SIG_TYPE_T sigType){
+int wrap_verifyimage(const void *signature, const void *data, size_t signSize, const char *config_dir, SIG_TYPE_T sigType){
 	size_t effectiveSignedSize;
 	int result = -1;
 	if(!sigCheckAvailable){
@@ -215,7 +215,7 @@ static void decryptImage(const void *srcaddr, size_t len, void *dstaddr) {
  * The comparison function is selected from the passed file type
  * For EPK comparison, outType is used to store the detected type (EPK v2 or EPK v3)
  */
-int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType){
+int wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType){
 	CompareFunc compareFunc = NULL;
 	switch(type){
 		case EPK:
