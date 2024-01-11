@@ -115,7 +115,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		NULL
 	);
 
-	if(result < 0){
+	if(!result){
 		return;
 	}
 
@@ -215,7 +215,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 					NULL
 			);
 
-			if(result < 0){
+			if(!result){
 				return;
 			}
 

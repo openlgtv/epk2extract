@@ -125,7 +125,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		NULL
 	);
 
-	if(result < 0){
+	if(!result){
 		return;
 	}
 
@@ -219,7 +219,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		NULL
 	);
 
-	if(result < 0){
+	if(!result){
 		return;
 	}
 
@@ -309,7 +309,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 				NULL
 			);
 
-			if(result < 0){
+			if(!result){
 				return;
 			}
 

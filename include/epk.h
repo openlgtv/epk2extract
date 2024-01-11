@@ -39,7 +39,7 @@ typedef enum {
 #define EPKV1_VERSION_FORMAT "%02" PRIx8 ".%02" PRIx8 ".%02" PRIx8
 
 bool isEpkVersionString(const char *str);
-int wrap_verifyimage(const void *signature, const void *data, size_t signSize, const char *config_dir, SIG_TYPE_T sigType);
-int wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType);
+bool wrap_verifyimage(const void *signature, const void *data, size_t signSize, const char *config_dir, SIG_TYPE_T sigType);
+bool wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType);
 void extractEPKfile(const char *epk_file, config_opts_t *config_opts);
 #endif
