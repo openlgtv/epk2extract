@@ -27,7 +27,7 @@ static EVP_PKEY *_gpPubKey;
 /*
  * Determines the format of an EPK header
  */
-static int get_epak_header_format(const uint8_t *header, size_t headerSize) {
+static FILE_TYPE_T get_epak_header_type(const uint8_t *header, size_t headerSize) {
 	if (compare_epk2_header(header, headerSize)){
 		return EPK_V2;
 	} else if(compare_epk3_header(header, headerSize)){
@@ -36,14 +36,14 @@ static int get_epak_header_format(const uint8_t *header, size_t headerSize) {
 		return EPK_V3_NEW;
 	}
 
-	return -1;
+	return INVALID;
 }
 
 /*
  * Checks if the given data is an EPK2 or EPK3 header
  */
 static bool compare_epak_header(const uint8_t *header, size_t headerSize) {
-	return (get_epak_header_format(header, headerSize) != -1);
+	return (get_epak_header_type(header, headerSize) != INVALID);
 }
 
 /*
@@ -282,7 +282,7 @@ bool wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *
 		return false;
 	} else if(type == EPK){
 		if(outType != NULL){
-			*outType = get_epak_header_format(decryptedData, datalen);
+			*outType = get_epak_header_type(decryptedData, datalen);
 		}
 	}
 

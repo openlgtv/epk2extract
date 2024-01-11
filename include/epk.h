@@ -22,6 +22,7 @@ typedef enum {
 } BUILD_TYPE_T;
 
 typedef enum {
+	INVALID = -1,
     EPK,
 	EPK_V2,
 	EPK_V3,
