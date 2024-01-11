@@ -82,7 +82,7 @@ static bool API_SWU_VerifyImage(const void *signature, const void *data, size_t 
 	unsigned int sigSize;
 	const EVP_MD *algo;
 
-	switch(sigType) {
+	switch (sigType) {
 		case SIG_SHA1:
 			hashSize = 0x40;
 			sigSize = SIGNATURE_SIZE;
@@ -100,27 +100,24 @@ static bool API_SWU_VerifyImage(const void *signature, const void *data, size_t 
 
 	unsigned char md_value[hashSize];
 	unsigned int md_len = 0;
-	int result = 0;
 
-	EVP_MD_CTX *ctx1, *ctx2;
-	if ((ctx1 = EVP_MD_CTX_new()) == NULL)
-		return false;
-
-	if ((ctx2 = EVP_MD_CTX_new()) == NULL) {
-		EVP_MD_CTX_free(ctx1);
+	EVP_MD_CTX *ctx;
+	if ((ctx = EVP_MD_CTX_new()) == NULL) {
 		return false;
 	}
 
-	EVP_DigestInit(ctx1, algo);
-	EVP_DigestUpdate(ctx1, data, imageSize);
-	EVP_DigestFinal(ctx1, md_value, &md_len);
-	EVP_DigestInit(ctx2, algo);
-	EVP_DigestUpdate(ctx2, md_value, md_len);
+	EVP_DigestInit(ctx, algo);
+	EVP_DigestUpdate(ctx, data, imageSize);
+	EVP_DigestFinal(ctx, md_value, &md_len);
 
-	result = EVP_VerifyFinal(ctx2, signature, sigSize, _gpPubKey);
+	EVP_MD_CTX_reset(ctx);
 
-	EVP_MD_CTX_free(ctx2);
-	EVP_MD_CTX_free(ctx1);
+	EVP_DigestInit(ctx, algo);
+	EVP_DigestUpdate(ctx, md_value, md_len);
+
+	int result = EVP_VerifyFinal(ctx, signature, sigSize, _gpPubKey);
+
+	EVP_MD_CTX_free(ctx);
 
 	return (result == 1);
 }
