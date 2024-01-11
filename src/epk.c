@@ -49,26 +49,29 @@ static bool compare_epak_header(const uint8_t *header, size_t headerSize) {
 /*
  * Loads the specified Public Key for Signature verification
  */
-static int SWU_CryptoInit_PEM(const char *configuration_dir, const char *pem_file) {
+static EVP_PKEY *SWU_CryptoInit_PEM(const char *configuration_dir, const char *pem_file) {
 	OpenSSL_add_all_digests();
 	ERR_load_CRYPTO_strings();
-	char *pem_file_name;
+
+	char *pem_file_name = NULL;
 	asprintf(&pem_file_name, "%s/%s", configuration_dir, pem_file);
+
 	FILE *pubKeyFile = fopen(pem_file_name, "r");
 	if (pubKeyFile == NULL) {
 		printf("Error: Can't open PEM file %s\n\n", pem_file);
-		return 1;
+		return NULL;
 	}
-	EVP_PKEY *gpPubKey = PEM_read_PUBKEY(pubKeyFile, NULL, NULL, NULL);
-	_gpPubKey = gpPubKey;
-	if (_gpPubKey == NULL) {
+
+	EVP_PKEY *pPubKey = PEM_read_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+	if (pPubKey == NULL) {
 		printf("Error: Can't read PEM signature from file %s\n\n", pem_file);
-		fclose(pubKeyFile);
-		return 1;
+	} else {
+		ERR_clear_error();
 	}
+
 	fclose(pubKeyFile);
-	ERR_clear_error();
-	return 0;
+
+	return pPubKey;
 }
 
 /*
@@ -178,7 +181,9 @@ bool wrap_verifyimage(const void *signature, const void *data, size_t signSize, 
 				if ((hFile->d_type != DT_REG) && (hFile->d_type == DT_LNK) && (hFile->d_type == DT_UNKNOWN)) continue;
 				if (strstr(hFile->d_name, ".pem") || strstr(hFile->d_name, ".PEM")) {
 					printf("Trying RSA key: %s...\n", hFile->d_name);
-					SWU_CryptoInit_PEM(config_dir, hFile->d_name);
+					EVP_PKEY *key = SWU_CryptoInit_PEM(config_dir, hFile->d_name);
+					if (key == NULL) continue;
+					_gpPubKey = key; /* TODO: this doesn't need to be global */
 					result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize, sigType);
 					if(result){
 						sigCheckAvailable = true;
