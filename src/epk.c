@@ -112,8 +112,8 @@ static bool API_SWU_VerifyImage(const void *signature, const void *data, size_t 
 
 	EVP_MD_CTX_reset(ctx);
 
-	EVP_DigestInit(ctx, algo);
-	EVP_DigestUpdate(ctx, md_value, md_len);
+	EVP_VerifyInit(ctx, algo);
+	EVP_VerifyUpdate(ctx, md_value, md_len);
 
 	int result = EVP_VerifyFinal(ctx, signature, sigSize, _gpPubKey);
 
