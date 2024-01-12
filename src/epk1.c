@@ -121,6 +121,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			if (pakRecord->offset == 0) {
 				offset += 8;
 				index--;
+				free(pakRecord);
 				continue;
 			}
 
