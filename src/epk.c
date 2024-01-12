@@ -110,12 +110,8 @@ static bool API_SWU_VerifyImage(const void *signature, const void *data, size_t 
 	EVP_DigestUpdate(ctx, data, imageSize);
 	EVP_DigestFinal(ctx, md_value, &md_len);
 
-	EVP_MD_CTX_reset(ctx);
-
-	EVP_VerifyInit(ctx, algo);
-	EVP_VerifyUpdate(ctx, md_value, md_len);
-
-	int result = EVP_VerifyFinal(ctx, signature, sigSize, _gpPubKey);
+	EVP_DigestVerifyInit(ctx, NULL, algo, NULL, _gpPubKey);
+	int result = EVP_DigestVerify(ctx, signature, sigSize, md_value, md_len);
 
 	/* I hope this can't affect OpenSSL's error queue. */
 	EVP_MD_CTX_free(ctx);
