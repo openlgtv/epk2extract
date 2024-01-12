@@ -71,30 +71,28 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	size_t headerSize, signed_size, sigSize, extraSegmentSize;
 	SIG_TYPE_T sigType;
-	{
-		switch(epkType){
-			case EPK_V3:
-				headerSize = sizeof(EPK_V3_HEADER_T);
-				signed_size = (
-					sizeof(epk3->old.head.epkHeader) +
-					sizeof(epk3->old.head.crc32Info) +
-					sizeof(epk3->old.head.reserved)
-				);
-				sigType = SIG_SHA1;
-				sigSize = SIGNATURE_SIZE;
-				extraSegmentSize = 0;
-				break;
-			case EPK_V3_NEW:
-				headerSize = sizeof(EPK_V3_NEW_HEADER_T);
-				signed_size = headerSize;
-				sigType = SIG_SHA256;
-				sigSize = SIGNATURE_SIZE_NEW;
-				/* each segment has an index value */
-				extraSegmentSize = sizeof(uint32_t);
-				break;
-			default:
-				err_exit("Unsupported EPK3 variant\n");
-		}
+	switch(epkType){
+		case EPK_V3:
+			headerSize = sizeof(EPK_V3_HEADER_T);
+			signed_size = (
+				sizeof(epk3->old.head.epkHeader) +
+				sizeof(epk3->old.head.crc32Info) +
+				sizeof(epk3->old.head.reserved)
+			);
+			sigType = SIG_SHA1;
+			sigSize = SIGNATURE_SIZE;
+			extraSegmentSize = 0;
+			break;
+		case EPK_V3_NEW:
+			headerSize = sizeof(EPK_V3_NEW_HEADER_T);
+			signed_size = headerSize;
+			sigType = SIG_SHA256;
+			sigSize = SIGNATURE_SIZE_NEW;
+			/* each segment has an index value */
+			extraSegmentSize = sizeof(uint32_t);
+			break;
+		default:
+			err_exit("Unsupported EPK3 variant\n");
 	}
 
 	EPK_V3_HEADER_UNION *epkHeader;
@@ -149,6 +147,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			pak = &(packageInfo->new.packages[0]);
 			sigPtr = epk3->new.packageInfo_signature;
 			break;
+		default:
+			err_exit("Unsupported EPK3 variant\n");
 	}
 
 	if(config_opts->enableSignatureChecking){
@@ -246,6 +246,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		case EPK_V3_NEW:
 			packageInfoCount = packageInfo->new.packageInfoCount;
 			break;
+		default:
+			err_exit("Unsupported EPK3 variant\n");
 	}
 
 	for(uint i = 0; i<packageInfoCount;){
