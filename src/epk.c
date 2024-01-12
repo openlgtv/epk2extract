@@ -117,9 +117,17 @@ static bool API_SWU_VerifyImage(const void *signature, const void *data, size_t 
 
 	int result = EVP_VerifyFinal(ctx, signature, sigSize, _gpPubKey);
 
+	/* I hope this can't affect OpenSSL's error queue. */
 	EVP_MD_CTX_free(ctx);
 
-	return (result == 1);
+	if (result == 1) {
+		return true;
+	} else if (result != 0) {
+		fprintf(stderr, "Error: EVP_VerifyFinal failed in %s:\n", __func__);
+		ERR_print_errors_fp(stderr);
+	}
+
+	return false;
 }
 
 /*
