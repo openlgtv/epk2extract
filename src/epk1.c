@@ -98,7 +98,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		struct epk1BEVersion_t *fwVer = buffer + epakHeader->offset - 4;
 
 		if (fwVer->pad != 0) {
-			printf("Note: Padding byte is not zero (0x" PRIx8 ")!", fwVer->pad);
+			printf("Note: Padding byte is not zero (0x%" PRIx8 ")!\n", fwVer->pad);
 		}
 
 		sprintf(verString, EPKV1_VERSION_FORMAT, fwVer->major, fwVer->minor1, fwVer->minor2);
