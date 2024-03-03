@@ -104,18 +104,14 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 	void *decryptedHeader = NULL;
 	KeyPair *headerKey = NULL;
 
-	do {
-		if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, false)) != NULL){
-			break;
-		}
-
+	if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, false)) == NULL){
 		/* It failed, but we want to check for Philips.
 		 * Philips has an additional 0x80 header before the normal PKG one
 		 */
 		if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, false)) != NULL){
 			mtkpkg_variant_flags |= PHILIPS;
 		}
-	} while(0);
+	}
 
 	if(headerKey != NULL){
 		was_decrypted = true;
