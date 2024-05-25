@@ -38,26 +38,28 @@ bool isFileEPK1(const char *epk_file) {
 	}
 }
 
-void printHeaderInfo(struct epk1Header_t *epakHeader) {
+static void printHeaderInfo(const struct epk1Header_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
 	printf("Firmware version: " EPKV1_VERSION_FORMAT "\n", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
 	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
-void printNewHeaderInfo(struct epk1NewHeader_t *epakHeader) {
+static void printNewHeaderInfo(const struct epk1NewHeader_t *epakHeader) {
 	printf("\nFirmware otaID: %s\n", epakHeader->otaID);
 	printf("Firmware version: " EPKV1_VERSION_FORMAT "\n", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0]);
 	printf("PAK count: %d\n", epakHeader->pakCount);
 	printf("PAKs total size: %d\n", epakHeader->fileSize);
 }
 
-void constructVerString(char *fw_version, struct epk1Header_t *epakHeader) {
-	sprintf(fw_version, EPKV1_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+static void constructVerString(char *fw_version, size_t buflen, const struct epk1Header_t *epakHeader) {
+	snprintf(fw_version, buflen - 1, EPKV1_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+	fw_version[buflen] = '\0';
 }
 
-void constructNewVerString(char *fw_version, struct epk1NewHeader_t *epakHeader) {
-	sprintf(fw_version, EPKV1_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+static void constructNewVerString(char *fw_version, size_t buflen, const struct epk1NewHeader_t *epakHeader) {
+	snprintf(fw_version, buflen - 1, EPKV1_VERSION_FORMAT "-%s", epakHeader->fwVer[2], epakHeader->fwVer[1], epakHeader->fwVer[0], epakHeader->otaID);
+	fw_version[buflen] = '\0';
 }
 
 void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
@@ -79,7 +81,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		err_exit("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
 	}
 
-	char verString[12];
+	char verString[12] = { '\0' };
 	int index;
 	uint32_t pakcount = ((struct epk1Header_t *)buffer)->pakCount;
 	if (pakcount >> 8 != 0) {
@@ -102,7 +104,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			printf("Note: Padding byte is not zero (0x%" PRIx8 ")!\n", fwVer->pad);
 		}
 
-		sprintf(verString, EPKV1_VERSION_FORMAT, fwVer->major, fwVer->minor1, fwVer->minor2);
+		snprintf(verString, sizeof(verString) - 1, EPKV1_VERSION_FORMAT, fwVer->major, fwVer->minor1, fwVer->minor2);
 		printf("Firmware version: %s\n", verString);
 		printf("PAK count: %d\n", epakHeader->pakCount);
 		printf("PAKs total size: %d\n", epakHeader->fileSize);
@@ -136,11 +138,11 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			SWAP(pakHeader->pakSize);
 			pakHeader = (struct pakHeader_t *)(buffer + pakRecord->offset);
 
-			char pakName[PAKNAME_LEN + 1] = "";
-			sprintf(pakName, "%.*s", PAKNAME_LEN, pakHeader->pakName);
+			char pakName[PAKNAME_LEN + 1] = { '\0' };
+			snprintf(pakName, sizeof(pakName) - 1, "%.*s", PAKNAME_LEN, pakHeader->pakName);
 
-			char filename[PATH_MAX + 1] = "";
-			int filename_len = snprintf(filename, PATH_MAX + 1, "%s/%s.pak", config_opts->dest_dir, pakName);
+			char filename[PATH_MAX + 1] = { '\0' };
+			int filename_len = snprintf(filename, sizeof(filename), "%s/%s.pak", config_opts->dest_dir, pakName);
 
 			if (filename_len > PATH_MAX) {
 				err_exit("Error in %s: filename too long (%d > %d)\n", __func__, filename_len, PATH_MAX);
@@ -169,7 +171,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		printf("\nFirmware type is EPK1...\n");
 		struct epk1Header_t *epakHeader = (struct epk1Header_t *)buffer;
 		printHeaderInfo(epakHeader);
-		constructVerString(verString, epakHeader);
+		constructVerString(verString, sizeof(verString), epakHeader);
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 
@@ -178,10 +180,10 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			struct pakHeader_t *pakHeader;
 			pakHeader = (struct pakHeader_t *)(buffer + pakRecord.offset);
 
-			char pakName[PAKNAME_LEN + 1] = "";
-			sprintf(pakName, "%.*s", PAKNAME_LEN, pakHeader->pakName);
+			char pakName[PAKNAME_LEN + 1] = { '\0' };
+			snprintf(pakName, sizeof(pakName) - 1, "%.*s", PAKNAME_LEN, pakHeader->pakName);
 
-			char filename[PATH_MAX + 1] = "";
+			char filename[PATH_MAX + 1] = { '\0' };
 			int filename_len = snprintf(filename, PATH_MAX + 1, "%s/%s.pak", config_opts->dest_dir, pakName);
 
 			if (filename_len > PATH_MAX) {
@@ -206,7 +208,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 		printf("\nFirmware type is EPK1(new)...\n");
 		struct epk1NewHeader_t *epakHeader = (struct epk1NewHeader_t *)(buffer);
 		printNewHeaderInfo(epakHeader);
-		constructNewVerString(verString, epakHeader);
+		constructNewVerString(verString, sizeof(verString), epakHeader);
 		asprintf_inplace(&config_opts->dest_dir, "%s/%s", config_opts->dest_dir, verString);
 		createFolder(config_opts->dest_dir);
 
@@ -214,11 +216,11 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			struct pakRec_t pakRecord = epakHeader->pakRecs[index];
 			struct pakHeader_t *pakHeader = (struct pakHeader_t *)(buffer + pakRecord.offset);
 
-			char pakName[PAKNAME_LEN + 1] = "";
-			sprintf(pakName, "%.*s", PAKNAME_LEN, pakHeader->pakName);
+			char pakName[PAKNAME_LEN + 1] = { '\0' };
+			snprintf(pakName, sizeof(pakName) - 1, "%.*s", PAKNAME_LEN, pakHeader->pakName);
 
-			char filename[PATH_MAX + 1] = "";
-			int filename_len = snprintf(filename, PATH_MAX + 1, "%s/%s.pak", config_opts->dest_dir, pakName);
+			char filename[PATH_MAX + 1] = { '\0' };
+			int filename_len = snprintf(filename, sizeof(filename), "%s/%s.pak", config_opts->dest_dir, pakName);
 
 			if (filename_len > PATH_MAX) {
 				err_exit("Error in %s: filename too long (%d > %d)\n", __func__, filename_len, PATH_MAX);
