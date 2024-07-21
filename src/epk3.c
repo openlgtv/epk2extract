@@ -69,7 +69,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	epk3_union *epk3 = mdata(epk, epk3_union);
 
-	size_t headerSize, signed_size, sigSize, extraSegmentSize;
+	size_t headerSize, signed_size, sigSize;
+	size_t extraSegmentSize; /* size of additional data in new format */
 	SIG_TYPE_T sigType;
 	switch(epkType){
 		case EPK_V3:
@@ -114,16 +115,14 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		);
 	}
 
-	int result = wrap_decryptimage(
+	if (!wrap_decryptimage(
 		epkHeader,
 		headerSize,
 		epkHeader,
 		config_opts->dest_dir,
 		EPK_V3,
 		NULL
-	);
-
-	if(!result){
+	)) {
 		return;
 	}
 
@@ -210,16 +209,14 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 
 	/* Decrypt packageInfo */
-	result = wrap_decryptimage(
+	if (!wrap_decryptimage(
 		packageInfo,
 		epkHeader->old.packageInfoSize,
 		packageInfo,
 		config_opts->dest_dir,
 		RAW,
 		NULL
-	);
-
-	if(!result){
+	)) {
 		return;
 	}
 
@@ -237,7 +234,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	dataPtr += epkHeader->old.packageInfoSize;
 
-	int packageInfoCount;
+	unsigned int packageInfoCount;
 
 	switch(epkType){
 		case EPK_V3:
@@ -257,42 +254,43 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			);
 		}
 
-		printf("\nPAK '%s' contains %" PRIu32 " segment(s), size %" PRIu32 " bytes:\n",
+		printf("\nPAK '%s' contains %" PRIu32 " segment%s, size %" PRIu32 " bytes:\n",
 			pak->packageName,
 			pak->segmentInfo.segmentCount,
+			(pak->segmentInfo.segmentCount == 1) ? "" : "s",
 			pak->packageSize
 		);
 
-		char *pakFileName;
+		char *pakFileName = NULL;
 		asprintf(&pakFileName, "%s/%s.pak", config_opts->dest_dir, pak->packageName);
 
 		MFILE *pakFile = mfopen(pakFileName, "w+");
 		if(!pakFile){
 			err_exit("Cannot open '%s' for writing\n", pakFileName);
 		}
+
 		mfile_map(pakFile, pak->packageSize);
 		printf("Saving partition (%s) to file %s\n", pak->packageName, pakFileName);
 
 
 		PACKAGE_SEGMENT_INFO_T segmentInfo = pak->segmentInfo;
-		uint segNo;
-		for(segNo = segmentInfo.segmentIndex;
+		for(uint segNo = segmentInfo.segmentIndex;
 			segNo < segmentInfo.segmentCount;
 			segNo++, pak++, i++
 		){
+			const void *sigPtr = (void *) dataPtr;
 			dataPtr += sigSize;
 
 			if(config_opts->enableSignatureChecking)
 			{
 				wrap_verifyimage(
-					(void *)(dataPtr - sigSize),
-					(void *)dataPtr,
+					sigPtr,
+					(const void *)dataPtr,
 					pak->segmentInfo.segmentSize + extraSegmentSize,
 					config_opts->config_dir,
 					sigType
 				);
 			}
-
 
 			printf("  segment #%u (name='%s', version='%s', offset='0x%jx', size='%" PRIu32 " bytes')\n",
 				segNo + 1,
@@ -302,16 +300,14 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 				pak->segmentInfo.segmentSize
 			);
 
-			result = wrap_decryptimage(
-				(void *)dataPtr,
-				pak->segmentInfo.segmentSize,
-				(void *)dataPtr,
-				config_opts->dest_dir,
-				RAW,
-				NULL
-			);
-
-			if(!result){
+			if (!wrap_decryptimage(
+					(void *)dataPtr,
+					pak->segmentInfo.segmentSize,
+					(void *)dataPtr,
+					config_opts->dest_dir,
+					RAW,
+					NULL
+			)) {
 				return;
 			}
 
