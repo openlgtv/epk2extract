@@ -79,6 +79,11 @@ int symfile_load(const char *fname) {
 		return -1;
 	}
 
+	if (st_buf.st_size < sizeof(*header)) {
+		close(fd);
+		return -1;
+	}
+
 	p = mmap(NULL, st_buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	header = p;
 	p += sizeof(*header);

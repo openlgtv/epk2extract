@@ -250,8 +250,10 @@ MFILE *is_lz4(const char *lz4file) {
 	if (!file){
 		err_exit("Can't open file %s\n\n", lz4file);
 	}
-	if(!memcmp(mdata(file, uint8_t), "LZ4P", 4))
+
+	if ((msize(file) >= 4) && (memcmp(mdata(file, uint8_t), "LZ4P", 4) == 0)) {
 		return file;
+	}
 
 	mclose(file);
 	return NULL;
@@ -259,6 +261,11 @@ MFILE *is_lz4(const char *lz4file) {
 
 bool is_nfsb_mem(MFILE *file, off_t offset){
 	uint8_t *data = &(mdata(file, uint8_t))[offset];
+
+	const off_t remaining_size = msize(file) - offset;
+	if (remaining_size < 4) {
+		return false;
+	}
 
 	if(memcmp(data, "NFSB", 4) != 0){
 		return false;
@@ -276,6 +283,11 @@ bool is_nfsb_mem(MFILE *file, off_t offset){
 
 	for(int i=0; i<num_algos; i++){
 		for(int j=0; j<num_offsets; j++){
+			if ((offsets[j] + lengths[i]) > remaining_size) {
+				/* Not enough data present to match this */
+				continue;
+			}
+
 			if(memcmp(data + offsets[j], algos[i], lengths[i]) == 0){
 				return true;
 			}
@@ -291,8 +303,10 @@ MFILE *is_nfsb(const char *filename) {
 		err_exit("Can't open file %s\n\n", filename);
 	}
 
-	if(is_nfsb_mem(file, 0))
+	/* is_nfsb_mem() won't read beyond end of file */
+	if (is_nfsb_mem(file, 0)) {
 		return file;
+	}
 
 	mclose(file);
 	return NULL;

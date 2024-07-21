@@ -19,8 +19,15 @@ MFILE *is_philips_fusion1(const char *filename){
 		if(!mf){
 			err_exit("mfopen failed for %s\n", filename);
 		}
+
+		const size_t magic_len = strlen(PHILIPS_FUSION1_MAGIC);
+		if (msize(mf) < magic_len) {
+			mclose(mf);
+			return NULL;
+		}
+
 		uint8_t *data = mdata(mf, uint8_t);
-		if(!memcmp(data, PHILIPS_FUSION1_MAGIC, strlen(PHILIPS_FUSION1_MAGIC))){
+		if(!memcmp(data, PHILIPS_FUSION1_MAGIC, magic_len)){
 			return mf;
 		}
 		mclose(mf);
