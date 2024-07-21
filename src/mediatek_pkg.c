@@ -100,6 +100,11 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 		err_exit("Cannot open file %s\n", pkgfile);
 	}
 
+	if (msize(mf) < sizeof(struct mtkupg_header)) {
+		mclose(mf);
+		return NULL;
+	}
+
 	uint8_t *data = mdata(mf, uint8_t);
 	void *decryptedHeader = NULL;
 	KeyPair *headerKey = NULL;
@@ -182,6 +187,11 @@ MFILE *is_lzhs_fs(const char *pkg){
 	}
 
 	uint8_t *data = mdata(mf, uint8_t);
+
+	if (msize(mf) < (SHARP_PKG_HEADER_SIZE)) {
+		goto fail;
+	}
+
 
 	off_t start = MTK_EXT_LZHS_OFFSET;
 	if(is_nfsb_mem(mf, SHARP_PKG_HEADER_SIZE)){

@@ -628,6 +628,11 @@ int is_cramfs_image(char const *imagefile, char *endian) {
 		perror(imagefile);
 		exit(1);
 	}
+
+	if (st.st_size < sizeof(struct cramfs_super)) {
+		return 0;
+	}
+
 	// Map the cramfs image
 	fd = open(imagefile, O_RDONLY);
 	fslen_ub = st.st_size;

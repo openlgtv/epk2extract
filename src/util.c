@@ -248,8 +248,10 @@ MFILE *is_lz4(const char *lz4file) {
 	if (!file){
 		err_exit("Can't open file %s\n\n", lz4file);
 	}
-	if(!memcmp(mdata(file, uint8_t), "LZ4P", 4))
+
+	if ((msize(file) >= 4) && (memcmp(mdata(file, uint8_t), "LZ4P", 4) == 0)) {
 		return file;
+	}
 
 	mclose(file);
 	return NULL;
@@ -262,6 +264,7 @@ bool is_nfsb_mem(MFILE *file, off_t offset){
 		return false;
 	}
 
+	/* XXX: This needs to check the length of the file before reading anything.*/
 	const char algo_md5[] = "md5";
 	const char algo_sha256[] = "sha256";
 
@@ -289,8 +292,10 @@ MFILE *is_nfsb(const char *filename) {
 		err_exit("Can't open file %s\n\n", filename);
 	}
 
-	if(is_nfsb_mem(file, 0))
+	/* The minimum size for the data checked here seems to be 17. */
+	if ((msize(file) > 17) && is_nfsb_mem(file, 0)) {
 		return file;
+	}
 
 	mclose(file);
 	return NULL;
