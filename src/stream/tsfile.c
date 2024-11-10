@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <string.h>
 #include <inttypes.h>
 #include <openssl/aes.h>
@@ -35,34 +34,33 @@
 #define TS_PACKET_SIZE 192
 static AES_KEY AESkey;
 
-static int do_unwrap_func(uint8_t unwrap_key[], uint8_t aes_key[], uint8_t unwrapped_key[]){
-	uint8_t zero_cnt = 0;
-
+static bool do_unwrap_func(const uint8_t unwrap_key[], const uint8_t aes_key[], uint8_t unwrapped_key[]) {
 	puts("Wrapped key: ");
-	for(int i = 0; i<24; i++){
-		printf("%02X", aes_key[i]);
+	for (unsigned int i = 0; i < 24; i++){
+		printf("%02" PRIX8, aes_key[i]);
 	}
 
-	// B7..B7..
-	uint8_t wrap_iv[8];
-	memset(&wrap_iv, 0xB7, sizeof(wrap_iv));
+	// 8 bytes of 0xB7 (B7B7B7B7B7B7B7B7)
+	const uint8_t wrap_iv[8] = {0xB7, 0xB7, 0xB7, 0xB7, 0xB7, 0xB7, 0xB7, 0xB7};
 
+	// TODO: replace these deprecated functions
 	// unwrap 'aes_key' with 'unwrap_key' into 'unwrapped_key'
 	AES_set_decrypt_key(unwrap_key, 128, &AESkey);
 	AES_unwrap_key(&AESkey, wrap_iv, unwrapped_key, aes_key, 24);
 
+	uint8_t accum = 0;
+
 	puts("\nUnwrapped key: ");
-	for (int i = 0; i < 16; i++){
-		printf("%02X", unwrapped_key[i]);
-		zero_cnt = zero_cnt + unwrapped_key[i]; // check if all Bits are zero
+	for (unsigned int i = 0; i < 16; i++){
+		printf("%02" PRIX8, unwrapped_key[i]);
+
+		// Record any bits that are set
+		accum |= unwrapped_key[i];
 	}
-	puts("\n");
-	if(zero_cnt == 0) {
-		return -1;
-	}
-	else {
-		return 0;
-	}
+	putchar('\n');
+
+	// If all bits were zero, return false
+	return (accum != 0);
 }
 
 static int setKey(char *keyPath) {
@@ -92,7 +90,7 @@ static int setKey(char *keyPath) {
 			doUnwrap = true;
 			break;
 		default:
-			fprintf(stderr, "Unknown or invalid key found (key size=%ld)\n", statBuf.st_size);
+			fprintf(stderr, "Unknown or invalid key found (key size=%jd)\n", (intmax_t) statBuf.st_size);
 			return -1;
 	}
 	int keySz = statBuf.st_size;
@@ -113,14 +111,16 @@ static int setKey(char *keyPath) {
 		// set unwrap_key: 0x01, 0x02, 0x03, ... 0x0F
 		for (int i = 0; i < sizeof(unwrap_key); i++){
 			unwrap_key[i] = i;
-			//printf("%02X", unwrap_key[i]);
+			//printf("%02" PRIx8, unwrap_key[i]);
 		}
-		printf("\n");
-		if (0 != do_unwrap_func(unwrap_key, aes_key, unwrapped_key)){ // if failed try alternative unwrap from ww#8543
-			puts("Unwrap key failed, try alternative unwrap key\n");
-			uint8_t unwrap_key2[16] = {0xb1, 0x52, 0x73, 0x3f, 0x68, 0x61, 0x3b, 0x6a, 0x40, 0x6c, 0x7a, 0xa4, 0xbe, 0x28, 0xb8, 0xb6};
-			if (0 != do_unwrap_func(unwrap_key2, aes_key, unwrapped_key)){
-				puts("Unwrap key failed\n");
+		putchar('\n');
+
+		if (!do_unwrap_func(unwrap_key, aes_key, unwrapped_key)) {
+			// If unwrapping failed, try alternative KEK from ww#8543
+			puts("Failed to unwrap key; trying again with alternative key encryption key...\n");
+			const uint8_t unwrap_key2[16] = {0xb1, 0x52, 0x73, 0x3f, 0x68, 0x61, 0x3b, 0x6a, 0x40, 0x6c, 0x7a, 0xa4, 0xbe, 0x28, 0xb8, 0xb6};
+			if (!do_unwrap_func(unwrap_key2, aes_key, unwrapped_key)) {
+				puts("Failed to unwrap key\n");
 				return -1;
 			}
 		}
@@ -281,7 +281,7 @@ void writePMT(struct tables *PIDs, FILE *outFile, struct tsfile_options *opts){
 	for (unsigned int i = 0; i < 8192; i++){
 		uint32_t packed_pid = pack_pid(i);
 		if (PIDs->number[i] > 0) {
-			printf("PID %zX : %d Type: %zX PCRs: %zX\n", i, PIDs->number[i], PIDs->type[i], PIDs->pcr_count[i]);
+			printf("PID %X : %d Type: %hhX PCRs: %X\n", i, PIDs->number[i], PIDs->type[i], (unsigned int) PIDs->pcr_count[i]);
 			if (PIDs->pcr_count[i] > 0) {	// Set PCR PID
 				pmt_data = (0
 					| (packed_pid << 12)
