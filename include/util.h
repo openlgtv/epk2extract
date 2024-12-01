@@ -62,16 +62,6 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 #define PERROR_SE(fmt, ...) print(0, 0, WHEREARG, "ERROR: " fmt " (%s)", ## __VA_ARGS__, strerror(errno))
 #define PERROR(...) print(0, 1, WHEREARG, "ERROR: " __VA_ARGS__)
 
-#if __WORDSIZE == 64
-#   define LX "%lx"
-#   define LLX LX
-#   define LU "%lu"
-#else
-#   define LX "%x"
-#   define LLX "%llx"
-#   define LU "%u"
-#endif
-
 #ifdef __cplusplus
 }
 #endif
