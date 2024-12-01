@@ -20,7 +20,7 @@ extern "C" {
 
 #define member_size(type, member) sizeof(((type *)0)->member)
 #define err_exit(fmt, ...) \
-	exit(err_ret(fmt, ##__VA_ARGS__))
+	exit(err_ret((fmt), ##__VA_ARGS__))
 
 #ifdef __APPLE__
 typedef    unsigned int    uint;
@@ -30,7 +30,7 @@ char *my_basename(const char *path);
 char *my_dirname(const char *path);
 int count_tokens(const char *str, char token, int sz);
 void getch(void);
-void hexdump(void *pAddressIn, long lSize);
+void hexdump(const void *pAddressIn, long lSize);
 void rmrf(const char *path);
 
 /* Print message and return EXIT_FAILURE. (On Cygwin, also waits for keypress.) */
@@ -46,7 +46,7 @@ void unnfsb(const char *filename, const char *extractedFile);
 MFILE *is_gzip(const char *filename);
 int is_jffs2(const char *filename);
 int isSTRfile(const char *filename);
-int isdatetime(char *datetime);
+int isdatetime(const char *datetime);
 int isPartPakfile(const char *filename);
 int is_kernel(const char *image_file);
 void extract_kernel(const char *image_file, const char *destination_file);
@@ -54,7 +54,7 @@ int asprintf_inplace(char **strp, const char *fmt, ...) FORMAT_PRINTF(2, 3);
 
 
 #include <errno.h>
-void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...) FORMAT_PRINTF(5, 6);
+void print(int verbose, int newline, const char *fn, int lineno, const char *fmt, ...) FORMAT_PRINTF(5, 6);
 #define WHEREARG  __FILE__, __LINE__
 #define PRINT(...) print(0, 0 , WHEREARG, __VA_ARGS__)
 #define VERBOSE(N,...) print(N, 0, WHEREARG, __VA_ARGS__)
