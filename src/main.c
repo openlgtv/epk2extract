@@ -44,6 +44,8 @@
 #include <mach-o/dyld.h>
 #endif
 
+static int print_usage(void);
+
 config_opts_t config_opts;
 
 int handle_file(char *file, config_opts_t *config_opts) {
@@ -214,13 +216,7 @@ int handle_file(char *file, config_opts_t *config_opts) {
 int main(int argc, char *argv[]) {
 	printf("\nLG Electronics digital TV firmware package (EPK) extractor version 4.8 (http://openlgtv.org.ru)\n\n");
 	if (argc < 2) {
-		printf("Usage: epk2extract [-options] FILENAME\n\n");
-		printf("Options:\n");
-		printf("  -c : extract to current directory instead of source file directory\n");
-		printf("  -s : enable signature checking for EPK files\n");
-		printf("  -S : only check signature (implies -s)\n");
-		printf("  -n : no automatic unsquashfs\n\n");
-		return err_ret("");
+		return print_usage();
 	}
 
 	char *exe_dir = calloc(1, PATH_MAX);
@@ -279,6 +275,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	if (optind == argc) {
+		/* no non-option args */
+		return print_usage();
+	}
+
 #ifdef __CYGWIN__
 	char posix[PATH_MAX];
 	cygwin_conv_path(CCP_WIN_A_TO_POSIX, argv[optind], posix, PATH_MAX);
@@ -305,8 +306,20 @@ int main(int argc, char *argv[]) {
 
 	int exit_code = handle_file(input_file, &config_opts);
 
-	if (exit_code == EXIT_FAILURE)
+	if (exit_code == EXIT_FAILURE) {
 		return err_ret("Unsupported input file format: %s\n\n", input_file);
+	}
 
-	return !err_ret("\nExtraction is finished.\n\n");
+	(void) err_ret("\nExtraction is finished.\n\n");
+	return EXIT_SUCCESS;
+}
+
+static int print_usage(void) {
+	printf("Usage: epk2extract [-options] FILENAME\n\n");
+	printf("Options:\n");
+	printf("  -c : extract to current directory instead of source file directory\n");
+	printf("  -s : enable signature checking for EPK files\n");
+	printf("  -S : only check signature (implies -s)\n");
+	printf("  -n : no automatic unsquashfs\n\n");
+	return err_ret(NULL);
 }
