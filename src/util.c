@@ -28,7 +28,6 @@
 #include <time.h>
 #include "partinfo.h"
 char *modelname;
-char *mtdname;
 part_struct_type part_type;
 
 //jffs2
@@ -442,10 +441,8 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 		part_type = STRUCT_MTDINFO;	//mtdinfo
 	}
 
-	mtdname = pid->name;
 	modelname = model;
-	/*printf("\nMTD name -> %s\n",mtdname);
-	   printf("%s Detected\n\n", modelname);*/
+	/*printf("%s Detected\n\n", modelname);*/
 
 	return part_type;
 }
