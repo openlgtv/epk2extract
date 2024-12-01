@@ -306,10 +306,12 @@ int main(int argc, char *argv[]) {
 
 	int exit_code = handle_file(input_file, &config_opts);
 
-	if (exit_code == EXIT_FAILURE)
+	if (exit_code == EXIT_FAILURE) {
 		return err_ret("Unsupported input file format: %s\n\n", input_file);
+	}
 
-	return !err_ret("\nExtraction is finished.\n\n");
+	(void) err_ret("\nExtraction is finished.\n\n");
+	return EXIT_SUCCESS;
 }
 
 static int print_usage(void) {
@@ -319,5 +321,5 @@ static int print_usage(void) {
 	printf("  -s : enable signature checking for EPK files\n");
 	printf("  -S : only check signature (implies -s)\n");
 	printf("  -n : no automatic unsquashfs\n\n");
-	return err_ret("");
+	return err_ret(NULL);
 }

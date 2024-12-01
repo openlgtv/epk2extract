@@ -221,14 +221,18 @@ void rmrf(const char *path) {
 
 FORMAT_PRINTF(1, 2)
 int err_ret(const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
+	if (format != NULL) {
+		va_list args;
+		va_start(args, format);
+		vprintf(format, args);
+		va_end(args);
+	}
+
 #ifdef __CYGWIN__
 	puts("Press any key to continue...");
 	getch();
 #endif
+
 	return EXIT_FAILURE;
 }
 

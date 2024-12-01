@@ -32,6 +32,8 @@ int count_tokens(const char *str, char token, int sz);
 void getch(void);
 void hexdump(void *pAddressIn, long lSize);
 void rmrf(const char *path);
+
+/* Print message and return EXIT_FAILURE. (On Cygwin, also waits for keypress.) */
 int err_ret(const char *format, ...) FORMAT_PRINTF(1, 2);
 
 char *remove_ext(const char *mystr);
