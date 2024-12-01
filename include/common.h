@@ -26,6 +26,12 @@
 #define UNUSED_FUNCTION(x) UNUSED_ ## x
 #endif
 
+#ifdef __GNUC__
+#define FORMAT_PRINTF(x, y) __attribute__((__format__(__printf__, (x), (y))))
+#else
+#define FORMAT_PRINTF(x, y)
+#endif
+
 #define countof(x) (sizeof(x) / sizeof((x)[0]))
 
 #endif

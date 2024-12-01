@@ -108,6 +108,7 @@ int count_tokens(const char *str, char tok, int sz){
 	return no;
 }
 
+FORMAT_PRINTF(5, 6)
 void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...) {
 #if 0
 #ifndef DEBUG
@@ -218,6 +219,7 @@ void rmrf(const char *path) {
 		nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
+FORMAT_PRINTF(1, 2)
 int err_ret(const char *format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -517,6 +519,7 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 /**
  * asprintf that allows reuse of strp in variadic arguments (frees strp and replaces it with newly allocated string)
  */
+FORMAT_PRINTF(2, 3)
 int asprintf_inplace(char **strp, const char *fmt, ...) {
     va_list args;
     int result;
