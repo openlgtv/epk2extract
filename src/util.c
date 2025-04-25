@@ -27,9 +27,8 @@
 //partinfo
 #include <time.h>
 #include "partinfo.h"
-char *modelname;
-char *mtdname;
-part_struct_type part_type;
+const char *modelname = NULL;
+part_struct_type part_type = STRUCT_INVALID;
 
 //jffs2
 #include "jffs2/jffs2.h"
@@ -108,7 +107,8 @@ int count_tokens(const char *str, char tok, int sz){
 	return no;
 }
 
-void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...) {
+FORMAT_PRINTF(5, 6)
+void print(int verbose, int newline, const char *fn, int lineno, const char *fmt, ...) {
 #if 0
 #ifndef DEBUG
 	if (verbose > G_VERBOSE)
@@ -120,7 +120,7 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 	char *dir = my_dirname(fn);
 	char *parent = my_dirname(dir);
 
-	char *relative = dir + strlen(parent) + 1;
+	const char *relative = dir + strlen(parent) + 1;
 
 	printf("[%s/%s:%d] ", relative, file, lineno);
 
@@ -139,10 +139,9 @@ void print(int verbose, int newline, char *fn, int lineno, const char *fmt, ...)
 }
 
 void SwapBytes(void *pv, size_t n) {
-	char *p = pv;
-	size_t lo, hi;
-	for (lo = 0, hi = n - 1; hi > lo; lo++, hi--) {
-		char tmp = p[lo];
+	unsigned char *p = pv;
+	for (size_t lo = 0, hi = n - 1; hi > lo; lo++, hi--) {
+		unsigned char tmp = p[lo];
 		p[lo] = p[hi];
 		p[hi] = tmp;
 	}
@@ -158,19 +157,19 @@ void getch(void) {
 	tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
 }
 
-void hexdump(void *pAddressIn, long lSize) {
+void hexdump(const void *pAddressIn, long lSize) {
 	char szBuf[100];
 	long lIndent = 1;
 	long lOutLen, lIndex, lIndex2, lOutLen2;
 	long lRelPos;
 	struct {
-		char *pData;
+		const char *pData;
 		unsigned long lSize;
 	} buf;
-	unsigned char *pTmp, ucTmp;
-	unsigned char *pAddress = (unsigned char *)pAddressIn;
+	unsigned char ucTmp;
+	const unsigned char *pTmp, *pAddress = pAddressIn;
 
-	buf.pData = (char *)pAddress;
+	buf.pData = (const char *) pAddress;
 	buf.lSize = lSize;
 
 	while (buf.lSize > 0) {
@@ -180,12 +179,12 @@ void hexdump(void *pAddressIn, long lSize) {
 			lOutLen = 16;
 
 		// create a 64-character formatted output line:
-		sprintf(szBuf, " >                                                      %08zX", pTmp - pAddress);
+		sprintf(szBuf, " >                                                      %08tX", pTmp - pAddress);
 		lOutLen2 = lOutLen;
 
 		for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0; lOutLen2; lOutLen2--, lIndex += 2, lIndex2++) {
 			ucTmp = *pTmp++;
-			sprintf(szBuf + lIndex, "%02X ", (unsigned short)ucTmp);
+			sprintf(szBuf + lIndex, "%02hhX ", ucTmp);
 			if (!isprint(ucTmp))
 				ucTmp = '.';	// nonprintable char
 			szBuf[lIndex2] = ucTmp;
@@ -199,7 +198,7 @@ void hexdump(void *pAddressIn, long lSize) {
 			lIndex--;
 		szBuf[lIndex] = '<';
 		szBuf[lIndex + 1] = ' ';
-		printf("%s\n", szBuf);
+		puts(szBuf);
 		buf.pData += lOutLen;
 		buf.lSize -= lOutLen;
 	}
@@ -207,7 +206,7 @@ void hexdump(void *pAddressIn, long lSize) {
 
 int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
 	int rv = remove(fpath);
-	if (rv)
+	if (rv != 0)
 		perror(fpath);
 	return rv;
 }
@@ -218,15 +217,20 @@ void rmrf(const char *path) {
 		nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
+FORMAT_PRINTF(1, 2)
 int err_ret(const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
+	if (format != NULL) {
+		va_list args;
+		va_start(args, format);
+		vprintf(format, args);
+		va_end(args);
+	}
+
 #ifdef __CYGWIN__
 	puts("Press any key to continue...");
 	getch();
 #endif
+
 	return EXIT_FAILURE;
 }
 
@@ -385,7 +389,7 @@ int isSTRfile(const char *filename) {
 	return result;
 }
 
-int isdatetime(char *datetime) {
+int isdatetime(const char *datetime) {
 	struct tm time_val;
 
 	// datetime format is YYYYMMDD
@@ -398,9 +402,9 @@ int isdatetime(char *datetime) {
 }
 
 /* detect_model - detect model and corresponding part struct */
-part_struct_type detect_model(struct p2_device_info * pid) {
-	char *model;
+static void detect_model(const struct p2_device_info *pid) {
 	part_type = STRUCT_INVALID;
+
 	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
 	int ismtk2 = !strcmp("mtk3598-emmc", pid->name);  //match mtk2013
 	int is1152 = !strcmp("l9_emmc", pid->name);       //match 1152
@@ -411,38 +415,33 @@ part_struct_type detect_model(struct p2_device_info * pid) {
 	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
 
 	if (ismtk1)
-		model = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
+		modelname = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
 	else if (ismtk2)
-		model = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
+		modelname = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
 	else if (is1152)
-		model = "LG1152 (L9)";
+		modelname = "LG1152 (L9)";
 	else if (is1154)
-		model = "LG1154 (H13) / LG1311 (M14)";
+		modelname = "LG1154 (H13) / LG1311 (M14)";
 	else if (isbcm1)
-		model = "BCM 2010 - BCM35XX";
+		modelname = "BCM 2010 - BCM35XX";
 	else if (isbcm2)
-		model = "BCM 2011 - BCM35230";
+		modelname = "BCM 2011 - BCM35230";
 	else if (ismstar)
-		model = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
+		modelname = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
 	else if (islm14)
-		model = "Mstar LM14";
+		modelname = "Mstar LM14";
 	else
-		return part_type;
+		return;
 
 	if (ismtk2 || is1154 || islm14) {
 		part_type = STRUCT_PARTINFOv2;
 	} else if (ismtk1 || is1152) {
-		part_type = STRUCT_PARTINFOv1;	//partinfo v1
+		part_type = STRUCT_PARTINFOv1;
 	} else {
-		part_type = STRUCT_MTDINFO;	//mtdinfo
+		part_type = STRUCT_MTDINFO;
 	}
 
-	mtdname = pid->name;
-	modelname = model;
-	/*printf("\nMTD name -> %s\n",mtdname);
-	   printf("%s Detected\n\n", modelname);*/
-
-	return part_type;
+	return;
 }
 
 int isPartPakfile(const char *filename) {
@@ -452,27 +451,28 @@ int isPartPakfile(const char *filename) {
 
 	struct p2_partmap_info partinfo;
 
-	size_t size = sizeof(struct p2_partmap_info);
-	fread(&partinfo, 1, size, file);
+	fread(&partinfo, 1, sizeof(struct p2_partmap_info), file);
 
-	char *cmagic;
+	char *cmagic = NULL;
 	asprintf(&cmagic, "%x", partinfo.magic);
 
-	int r = isdatetime((char *)cmagic);
+	int r = isdatetime(cmagic);
 	free(cmagic);
 
-	if (r) {
-		printf("Found valid partpak magic 0x%x in %s\n", partinfo.magic, filename);
-	} else {
+	if (r == 0) {
 		return 0;
 	}
 
+	printf("Found valid partpak magic 0x%x in %s\n", partinfo.magic, filename);
+
 	detect_model(&(partinfo.dev));
 	fclose(file);
-	if (part_type == STRUCT_INVALID)
+
+	if (part_type == STRUCT_INVALID) {
 		return 0;
-	else
-		return 1;
+	}
+
+	return 1;
 }
 
 int is_kernel(const char *image_file) {
@@ -517,17 +517,16 @@ void extract_kernel(const char *image_file, const char *destination_file) {
 /**
  * asprintf that allows reuse of strp in variadic arguments (frees strp and replaces it with newly allocated string)
  */
+FORMAT_PRINTF(2, 3)
 int asprintf_inplace(char **strp, const char *fmt, ...) {
-    va_list args;
-    int result;
-    char *new_strp = NULL;
-
     if ((strp == NULL) || (fmt == NULL)) {
         err_exit("Error: %s called with NULL argument.\n", __func__);
     }
 
+	va_list args;
     va_start(args, fmt);
-    result = vasprintf(&new_strp, fmt, args);
+	char *new_strp = NULL;
+    int result = vasprintf(&new_strp, fmt, args);
     va_end(args);
 
     free(*strp);
