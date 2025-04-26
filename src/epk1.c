@@ -24,11 +24,12 @@ bool isFileEPK1(const char *epk_file) {
 	}
 
 	char magic[4];
-	if (fread(&magic, 1, 4, file) != 4) {
+	size_t nRead = fread(&magic, 1, 4, file);
+	fclose(file);
+
+	if (nRead != 4) {
 		return 0;
 	}
-
-	fclose(file);
 
 	if (memcmp(&magic, "epak", 4) == 0) {
 		return true;
