@@ -22,7 +22,7 @@ gen(){
 
 	cat <<-EOF
 	# format string is not a string literal
-	sonar.issue.ignore.multicriteria.r1.rulekey=c:S5281
+	sonar.issue.ignore.multicriteria.r1.ruleKey=c:S5281
 	sonar.issue.ignore.multicriteria.r1.resourceKey=**
 	EOF
 
