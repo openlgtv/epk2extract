@@ -78,6 +78,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 	if ((buffer = mmap(0, fileLength, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED) {
 		err_exit("\nCannot mmap input file (%s). Aborting\n\n", strerror(errno));
 	}
+	uint8_t *bufferEnd = (uint8_t *)buffer + fileLength;
 
 	char verString[12];
 	int index;
@@ -119,6 +120,7 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 			memcpy(pakRecord, buffer + offset, sizeof(struct pakRec_t));	//copy pakRecord to buffer
 
 			if (pakRecord->offset == 0) {
+				free(pakRecord);
 				offset += 8;
 				index--;
 				continue;
@@ -196,7 +198,16 @@ void extract_epk1_file(const char *epk_file, config_opts_t *config_opts) {
 				err_exit("Error in %s: failed to open file '%s': %s.\n", __func__, filename, strerror(errno));
 			}
 
-			fwrite(pakHeader->pakName + sizeof(struct pakHeader_t), 1, pakRecord.size - 132, outfile);
+			uint8_t *pakStart = (uint8_t *)pakHeader->pakName + sizeof(struct pakHeader_t);
+			size_t pakSize = pakRecord.size - 132;
+
+			uint8_t *pakEnd = pakStart + pakSize;
+			if(pakEnd > bufferEnd){
+				// should never happen
+				err_exit("Error: PAK %d (%s) overflows file\n", index + 1, pakName);
+			}
+
+			fwrite(pakStart, 1, pakRecord.size - 132, outfile);
 			fclose(outfile);
 
 			handle_file(filename, config_opts);
