@@ -65,7 +65,7 @@ To compile on Linux:
 ### Install build dependencies:
 Ubuntu/Debian:
 ```shell
-apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
+apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev zlib1g-dev
 ```
 Mandriva/Mageia:
 ```shell
