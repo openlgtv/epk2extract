@@ -103,7 +103,7 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		handle_file(dest_file, config_opts);
 	/* SQUASHFS */
 	} else if (is_squashfs(file)) {
-		if (!config_opts->noAutoUnsquashfs) {
+		if (!config_opts->noAutoExtractFs) {
 			asprintf(&dest_file, "%s/%s.unsquashfs", dest_dir, file_name);
 			printf("UnSQUASHFS file to: %s\n", dest_file);
 			rmrf(dest_file);
@@ -133,16 +133,24 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		split_rtk_bspfw(mf, dest_dir);
 	/* CRAMFS Big Endian */
 	} else if (is_cramfs_image(file, "be")) {
-		asprintf(&dest_file, "%s/%s.cramswap", dest_dir, file_name);
-		printf("Swapping cramfs endian for file %s\n", file);
-		cramswap(file, dest_file);
-		handle_file(dest_file, config_opts);
+		if (!config_opts->noAutoExtractFs) {
+			asprintf(&dest_file, "%s/%s.cramswap", dest_dir, file_name);
+			printf("Swapping cramfs endian for file %s\n", file);
+			cramswap(file, dest_file);
+			handle_file(dest_file, config_opts);
+		} else {
+			puts("Not UnCRAMFSing (big endian)");
+		}
 	/* CRAMFS Little Endian */
 	} else if (is_cramfs_image(file, "le")) {
-		asprintf(&dest_file, "%s/%s.uncramfs", dest_dir, file_name);
-		printf("UnCRAMFS %s to folder %s\n", file, dest_file);
-		rmrf(dest_file);
-		uncramfs(dest_file, file);
+		if (!config_opts->noAutoExtractFs) {
+			asprintf(&dest_file, "%s/%s.uncramfs", dest_dir, file_name);
+			printf("UnCRAMFS %s to folder %s\n", file, dest_file);
+			rmrf(dest_file);
+			uncramfs(dest_file, file);
+		} else {
+			puts("Not UnCRAMFSing (little endian)");
+		}
 	/* Kernel uImage */
 	} else if (is_kernel(file)) {
 		asprintf(&dest_file, "%s/%s.unpaked", dest_dir, file_name);
@@ -156,17 +164,21 @@ int handle_file(char *file, config_opts_t *config_opts) {
 		dump_partinfo(file, dest_file);
 	/* JFFS2 */
 	} else if (is_jffs2(file)) {
-		asprintf(&dest_file, "%s/%s.unjffs2", dest_dir, file_name);
-		printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
-		rmrf(dest_file);
+		if (!config_opts->noAutoExtractFs) {
+			asprintf(&dest_file, "%s/%s.unjffs2", dest_dir, file_name);
+			printf("UnJFFS2 file %s to folder %s\n", file, dest_file);
+			rmrf(dest_file);
 
-		struct jffs2_main_args args = {
-			.erase_size = -1,
-			.keep_unlinked = false,
-			.verbose = 0
-		};
+			struct jffs2_main_args args = {
+				.erase_size = -1,
+				.keep_unlinked = false,
+				.verbose = 0
+			};
 
-		jffs2extract(file, dest_file, args);
+			jffs2extract(file, dest_file, args);
+		} else {
+			puts("Not UnJFFS2ing");
+		}
 	/* PVR STR (ts/m2ts video) */
 	} else if (isSTRfile(file)) {
 		asprintf(&dest_file, "%s/%s.ts", dest_dir, file_name);
@@ -240,7 +252,7 @@ int main(int argc, char *argv[]) {
 	config_opts.config_dir = my_dirname(exe_dir);
 	config_opts.dest_dir = calloc(1, PATH_MAX);
 	config_opts.enableSignatureChecking = 0;
-	config_opts.noAutoUnsquashfs = false;
+	config_opts.noAutoExtractFs = false;
 	config_opts.signatureOnly = false;
 
 	int opt;
@@ -255,7 +267,7 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 		case 'n':{
-				config_opts.noAutoUnsquashfs = true;
+				config_opts.noAutoExtractFs = true;
 				break;
 			 }
 		case 'S':{
@@ -320,6 +332,6 @@ static int print_usage(void) {
 	printf("  -c : extract to current directory instead of source file directory\n");
 	printf("  -s : enable signature checking for EPK files\n");
 	printf("  -S : only check signature (implies -s)\n");
-	printf("  -n : no automatic unsquashfs\n\n");
+	printf("  -n : no automatic filesystem extraction\n\n");
 	return err_ret(NULL);
 }

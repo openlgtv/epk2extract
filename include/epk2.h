@@ -12,8 +12,8 @@
 #define EPK2_MAGIC "EPK2"
 #define PAK_MAGIC "MPAK"
 
-int compare_pak2_header(uint8_t *header, size_t headerSize);
-int compare_epk2_header(uint8_t *header, size_t headerSize);
+bool compare_pak2_header(const uint8_t *header, size_t headerSize);
+bool compare_epk2_header(const uint8_t *header, size_t headerSize);
 MFILE *isFileEPK2(const char *epk_file);
 void extractEPK2(MFILE *epk, config_opts_t *config_opts);
 

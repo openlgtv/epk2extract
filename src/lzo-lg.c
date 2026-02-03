@@ -247,7 +247,6 @@ int do_decompress(FILE * fi, FILE * fo) {
 	unsigned char m[sizeof(magic)];
 	lzo_uint32 flags, UNUSED(decomp_size);
 	int method;
-	int level;
 	lzo_uint block_size;
 	lzo_uint32 checksum;
 
@@ -287,7 +286,8 @@ int do_decompress(FILE * fi, FILE * fo) {
 		}
 	}
 
-	level = xgetc(fi);
+	/* level is not used */
+	(void) xgetc(fi);
 
 	block_size = xread32(fi);
 	if (block_size < 1024 || block_size > 8 * 1024 * 1024L) {

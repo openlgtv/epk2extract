@@ -17,13 +17,18 @@
 #include "common.h"
 #include "util.h"
 
-#define PERMS_DEFAULT (mode_t)0666
+#define PERMS_DEFAULT ((mode_t) 0666)
 
 /*
  * Creates a new mfile structure
  */
-inline MFILE *mfile_new(){
+inline MFILE *mfile_new(void){
 	MFILE *mem = calloc(1, sizeof(MFILE));
+
+	if (mem == NULL) {
+		err_exit("Error in %s: failed to allocate MFILE\n", __func__);
+	}
+
 	return mem;
 }
 
@@ -31,13 +36,17 @@ inline MFILE *mfile_new(){
  * Updates size and path to a file
  */
 int _mfile_update_info(MFILE *file, const char *path){
-	if(path){
-		if(file->path)
+	if(path != NULL){
+		if(file->path != NULL)
 			free(file->path);
 		file->path = strdup(path);
 	}
-	if(stat(file->path, &(file->statBuf)) < 0)
-		return -1;
+	if(LIKELY(file->path != NULL)){
+		if(stat(file->path, &(file->statBuf)) < 0)
+			return -1;
+	} else {
+		fprintf(stderr, "Warning: %s has no effect because file->path is NULL\n", __func__);
+	}
 	return 0;
 }
 
@@ -79,7 +88,7 @@ inline void *mfile_map_private(MFILE *file, size_t mapSize){
 /*
  * Opens and maps a file with open
  */
-MFILE *_mopen(const char *path, int oflags, int mapFlags){
+MFILE *_mopen(const char *path, int oflags, int mapFlags, bool writable){
 	MFILE *file = mfile_new();
 	file->fd = open(path, oflags, PERMS_DEFAULT);
 	if(file->fd < 0){
@@ -95,6 +104,10 @@ MFILE *_mopen(const char *path, int oflags, int mapFlags){
 		file->prot = PROT_WRITE;
 	} else if((oflags & O_ACCMODE) == O_RDWR) {
 		file->prot = PROT_READ | PROT_WRITE;
+	}
+
+	if (writable) {
+		file->prot |= PROT_WRITE;
 	}
 
 	size_t fileSz = msize(file);
@@ -115,11 +128,11 @@ MFILE *_mopen(const char *path, int oflags, int mapFlags){
 }
 
 inline MFILE *mopen(const char *path, int oflags){
-	return _mopen(path, oflags, MAP_SHARED);
+	return _mopen(path, oflags, MAP_SHARED, false);
 }
 
-inline MFILE *mopen_private(const char *path, int oflags){
-	return _mopen(path, oflags, MAP_PRIVATE);
+inline MFILE *mopen_private(const char *path, int oflags, bool writable){
+	return _mopen(path, oflags, MAP_PRIVATE, true);
 }
 
 int mgetc(MFILE *stream){

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "main.h"
 #include "config.h"
@@ -17,16 +18,16 @@
 /*
  * Check for epk3 files with an additional heading signature (whole file signature?)
  */
-int compare_epk3_new_header(uint8_t *header, size_t headerSize){
-	EPK_V3_HEADER_T *hdr = (EPK_V3_HEADER_T *)(header + SIGNATURE_SIZE);
+bool compare_epk3_new_header(const uint8_t *header, size_t headerSize){
+	const EPK_V3_HEADER_T *hdr = (const EPK_V3_HEADER_T *)(header + SIGNATURE_SIZE);
 	return memcmp(hdr->epkMagic, EPK3_MAGIC, sizeof(hdr->epkMagic)) == 0;
 }
 
 /*
  * Checks if the given data is an EPK3 header
  */
-int compare_epk3_header(uint8_t *header, size_t headerSize){
-	EPK_V3_HEADER_T *hdr = (EPK_V3_HEADER_T *)header;
+bool compare_epk3_header(const uint8_t *header, size_t headerSize){
+	const EPK_V3_HEADER_T *hdr = (const EPK_V3_HEADER_T *)header;
 
 	return memcmp(hdr->epkMagic, EPK3_MAGIC, sizeof(hdr->epkMagic)) == 0;
 }
@@ -68,32 +69,31 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	epk3_union *epk3 = mdata(epk, epk3_union);
 
-	size_t headerSize, signed_size, sigSize, extraSegmentSize;
+	size_t headerSize, signed_size, sigSize;
+	size_t extraSegmentSize; /* size of additional data in new format */
 	SIG_TYPE_T sigType;
-	{
-		switch(epkType){
-			case EPK_V3:
-				headerSize = sizeof(EPK_V3_HEADER_T);
-				signed_size = (
-					sizeof(epk3->old.head.epkHeader) +
-					sizeof(epk3->old.head.crc32Info) +
-					sizeof(epk3->old.head.reserved)
-				);
-				sigType = SIG_SHA1;
-				sigSize = SIGNATURE_SIZE;
-				extraSegmentSize = 0;
-				break;
-			case EPK_V3_NEW:
-				headerSize = sizeof(EPK_V3_NEW_HEADER_T);
-				signed_size = headerSize;
-				sigType = SIG_SHA256;
-				sigSize = SIGNATURE_SIZE_NEW;
-				/* each segment has an index value */
-				extraSegmentSize = sizeof(uint32_t);
-				break;
-			default:
-				err_exit("Unsupported EPK3 variant\n");
-		}
+	switch(epkType){
+		case EPK_V3:
+			headerSize = sizeof(EPK_V3_HEADER_T);
+			signed_size = (
+				sizeof(epk3->old.head.epkHeader) +
+				sizeof(epk3->old.head.crc32Info) +
+				sizeof(epk3->old.head.reserved)
+			);
+			sigType = SIG_SHA1;
+			sigSize = SIGNATURE_SIZE;
+			extraSegmentSize = 0;
+			break;
+		case EPK_V3_NEW:
+			headerSize = sizeof(EPK_V3_NEW_HEADER_T);
+			signed_size = headerSize;
+			sigType = SIG_SHA256;
+			sigSize = SIGNATURE_SIZE_NEW;
+			/* each segment has an index value */
+			extraSegmentSize = sizeof(uint32_t);
+			break;
+		default:
+			err_exit("Unsupported EPK3 variant\n");
 	}
 
 	EPK_V3_HEADER_UNION *epkHeader;
@@ -115,16 +115,14 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		);
 	}
 
-	int result = wrap_decryptimage(
+	if (!wrap_decryptimage(
 		epkHeader,
 		headerSize,
 		epkHeader,
 		config_opts->dest_dir,
 		EPK_V3,
 		NULL
-	);
-
-	if(result < 0){
+	)) {
 		return;
 	}
 
@@ -148,6 +146,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 			pak = &(packageInfo->new.packages[0]);
 			sigPtr = epk3->new.packageInfo_signature;
 			break;
+		default:
+			err_exit("Unsupported EPK3 variant\n");
 	}
 
 	if(config_opts->enableSignatureChecking){
@@ -170,8 +170,8 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		epkHeader->old.epkVersion[1],
 		epkHeader->old.epkVersion[0]
 	);
-	printf("packageInfoSize: %d\n", epkHeader->old.packageInfoSize);
-	printf("bChunked: %d\n", epkHeader->old.bChunked);
+	printf("packageInfoSize: %" PRIu32 "\n", epkHeader->old.packageInfoSize);
+	printf("bChunked: %" PRIu32 "\n", epkHeader->old.bChunked);
 
 	if(epkType == EPK_V3_NEW){
 		printf("EncryptType: %.*s\n",
@@ -209,22 +209,20 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 
 	/* Decrypt packageInfo */
-	result = wrap_decryptimage(
+	if (!wrap_decryptimage(
 		packageInfo,
 		epkHeader->old.packageInfoSize,
 		packageInfo,
 		config_opts->dest_dir,
 		RAW,
 		NULL
-	);
-
-	if(result < 0){
+	)) {
 		return;
 	}
 
 	if(epkType == EPK_V3_NEW){
 		if(packageInfo->new.pakInfoMagic != epkHeader->new.pakInfoMagic){
-			printf("pakInfoMagic mismatch! (expected: %04X, actual: %04X)\n",
+			printf("pakInfoMagic mismatch! (expected: %04" PRIX32 ", actual: %04" PRIX32 ")\n",
 					epkHeader->new.pakInfoMagic,
 					packageInfo->new.pakInfoMagic
 			);
@@ -236,7 +234,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 
 	dataPtr += epkHeader->old.packageInfoSize;
 
-	int packageInfoCount;
+	unsigned int packageInfoCount;
 
 	switch(epkType){
 		case EPK_V3:
@@ -245,77 +243,78 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		case EPK_V3_NEW:
 			packageInfoCount = packageInfo->new.packageInfoCount;
 			break;
+		default:
+			err_exit("Unsupported EPK3 variant\n");
 	}
 
 	for(uint i = 0; i<packageInfoCount;){
 		if(pak->packageInfoSize != sizeof(*pak)){
-			printf("Warning: Unexpected packageInfoSize '%d', expected '%d'\n",
+			printf("Warning: Unexpected packageInfoSize '%" PRIu32 "', expected '%zu'\n",
 					pak->packageInfoSize, sizeof(*pak)
 			);
 		}
 
-		printf("\nPAK '%s' contains %d segment(s), size %d bytes:\n",
+		printf("\nPAK '%s' contains %" PRIu32 " segment%s, size %" PRIu32 " bytes:\n",
 			pak->packageName,
 			pak->segmentInfo.segmentCount,
+			(pak->segmentInfo.segmentCount == 1) ? "" : "s",
 			pak->packageSize
 		);
 
-		char *pakFileName;
+		char *pakFileName = NULL;
 		asprintf(&pakFileName, "%s/%s.pak", config_opts->dest_dir, pak->packageName);
 
 		MFILE *pakFile = mfopen(pakFileName, "w+");
 		if(!pakFile){
 			err_exit("Cannot open '%s' for writing\n", pakFileName);
 		}
+
 		mfile_map(pakFile, pak->packageSize);
 		printf("Saving partition (%s) to file %s\n", pak->packageName, pakFileName);
 
 
 		PACKAGE_SEGMENT_INFO_T segmentInfo = pak->segmentInfo;
-		uint segNo;
-		for(segNo = segmentInfo.segmentIndex;
+		for(uint segNo = segmentInfo.segmentIndex;
 			segNo < segmentInfo.segmentCount;
 			segNo++, pak++, i++
 		){
+			const void *sigPtr = (void *) dataPtr;
 			dataPtr += sigSize;
 
 			if(config_opts->enableSignatureChecking)
 			{
 				wrap_verifyimage(
-					(void *)(dataPtr - sigSize),
-					(void *)dataPtr,
+					sigPtr,
+					(const void *)dataPtr,
 					pak->segmentInfo.segmentSize + extraSegmentSize,
 					config_opts->config_dir,
 					sigType
 				);
 			}
 
-
-			printf("  segment #%u (name='%s', version='%s', offset='0x%lx', size='%u bytes')\n",
+			printf("  segment #%u (name='%s', version='%s', offset='0x%jx', size='%" PRIu32 " bytes')\n",
 				segNo + 1,
 				pak->packageName,
 				pak->packageVersion,
-				moff(epk, dataPtr),
+				(intmax_t) moff(epk, dataPtr),
 				pak->segmentInfo.segmentSize
 			);
 
-			result = wrap_decryptimage(
-				(void *)dataPtr,
-				pak->segmentInfo.segmentSize,
-				(void *)dataPtr,
-				config_opts->dest_dir,
-				RAW,
-				NULL
-			);
-
-			if(result < 0){
+			if (!wrap_decryptimage(
+					(void *)dataPtr,
+					pak->segmentInfo.segmentSize,
+					(void *)dataPtr,
+					config_opts->dest_dir,
+					RAW,
+					NULL
+			)) {
 				return;
 			}
 
 			if(epkType == EPK_V3_NEW){
 				uint32_t decryptedSegmentIndex = *(uint32_t *)dataPtr;
 				if(decryptedSegmentIndex != i){
-					printf("Warning: Decrypted segment doesn't match expected index! (index: %d, expected: %d)\n",
+					printf("Warning: Decrypted segment doesn't match expected index! (index: %" PRIu32 ", expected: %u)\n",
 							decryptedSegmentIndex, i
 					);
 				}
@@ -335,4 +334,3 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		free(pakFileName);
 	}
 }
-

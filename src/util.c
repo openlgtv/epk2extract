@@ -173,8 +173,8 @@ void hexdump(const void *pAddressIn, long lSize) {
 	buf.lSize = lSize;
 
 	while (buf.lSize > 0) {
-		pTmp = (unsigned char *)buf.pData;
-		lOutLen = (int)buf.lSize;
+		pTmp = (unsigned char *) buf.pData;
+		lOutLen = (int) buf.lSize;
 		if (lOutLen > 16)
 			lOutLen = 16;
 
@@ -248,8 +248,10 @@ MFILE *is_lz4(const char *lz4file) {
 	if (!file){
 		err_exit("Can't open file %s\n\n", lz4file);
 	}
-	if(!memcmp(mdata(file, uint8_t), "LZ4P", 4))
+
+	if ((msize(file) >= 4) && (memcmp(mdata(file, uint8_t), "LZ4P", 4) == 0)) {
 		return file;
+	}
 
 	mclose(file);
 	return NULL;
@@ -262,6 +264,7 @@ bool is_nfsb_mem(MFILE *file, off_t offset){
 		return false;
 	}
 
+	/* XXX: This needs to check the length of the file before reading anything.*/
 	const char algo_md5[] = "md5";
 	const char algo_sha256[] = "sha256";
 
@@ -289,8 +292,10 @@ MFILE *is_nfsb(const char *filename) {
 		err_exit("Can't open file %s\n\n", filename);
 	}
 
-	if(is_nfsb_mem(file, 0))
+	/* The minimum size for the data checked here seems to be 17. */
+	if ((msize(file) > 17) && is_nfsb_mem(file, 0)) {
 		return file;
+	}
 
 	mclose(file);
 	return NULL;
@@ -389,56 +394,65 @@ int isSTRfile(const char *filename) {
 	return result;
 }
 
-int isdatetime(const char *datetime) {
+bool is_datetime(const char *datetime) {
 	struct tm time_val;
 
 	// datetime format is YYYYMMDD
-	if (strptime(datetime, "%Y%m%d", &time_val) != 0
-		&& ((time_val.tm_year+1900) > 2005)) {
-		return 1;
+	if ((strptime(datetime, "%Y%m%d", &time_val) != NULL)
+		&& ((time_val.tm_year + 1900) > 2005)) {
+		return true;
 	} else {
-		return 0;
+		return false;
 	}
 }
 
+bool is_str_printable(const char *str) {
+	for (const char *p = str; *p != '\0'; p++) {
+		if (isprint(*p) == 0) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static const struct {
+	const char *name;
+	part_struct_type type;
+	const char *description;
+} part_type_table[] = {
+	{"mstar_map0",    STRUCT_MTDINFO,    "MStar Saturn6 / Saturn7 / M1(A) / LM1"}, // ?
+	{"bcm35xx_map0",  STRUCT_MTDINFO,    "BCM 2010 (BCM35XX)"}, 			// 2010
+	{"bcm35230_map0", STRUCT_MTDINFO,    "BCM 2011 (BCM35230)"}, 			// 2011
+	{"mtk3569-emmc",  STRUCT_PARTINFOv1, "MTK A1 (MT5369/MTK5369)"}, 		// 2012
+	{"l9_emmc", 	  STRUCT_PARTINFOv1, "LX L9 (LG1152)"}, 				// 2012
+	{"mtk3598-emmc",  STRUCT_PARTINFOv2, "MTK A2 (MT5398/MTK5389/M13)"},    // 2013
+	{"h13_emmc", 	  STRUCT_PARTINFOv2, "LX H13 (LG1154) / M14 (LG1311)"}, // 2013/2014
+	{"mstar-emmc",    STRUCT_PARTINFOv2, "MStar LM14"}, 					// 2014
+};
+
 /* detect_model - detect model and corresponding part struct */
 static void detect_model(const struct p2_device_info *pid) {
+	char name[STR_LEN_MAX + 1];
+
+	strncpy(name, pid->name, STR_LEN_MAX);
+	name[STR_LEN_MAX] = '\0';
+
+	for (unsigned int i = 0; i < countof(part_type_table); i++) {
+		if (strcmp(part_type_table[i].name, name) == 0) {
+			modelname = part_type_table[i].description;
+			part_type = part_type_table[i].type;
+			return;
+		}
+	}
+
 	part_type = STRUCT_INVALID;
+	modelname = NULL;
 
-	int ismtk1 = !strcmp("mtk3569-emmc", pid->name);  //match mtk2012
-	int ismtk2 = !strcmp("mtk3598-emmc", pid->name);  //match mtk2013
-	int is1152 = !strcmp("l9_emmc", pid->name);       //match 1152
-	int is1154 = !strcmp("h13_emmc", pid->name);      //match 1154/lg1311
-	int isbcm1 = !strcmp("bcm35xx_map0", pid->name);  //match broadcom
-	int isbcm2 = !strcmp("bcm35230_map0", pid->name); //match broadcom
-	int ismstar = !strcmp("mstar_map0", pid->name);   //match mstar
-	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
-
-	if (ismtk1)
-		modelname = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
-	else if (ismtk2)
-		modelname = "Mtk 2013 - MTK5398 (Cobra Cortex-A9 dual-core)";
-	else if (is1152)
-		modelname = "LG1152 (L9)";
-	else if (is1154)
-		modelname = "LG1154 (H13) / LG1311 (M14)";
-	else if (isbcm1)
-		modelname = "BCM 2010 - BCM35XX";
-	else if (isbcm2)
-		modelname = "BCM 2011 - BCM35230";
-	else if (ismstar)
-		modelname = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
-	else if (islm14)
-		modelname = "Mstar LM14";
-	else
-		return;
-
-	if (ismtk2 || is1154 || islm14) {
-		part_type = STRUCT_PARTINFOv2;
-	} else if (ismtk1 || is1152) {
-		part_type = STRUCT_PARTINFOv1;
+	if (is_str_printable(name)) {
+		fprintf(stderr, "unknown part type: '%s'\n", name);
 	} else {
-		part_type = STRUCT_MTDINFO;
+		fputs("unknown part type (non-printable characters)\n", stderr);
 	}
 
 	return;
@@ -456,10 +470,10 @@ int isPartPakfile(const char *filename) {
 	char *cmagic = NULL;
 	asprintf(&cmagic, "%x", partinfo.magic);
 
-	int r = isdatetime(cmagic);
+	bool valid = is_datetime((const char *) cmagic);
 	free(cmagic);
 
-	if (r == 0) {
+	if (!valid) {
 		return 0;
 	}
 
@@ -493,23 +507,33 @@ int is_kernel(const char *image_file) {
 
 void extract_kernel(const char *image_file, const char *destination_file) {
 	FILE *file = fopen(image_file, "rb");
-	if (file == NULL)
+	if (file == NULL) {
 		err_exit("Can't open file %s", image_file);
+	}
 
-	fseek(file, 0, SEEK_END);
-	int fileLength = ftell(file);
+	if (fseek(file, 0, SEEK_END) != 0) {
+		err_exit("fseek on %s failed: %s", image_file, strerror(errno));
+	}
+
+	long fileLength = ftell(file);
 	rewind(file);
+
 	unsigned char *buffer = malloc(fileLength);
-	int read = fread(buffer, 1, fileLength, file);
+	size_t read = fread(buffer, 1, fileLength, file);
 	if (read != fileLength) {
-		err_exit("Error reading file. read %d bytes from %d.\n", read, fileLength);
+		err_exit("Error reading file. read %zu bytes from %ld.\n", read, fileLength);
 		free(buffer);
 	}
 	fclose(file);
 
 	FILE *out = fopen(destination_file, "wb");
-	int header_size = sizeof(struct image_header);
+	if (out == NULL) {
+		err_exit("Can't open file %s", destination_file);
+	}
+
+	const size_t header_size = sizeof(struct image_header);
 	fwrite(buffer + header_size, 1, read - header_size, out);
+
 	free(buffer);
 	fclose(out);
 }

@@ -32,30 +32,30 @@ static int mtkpkg_variant_flags = NEW;
 static struct mtkupg_header packageHeader;
 static bool was_decrypted = false;
 
-int compare_pkg_header(uint8_t *header, size_t headerSize){
-	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
+static bool compare_pkg_header(const uint8_t *header, size_t headerSize){
+	const struct mtkupg_header *hdr = (const struct mtkupg_header *)header;
 
 	if( !strncmp(hdr->vendor_magic, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
 		printf("[+] Found HISENSE Package\n");
-		return 1;
+		return true;
 	}
 	if( !strncmp(hdr->vendor_magic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
 		printf("[+] Found SHARP Package\n");
 		mtkpkg_variant_flags |= SHARP;
-		return 1;
+		return true;
 	}
 	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ||
 		!strncmp(hdr->vendor_magic, TPV_PKG_MAGIC2,strlen(TPV_PKG_MAGIC2))
 	){
 		printf("[+] Found PHILIPS(TPV) Package\n");
-		return 1;
+		return true;
 	}
 
 	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC))
 	 || !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC2, strlen(PHILIPS_PKG_MAGIC2))
 	){
 		printf("[+] Found PHILIPS Package\n");
-		return 1;
+		return true;
 	}
 
 	if( !strncmp(hdr->mtk_magic, MTK_FIRMWARE_MAGIC, strlen(MTK_FIRMWARE_MAGIC)) ){
@@ -63,18 +63,15 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 			member_size(struct mtkupg_header, vendor_magic),
 			hdr->vendor_magic
 		);
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
-int compare_content_header(uint8_t *header, size_t headerSize){
-	struct mtkpkg_data *data = (struct mtkpkg_data *)header;
-	if ( !strncmp(data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) ){
-		return 1;
-	}
-	return 0;
+static bool compare_content_header(const uint8_t *header, size_t headerSize){
+	const struct mtkpkg_data *data = (const struct mtkpkg_data *)header;
+	return strncmp(data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) == 0;
 }
 
 bool is_known_partition(struct mtkpkg *pak){
@@ -103,22 +100,23 @@ MFILE *is_mtk_pkg(const char *pkgfile){
 		err_exit("Cannot open file %s\n", pkgfile);
 	}
 
+	if (msize(mf) < sizeof(struct mtkupg_header)) {
+		mclose(mf);
+		return NULL;
+	}
+
 	uint8_t *data = mdata(mf, uint8_t);
 	void *decryptedHeader = NULL;
 	KeyPair *headerKey = NULL;
 
-	do {
-		if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
-			break;
-		}
-
+	if((headerKey = find_AES_key(data, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, false)) == NULL){
 		/* It failed, but we want to check for Philips.
 		 * Philips has an additional 0x80 header before the normal PKG one
 		 */
-		if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, 0)) != NULL){
+		if((headerKey = find_AES_key(data + PHILIPS_HEADER_SIZE, UPG_HEADER_SIZE, compare_pkg_header, KEY_CBC, (void **)&decryptedHeader, false)) != NULL){
 			mtkpkg_variant_flags |= PHILIPS;
 		}
-	} while(0);
+	}
 
 	if(headerKey != NULL){
 		was_decrypted = true;
@@ -189,6 +187,11 @@ MFILE *is_lzhs_fs(const char *pkg){
 	}
 
 	uint8_t *data = mdata(mf, uint8_t);
+
+	if (msize(mf) < (SHARP_PKG_HEADER_SIZE)) {
+		goto fail;
+	}
+
 
 	off_t start = MTK_EXT_LZHS_OFFSET;
 	if(is_nfsb_mem(mf, SHARP_PKG_HEADER_SIZE)){
@@ -295,8 +298,8 @@ void extract_lzhs_fs(MFILE *mf, const char *dest_file, config_opts_t *config_opt
 		struct lzhs_header *main_hdr = (struct lzhs_header *)data;
 		struct lzhs_header *seg_hdr = (struct lzhs_header *)(data + sizeof(*main_hdr));
 
-		printf("\n[0x%08X] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
-			moff(mf, main_hdr),
+		printf("\n[0x%08jX] segment #%u (compressed='%u bytes', uncompressed='%u bytes')\n",
+			(intmax_t) moff(mf, main_hdr),
 			main_hdr->checksum,
 			seg_hdr->compressedSize, seg_hdr->uncompressedSize);
 
@@ -391,8 +394,7 @@ static off_t get_mtkpkg_offset(){
 }
 
 void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
-	MFILE *mf = mopen_private(pkgFile, O_RDONLY);
-	mprotect(mf->pMem, msize(mf), PROT_READ | PROT_WRITE);
+	MFILE *mf = mopen_private(pkgFile, O_RDONLY, true);
 
 	off_t offset = get_mtkpkg_offset();
 	uint8_t *data = mdata(mf, uint8_t) + offset;
@@ -451,7 +453,7 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 					compare_content_header,
 					KEY_CBC,
 					(void **)&decryptedPkgData,
-					1
+					true
 				);
 				int success = dataKey != NULL;
 				if(success){
