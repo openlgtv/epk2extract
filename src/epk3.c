@@ -18,17 +18,16 @@
 /*
  * Check for epk3 files with an additional heading signature (whole file signature?)
  */
-int compare_epk3_new_header(uint8_t *header, size_t headerSize){
-	EPK_V3_HEADER_T *hdr = (EPK_V3_HEADER_T *)(header + SIGNATURE_SIZE);
+bool compare_epk3_new_header(const uint8_t *header, size_t headerSize) {
+	const EPK_V3_HEADER_T *hdr = (const EPK_V3_HEADER_T *) (header + SIGNATURE_SIZE);
 	return memcmp(hdr->epkMagic, EPK3_MAGIC, sizeof(hdr->epkMagic)) == 0;
 }
 
 /*
  * Checks if the given data is an EPK3 header
  */
-int compare_epk3_header(uint8_t *header, size_t headerSize){
-	EPK_V3_HEADER_T *hdr = (EPK_V3_HEADER_T *)header;
-
+bool compare_epk3_header(const uint8_t *header, size_t headerSize) {
+	const EPK_V3_HEADER_T *hdr = (const EPK_V3_HEADER_T *) header;
 	return memcmp(hdr->epkMagic, EPK3_MAGIC, sizeof(hdr->epkMagic)) == 0;
 }
 
@@ -47,7 +46,7 @@ MFILE *isFileEPK3(const char *epk_file) {
 	}
 
 	// check if the epk magic is present (decrypted)
-	if(compare_epk3_header((uint8_t *)&(head->epkHeader), sizeof(EPK_V3_HEADER_T))){
+	if (compare_epk3_header((const uint8_t *) &(head->epkHeader), sizeof(EPK_V3_HEADER_T))) {
 		goto checkOk;
 	}
 

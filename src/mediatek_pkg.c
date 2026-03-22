@@ -32,30 +32,30 @@ static int mtkpkg_variant_flags = NEW;
 static struct mtkupg_header packageHeader;
 static bool was_decrypted = false;
 
-int compare_pkg_header(uint8_t *header, size_t headerSize){
-	struct mtkupg_header *hdr = (struct mtkupg_header *)header;
+static bool compare_pkg_header(const uint8_t *header, size_t headerSize) {
+	const struct mtkupg_header *hdr = (const struct mtkupg_header *) header;
 
 	if( !strncmp(hdr->vendor_magic, HISENSE_PKG_MAGIC, strlen(HISENSE_PKG_MAGIC)) ){
 		printf("[+] Found HISENSE Package\n");
-		return 1;
+		return true;
 	}
 	if( !strncmp(hdr->vendor_magic, SHARP_PKG_MAGIC, strlen(SHARP_PKG_MAGIC)) ){
 		printf("[+] Found SHARP Package\n");
 		mtkpkg_variant_flags |= SHARP;
-		return 1;
+		return true;
 	}
 	if( !strncmp(hdr->vendor_magic, TPV_PKG_MAGIC, strlen(TPV_PKG_MAGIC)) ||
 		!strncmp(hdr->vendor_magic, TPV_PKG_MAGIC2,strlen(TPV_PKG_MAGIC2))
 	){
 		printf("[+] Found PHILIPS(TPV) Package\n");
-		return 1;
+		return true;
 	}
 
 	if( !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC, strlen(PHILIPS_PKG_MAGIC))
 	 || !strncmp(hdr->vendor_magic, PHILIPS_PKG_MAGIC2, strlen(PHILIPS_PKG_MAGIC2))
 	){
 		printf("[+] Found PHILIPS Package\n");
-		return 1;
+		return true;
 	}
 
 	if( !strncmp(hdr->mtk_magic, MTK_FIRMWARE_MAGIC, strlen(MTK_FIRMWARE_MAGIC)) ){
@@ -63,18 +63,15 @@ int compare_pkg_header(uint8_t *header, size_t headerSize){
 			member_size(struct mtkupg_header, vendor_magic),
 			hdr->vendor_magic
 		);
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
-int compare_content_header(uint8_t *header, size_t headerSize){
-	struct mtkpkg_data *data = (struct mtkpkg_data *)header;
-	if ( !strncmp(data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) ){
-		return 1;
-	}
-	return 0;
+static bool compare_content_header(const uint8_t *header, size_t headerSize) {
+	const struct mtkpkg_data *data = (const struct mtkpkg_data *) header;
+	return strncmp(data->header.mtk_reserved, MTK_RESERVED_MAGIC, strlen(MTK_RESERVED_MAGIC)) == 0;
 }
 
 bool is_known_partition(struct mtkpkg *pak){
@@ -500,8 +497,8 @@ void extract_mtk_pkg(const char *pkgFile, config_opts_t *config_opts){
 					dataSize, &(dataKey->key),
 					(void *)&iv_tmp, AES_DECRYPT
 				);
-				int success = compare_content_header(pkgData, sizeof(struct mtkpkg_data));
-				if(!success){
+
+				if(!compare_content_header(pkgData, sizeof(struct mtkpkg_data))){
 					fprintf(stderr, "[!] WARNING: MTK Crypted header not found, continuing anyways...\n");
 				}
 			}

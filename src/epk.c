@@ -29,18 +29,27 @@ static int sigCheckAvailable = 0;
 static int firstAttempt = 1;
 
 /*
- * Checks if the given data is an EPK2 or EPK3 header
+ * Determines the format of an EPK header
+ *
+ * Returns the detected type, or INVALID if no match found
  */
-int compare_epak_header(uint8_t *header, size_t headerSize){
-	if(compare_epk2_header(header, headerSize)){
+static FILE_TYPE_T get_epak_header_type(const uint8_t *header, size_t headerSize) {
+	if (compare_epk2_header(header, headerSize)) {
 		return EPK_V2;
-	} else if(compare_epk3_header(header, headerSize)){
+	} else if (compare_epk3_header(header, headerSize)) {
 		return EPK_V3;
-	} else if(compare_epk3_new_header(header, headerSize)){
+	} else if (compare_epk3_new_header(header, headerSize)) {
 		return EPK_V3_NEW;
 	}
 
-	return 0;
+	return INVALID;
+}
+
+/*
+ * Checks if the given data is an EPK2 or EPK3 header
+ */
+static bool compare_epak_header(const uint8_t *header, size_t headerSize) {
+	return (get_epak_header_type(header, headerSize) != INVALID);
 }
 
 /*
@@ -235,12 +244,12 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 			err_exit("Error in %s: file type %d not handled\n", __func__, type);
 	}
 
-	int decrypted = 0;
+	bool decrypted = false;
 	uint8_t *decryptedData = NULL;
 
 	// Check if we need decryption
 	if(type != RAW && compareFunc(src, datalen)){
-		decrypted = 1;
+		decrypted = true;
 		return decrypted;
 	}
 
@@ -258,7 +267,7 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 	} else {
 		decryptImage(src, datalen, dest);
 		if(type == RAW)
-			decrypted = 1;
+			decrypted = true;
 		else
 			decrypted = compareFunc(dest, datalen);
 	}
@@ -267,7 +276,7 @@ int wrap_decryptimage(void *src, size_t datalen, void *dest, char *config_dir, F
 		return -1;
 	} else if(type == EPK){
 		if(outType != NULL){
-			*outType = compare_epak_header(decryptedData, datalen);
+			*outType = get_epak_header_type(decryptedData, datalen);
 		}
 	}
 

@@ -10,8 +10,8 @@
 
 #define EPK3_MAGIC "EPK3"
 
-int compare_epk3_header(uint8_t *header, size_t headerSize);
-int compare_epk3_new_header(uint8_t *header, size_t headerSize);
+bool compare_epk3_header(const uint8_t *header, size_t headerSize);
+bool compare_epk3_new_header(const uint8_t *header, size_t headerSize);
 MFILE *isFileEPK3(const char *epk_file);
 void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts);
 
