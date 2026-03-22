@@ -119,8 +119,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		headerSize,
 		epkHeader,
 		config_opts->dest_dir,
-		EPK_V3,
-		NULL
+		EPK_V3
 	)) {
 		return;
 	}
@@ -213,8 +212,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 		epkHeader->old.packageInfoSize,
 		packageInfo,
 		config_opts->dest_dir,
-		RAW,
-		NULL
+		RAW
 	)) {
 		return;
 	}
@@ -304,8 +302,7 @@ void extractEPK3(MFILE *epk, FILE_TYPE_T epkType, config_opts_t *config_opts){
 					pak->segmentInfo.segmentSize,
 					(void *)dataPtr,
 					config_opts->dest_dir,
-					RAW,
-					NULL
+					RAW
 			)) {
 				return;
 			}

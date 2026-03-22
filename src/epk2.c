@@ -111,11 +111,10 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 		sizeof(EPK_V2_HEADER_T),
 		epkHeader,
 		config_opts->dest_dir,
-		EPK_V2,
-		NULL
+		EPK_V2
 	);
 
-	if(result < 0){
+	if(!result){
 		return;
 	}
 
@@ -211,11 +210,10 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 					sizeof(PAK_V2_HEADER_T),
 					&(pak->pakHeader),
 					config_opts->config_dir,
-					(FILE_TYPE_T)PAK_V2,
-					NULL
+					(FILE_TYPE_T)PAK_V2
 			);
 
-			if(result < 0){
+			if(!result){
 				return;
 			}
 
@@ -243,8 +241,7 @@ void extractEPK2(MFILE *epk, config_opts_t *config_opts) {
 				pak->pakHeader.segmentSize,
 				&(pak->pData),
 				config_opts->config_dir,
-				(FILE_TYPE_T)RAW,
-				NULL
+				(FILE_TYPE_T)RAW
 			);
 
 			mwrite(&(pak->pData), pakContentSize, 1, outFile); //write the decrypted data

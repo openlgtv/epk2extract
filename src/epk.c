@@ -23,10 +23,6 @@
 #include "util_crypto.h"
 
 static EVP_PKEY *_gpPubKey;
-static AES_KEY *aesKey;
-static int keyFound = 0;
-static int sigCheckAvailable = 0;
-static int firstAttempt = 1;
 
 /*
  * Determines the format of an EPK header
@@ -141,7 +137,7 @@ static bool API_SWU_VerifyImage(const void *signature, const void *data, size_t 
 /*
  * Wrapper for signature verification. Retries by decrementing size if it fails
  */
-static int wrap_SWU_VerifyImage(
+static bool wrap_SWU_VerifyImage(
 	const void *signature, const void *data,
 	size_t signedSize, size_t *effectiveSignedSize, SIG_TYPE_T sigType
 ){
@@ -156,28 +152,34 @@ static int wrap_SWU_VerifyImage(
 			}
 			//printf("Success!\nDigital signature is OK. Signed bytes: %d\n", curSize);
 			//printf("Subtracted: %d\n", skipped);
-			return 0;
+			return true;
 		} else {
 			//skipped++;
 		}
 		curSize--;
 	}
 	//printf("Failed\n");
-	return -1;
+	return false;
 }
 
 /*
  * High level wrapper for signature verification
+ *
+ * Note that the signature covers the ciphertext, so verification must be performed before decryption. 
  */
-int wrap_verifyimage(const void *signature, const void *data, size_t signSize, const char *config_dir, SIG_TYPE_T sigType){
+bool wrap_verifyimage(const void *signature, const void *data, size_t signSize, const char *config_dir, SIG_TYPE_T sigType){
+	static bool firstAttempt = true;
+	static bool sigCheckAvailable = false;
 	size_t effectiveSignedSize;
-	int result = -1;
+	bool result = false;
+
 	if(!sigCheckAvailable){
 		// No key available, fail early
 		if(!firstAttempt){
-			return -1;
+			return false;
 		}
-		firstAttempt = 0;
+		firstAttempt = false;
+
 		printf("Verifying %zu bytes\n", signSize);
 
 		DIR* dirFile = opendir(config_dir);
@@ -194,8 +196,8 @@ int wrap_verifyimage(const void *signature, const void *data, size_t signSize, c
 					if (key == NULL) continue;
 					_gpPubKey = key; /* TODO: this doesn't need to be global */
 					result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize, sigType);
-					if(result > -1){
-						sigCheckAvailable = 1;
+					if(result){
+						sigCheckAvailable = true;
 						break;
 					}
 				}
@@ -206,7 +208,7 @@ int wrap_verifyimage(const void *signature, const void *data, size_t signSize, c
 		result = wrap_SWU_VerifyImage(signature, data, signSize, &effectiveSignedSize, sigType);
 	}
 
-	if (result < 0) {
+	if (!result) {
 		fprintf(stderr, "WARNING: Cannot verify digital signature (maybe you don't have proper PEM file)\n\n");
 	} else {
 		printf("Succesfully verified 0x%zx out of 0x%zx bytes\n", effectiveSignedSize, signSize);
@@ -217,7 +219,7 @@ int wrap_verifyimage(const void *signature, const void *data, size_t signSize, c
 /*
  * Decrypts the given data against the loaded AES key, with ECB mode
  */
-static void decryptImage(const void *srcaddr, size_t len, void *dstaddr) {
+static void decryptImage(const void *srcaddr, size_t len, void *dstaddr, const AES_KEY *aesKey) {
 	unsigned int remaining = len;
 
 	while (remaining >= AES_BLOCK_SIZE) {
@@ -232,12 +234,14 @@ static void decryptImage(const void *srcaddr, size_t len, void *dstaddr) {
 }
 
 /*
- * Identifies correct key for decryption (if not previously identified) and decrypts data
- * The comparison function is selected from the passed file type
- * For EPK comparison, outType is used to store the detected type (EPK v2 or EPK v3)
+ * Identifies correct key for decryption (if not previously identified) and decrypts data.
+ * If type is not RAW, validation will be performed after decryption.
+ *
+ * Returns true on successful decryption.
  */
-int wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *config_dir, FILE_TYPE_T type, FILE_TYPE_T *outType){
+bool wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *config_dir, FILE_TYPE_T type) {
 	CompareFunc compareFunc = NULL;
+
 	switch(type){
 		case EPK:
 			compareFunc = compare_epak_header;
@@ -257,43 +261,49 @@ int wrap_decryptimage(const void *src, size_t datalen, void *dest, const char *c
 			err_exit("Error in %s: file type %d not handled\n", __func__, type);
 	}
 
-	bool decrypted = false;
-	uint8_t *decryptedData = NULL;
-
-	// Check if we need decryption
+	// Check if it's not encrypted
 	if(type != RAW && compareFunc(src, datalen)){
-		decrypted = true;
-		return decrypted;
+		/* XXX: This doesn't seem right. Don't we want the plaintext to end up in dest? */
+		return true;
 	}
 
-	if(!keyFound){
+	static bool keyFound = false;
+	static AES_KEY aesKey;
+
+	bool decrypted = false;
+
+	if (!keyFound) {
 		printf("Trying known AES keys...\n");
+		void *decryptedData = NULL;
 		KeyPair *keyPair = find_AES_key(src, datalen, compareFunc, KEY_ECB, (void **)&decryptedData, true);
-		decrypted = keyFound = (keyPair != NULL);
-		if(decrypted){
-			aesKey = &(keyPair->key);
-		}
-		if(decrypted && type != EPK){
+
+		if (keyPair != NULL) {
+			/* Store the AES key for future calls */
+			aesKey = keyPair->key;
+			free(keyPair);
+
+			decrypted = keyFound = true;
+
 			memcpy(dest, decryptedData, datalen);
 			free(decryptedData);
 		}
 	} else {
-		decryptImage(src, datalen, dest);
-		if(type == RAW)
+		decryptImage(src, datalen, dest, &aesKey);
+
+		if (type == RAW) {
+			/* There is no way to check RAW, so assume it's good */
 			decrypted = true;
-		else
+		} else {
 			decrypted = compareFunc(dest, datalen);
-	}
-	if (!decrypted){
-		PERROR("Cannot decrypt EPK content (proper AES key is missing).\n");
-		return -1;
-	} else if(type == EPK){
-		if(outType != NULL){
-			*outType = get_epak_header_type(decryptedData, datalen);
 		}
 	}
 
-	return decrypted;
+	if (!decrypted) {
+		PERROR("Cannot decrypt EPK content (proper AES key is missing).\n");
+		return false;
+	}
+
+	return true;
 }
 
 /*
@@ -320,24 +330,40 @@ void extractEPKfile(const char *epk_file, config_opts_t *config_opts){
 	struct epk2_structure *epk2 = mdata(epk, struct epk2_structure);
 	EPK_V2_HEADER_T *epkHeader = &(epk2->epkHeader);
 
-	int result;
 	FILE_TYPE_T epkType;
-	if(compare_epk2_header((uint8_t *)epkHeader, sizeof(*epkHeader))){
+
+	if(compare_epk2_header((const uint8_t *) epkHeader, sizeof(*epkHeader))){
 		epkType = EPK_V2;
 	} else {
+		/* We need to decrypt the header before determining EPK version */
 		printf("\nTrying to decrypt EPK header...\n");
-		/* Detect if the file is EPK v2 or EPK v3 */
-		result = wrap_decryptimage(
+		/*
+		 * Since all we want is to find out whether the file is EPK v2 or EPK v3,
+		 * we supply a temporary buffer
+		 */
+		const size_t buf_len = sizeof(EPK_V2_HEADER_T);
+		void *dest_buf = calloc(1, buf_len);
+		if (dest_buf == NULL) {
+			err_exit("Memory allocation failed in %s\n", __func__);
+		}
+
+		bool result = wrap_decryptimage(
 			epkHeader,
-			sizeof(EPK_V2_HEADER_T),
-			epkHeader,
+			buf_len,
+			dest_buf,
 			config_opts->config_dir,
-			EPK,
-			&epkType
+			EPK
 		);
-		if(result < 0){
+
+		if (!result) {
+			/* Error message already printed by wrap_decryptimage() */
+			(void) mclose(epk);
+			free(dest_buf);
 			return;
 		}
+
+		epkType = get_epak_header_type(dest_buf, buf_len);
+		free(dest_buf);
 	}
 
 	switch(epkType){
