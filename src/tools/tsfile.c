@@ -9,7 +9,7 @@ int main(int argc, char *argv[]){
 	char *tsfile = NULL;
 	int ac = -1, vc = -1;
 
-	int argi; // positional argument index
+	int argi = 0; // positional argument index
 	for(int i=1; i<argc; i++){
 		char *arg = argv[i];
 		if(*arg != '-'){
