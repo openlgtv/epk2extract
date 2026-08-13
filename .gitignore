@@ -31,3 +31,5 @@ src/tools/idb_extract
 src/tools/jffs2extract
 src/tools/lzhs_scanner
 src/tools/lzhsenc
+
+result
