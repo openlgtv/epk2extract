@@ -61,7 +61,7 @@ typedef struct {
 	void *pMem;
 } MFILE;
 
-MFILE *mfile_new();
+MFILE *mfile_new(void);
 
 void *mfile_map(MFILE *file, size_t size);
 void *mfile_map_private(MFILE *file, size_t size);

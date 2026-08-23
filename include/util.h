@@ -46,7 +46,7 @@ void unnfsb(const char *filename, const char *extractedFile);
 MFILE *is_gzip(const char *filename);
 int is_jffs2(const char *filename);
 int isSTRfile(const char *filename);
-int isdatetime(const char *datetime);
+bool is_datetime(const char *datetime);
 int isPartPakfile(const char *filename);
 int is_kernel(const char *image_file);
 void extract_kernel(const char *image_file, const char *destination_file);
