@@ -71,6 +71,13 @@ Mandriva/Mageia:
 ```shell
 urpmi git task-c++-devel cmake liblzo-devel libopenssl-devel glibc-devel --auto
 ```
+MacOS:
+```shell
+brew install git
+brew install cmake
+brew install lzo
+brew install openssl
+```
 
 ### Build it
 ```shell
