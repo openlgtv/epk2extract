@@ -413,6 +413,7 @@ static void detect_model(const struct p2_device_info *pid) {
 	int isbcm2 = !strcmp("bcm35230_map0", pid->name); //match broadcom
 	int ismstar = !strcmp("mstar_map0", pid->name);   //match mstar
 	int islm14 = !strcmp("mstar-emmc", pid->name);    //match lm14
+	int iso22n = !strcmp("o22n_emmc", pid->name);     //match o22n
 
 	if (ismtk1)
 		modelname = "Mtk 2012 - MTK5369 (Cortex-A9 single-core)";
@@ -430,10 +431,12 @@ static void detect_model(const struct p2_device_info *pid) {
 		modelname = "Mstar Saturn6 / Saturn7 / M1 / M1a / LM1";
 	else if (islm14)
 		modelname = "Mstar LM14";
+	else if (iso22n)
+		modelname = "LX O22n";
 	else
 		return;
 
-	if (ismtk2 || is1154 || islm14) {
+	if (ismtk2 || is1154 || islm14 || iso22n) {
 		part_type = STRUCT_PARTINFOv2;
 	} else if (ismtk1 || is1152) {
 		part_type = STRUCT_PARTINFOv1;
