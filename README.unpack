@@ -1,0 +1,188 @@
+# Unpacking LG webOS Firmware (super.pak)
+
+Model: [OLED55C56LB.AEK](https://www.lg.com/uk/support/product-support/cs-OLED55C56LB.AEK/)
+
+Platform: **o22n3** (webOS 10 / 2025 G-series, OTA ID `HE_DTV_W25G_AFABATAA`)
+
+Firmware version: **33.31.68.01**
+
+This document covers the **second extraction step**: carving and unpacking the logical partitions inside `super.pak`. The first step (decrypting the `.epk` file) is documented in [README.md](README.md).
+
+---
+
+## What the first extraction gives you
+
+Running `epk2extract` on the `.epk` file produces a directory of `.pak` blobs. Some are decoded automatically; most are not.
+
+| File | What it is | Auto-decoded? |
+|------|-----------|---------------|
+| `super.pak` (~1.7 GB) | Main OS image (rootfs, fonts, BSP, etc.) | No |
+| `dpmeta.pak` | Partition layout + dm-verity boot parameters | No |
+| `kernel.pak` / `kernel.pak.unlz4` | ARM64 Linux kernel | LZ4 decompressed |
+| `dtbpak.pak` | Device tree blob (hardware description) | No |
+| `license.pak` / `license.pak.unsquashfs` | MotionEngine libraries | Squashfs extracted |
+| `logo.pak` / `logo.pak.unlz4` | Boot splash image | LZ4 decompressed |
+| `gaming-micom.pak` | Gaming MCU firmware (Intel HEX) | No |
+| `tzfw.pak`, `lxboot.pak`, `secureboot.pak` | Bootloader / TrustZone images | No |
+| `intmicom.pak`, `mble-fw.pak` | Microcontroller firmware | No |
+| `sedata.pak` | Secure element data | No |
+| `partinfo.pak` | eMMC partition table metadata | No |
+
+The first `epk2extract` run decrypts and splits the EPK. It does **not** unpack everything inside `super.pak` — that is normal for webOS 10 (o22n3) firmware.
+
+---
+
+## The super partition layout
+
+`super.pak` is a raw eMMC super-partition image. Inside it, LG stores multiple logical partitions as consecutive squashfs images. The layout is described in `dpmeta.pak`, which contains a `dm-mod.create` string used at boot to map dm-verity devices.
+
+For firmware **33.31.68.01** (verified 2026-07-03):
+
+| Partition | Start sector | Size (sectors) | Approx. size |
+|-----------|-------------|----------------|--------------|
+| `rootfs` | 2048 | 3,292,320 | ~1.6 GB |
+| `fonts` | 3,295,232 | 132,320 | ~64 MB |
+| `otncabi` | 3,428,352 | 22,832 | ~11 MB |
+| `otycabi` | 3,452,928 | 280 | ~140 KB |
+| `bsppart` | 3,454,976 | 75,064 | ~36 MB |
+
+Sector size is 512 bytes. At runtime these partitions are wrapped in **webos-verity** (dm-verity), but the raw squashfs data inside `super.pak` can be carved and unpacked offline for analysis.
+
+To inspect the layout yourself:
+
+```bash
+strings dpmeta.pak | tr ';' '\n' | grep linear
+```
+
+---
+
+## Quick start: carve and unpack everything
+
+A script automates carving all partitions from `super.pak` and running `epk2extract` on each squashfs image:
+
+```bash
+# From the project root (where this README lives)
+./unpack-super.sh
+
+# Or specify the extraction directory explicitly
+./unpack-super.sh 33.31.68.01-HE_DTV_W25G_AFABATAA
+```
+
+Prerequisites:
+
+1. `epk2extract` must be built (`./build.sh`).
+2. The extraction directory must contain `super.pak` and `dpmeta.pak`.
+3. On Linux, install `fakeroot` for correct device-node extraction in rootfs.
+
+### Manual carve (single partition)
+
+```bash
+cd 33.31.68.01-HE_DTV_W25G_AFABATAA
+
+# Carve rootfs from super.pak
+dd if=super.pak of=rootfs.pak bs=512 skip=2048 count=3292320
+
+# Unpack the squashfs
+cd build_osx   # or build_linux
+./epk2extract ../../33.31.68.01-HE_DTV_W25G_AFABATAA/rootfs.pak
+```
+
+This produces `rootfs.pak.unsquashfs/` — the full webOS filesystem tree (~98k files on this firmware).
+
+Repeat with the other partition offsets for `fonts`, `otncabi`, `otycabi`, and `bsppart`, or use `unpack-super.sh`.
+
+### Expected output after full unpack
+
+```
+33.31.68.01-HE_DTV_W25G_AFABATAA/
+├── super.pak
+├── dpmeta.pak
+├── rootfs.pak
+├── rootfs.pak.unsquashfs/     ← main webOS filesystem
+├── fonts.pak
+├── fonts.pak.unsquashfs/
+├── otncabi.pak
+├── otncabi.pak.unsquashfs/
+├── otycabi.pak
+├── otycabi.pak.unsquashfs/
+├── bsppart.pak
+├── bsppart.pak.unsquashfs/
+├── kernel.pak.unlz4
+├── license.pak.unsquashfs/
+└── ...
+```
+
+---
+
+## What you can do with the unpacked content
+
+### Research and reverse engineering
+
+- Browse the webOS app and service layout under `rootfs.pak.unsquashfs/usr/palm/`
+- Inspect binaries with `strings`, Ghidra, or IDA
+- Read configs in `/etc`, service manifests, Luna bus settings
+- Study the kernel image and device tree for drivers and hardware
+- Compare this build against other firmware versions
+
+### Security and rooting preparation
+
+- Check [cani.rootmy.tv](https://cani.rootmy.tv/) for your exact firmware version
+- Look for known vulnerable services or debug interfaces in rootfs
+- Understand what exploits like [faultmanager-autoroot](https://github.com/throwaway96/faultmanager-autoroot) target
+- Rooting is needed for **on-TV** changes; offline firmware analysis does not require it
+
+### Boot assets and low-level firmware
+
+- `logo.pak.unlz4` — boot splash (may need further format work)
+- `gaming-micom.pak` — gaming controller MCU firmware (Intel HEX)
+- `tzfw.pak` / `lxboot.pak` — try `./lzhs_scanner tzfw.pak 1` from `build_*` (LZHS compression, common on LG boot images)
+- `dtbpak.pak` — device tree; use `dtc -I dtb -O dts dtbpak.pak` to decompile
+
+### PVR recording decryption (separate from firmware unpack)
+
+`epk2extract` can decrypt `.str`/`.pif` PVR recordings, but that requires a **per-TV DVR key** dumped from a rooted TV — not these firmware files. See [README.md](README.md).
+
+---
+
+## What you generally cannot do (easily)
+
+- **Repack and flash modified firmware** — `epk2extract` is extract-only. Repacking requires OpenLGTV wiki tooling on Linux, and images use webos-verity, so modified partitions will not boot without disabling verity or resigning.
+- **Sideload this as an update** — LG's USB update path expects a signed EPK, not loose `.pak` files.
+- **Run webOS apps locally** — this is an ARM64 embedded rootfs, not a runnable VM image.
+
+For practical on-TV customization, the usual path is: root the TV → install [Homebrew Channel](https://www.webosbrew.org/) → use filesystem overlays for persistent changes.
+
+---
+
+## Troubleshooting
+
+### `Filesystem uses unknown compression`
+
+Some newer LG firmware uses squashfs compressors that older `epk2extract` builds do not support. This firmware (33.31.68.01) uses LZO and unpacks cleanly. If you hit this on a different version, update `epk2extract` or ask on [OpenLGTV Discord](https://discord.gg/xWqRVEm).
+
+### `proper AES key is missing`
+
+You are still on step 1 (EPK decryption), not super unpacking. See [README.md](README.md).
+
+### Partition offsets differ on another firmware
+
+The `unpack-super.sh` script reads offsets from `dpmeta.pak` at runtime. If `dpmeta.pak` is missing or the format changes, check offsets manually with `strings dpmeta.pak`.
+
+### Linux: missing device nodes in rootfs
+
+Run extraction under `fakeroot`:
+
+```bash
+fakeroot ./epk2extract rootfs.pak
+```
+
+The `unpack-super.sh` script does this automatically on Linux when `fakeroot` is available.
+
+---
+
+## Links
+
+- [epk2extract](https://github.com/openlgtv/epk2extract)
+- [OpenLGTV Discord](https://discord.gg/xWqRVEm)
+- [webOS Homebrew](https://www.webosbrew.org/)
+- [Can I root my TV?](https://cani.rootmy.tv/)
